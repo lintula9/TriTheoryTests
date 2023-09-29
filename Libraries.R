@@ -3,5 +3,10 @@
 packages <- c("lavaan", "qgraph", "psych", "mlVAR")
 
 for ( i in packages ) {
-  library( i , character.only = T )
+  if ( !requireNamespace( i, 
+                          quietly = T )) {
+    install.packages( i )
+  }
+  library( i, character.only = TRUE )
+
   }
