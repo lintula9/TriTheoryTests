@@ -56,7 +56,7 @@ ExampleVARCoefs[ , , 3] <- matrix( c(.05,.3,.3,
                                      .3,.3,.05), ncol = 3 )
 ExampleVARCoefs[ , , 4] <- matrix( c(.3,.05,.05, 
                                      .3,.3,.05,
-                                     .3,.05,.3), ncol = 3 )
+                                     .05,.3,.3), ncol = 3 )
 
 for ( i in 1:4 ) {
   
@@ -72,7 +72,7 @@ for ( i in 1:4 ) {
 par( mfrow = c( 2, 1 ))
 sapply( 1 : 4 , function( i ) {
   
-  qgraph(ExampleVARCoefs[ , , i ], edge.labels = T, diag = T, mar = c( 12, 12, 10, 10 ) )
+  qgraph(ExampleVARCoefs[ , , i ], edge.labels = T, diag = T, mar = c( 12, 12, 10, 10 ), layout = "circle" )
   matplot(VARexamples[ , , i ], type = "l", ylab = "Within person symptom process", xlab = "Time", main = "", family = "serif")
   time1 <- sample( 1 : 100, 1 )
   abline( v = time1 ) 
