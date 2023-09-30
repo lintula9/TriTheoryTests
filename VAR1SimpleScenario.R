@@ -17,9 +17,9 @@ VARparams <- matrix(c(.3,.3,.3,
 simstime1 <- matrix(NA , ncol = 3, nrow = 100 ) # Placeholder matrices for simulation data.
 simstime2 <- matrix(NA , ncol = 3, nrow = 100 )
 
-
+if (FALSE) {
 for ( i in 1:100 ) { 
-  simui <- simulateVAR( # A
+  Sim1 <- simulateVAR( # A
             VARparams,  
             means = 0, 
             lags = 1, 
@@ -30,8 +30,8 @@ for ( i in 1:100 ) {
   time1 <- sample( 1:100, 1) # B
   time2 <- time1 + 100 # B
 
-  simstime1[ i , ] <- as.matrix(simui[ time1, ])
-  simstime2[ i , ] <- as.matrix(simui[ time2, ])
+  simstime1[ i , ] <- as.matrix(Sim1[ time1, ])
+  simstime2[ i , ] <- as.matrix(Sim1[ time2, ])
 }
 
 round( cov( simstime1 ) - cov( simstime2 ), 3 ) # C, Result: Difference between covariance matrices is small to non-existent, indicating 'measurement invariance'.
@@ -41,7 +41,7 @@ qgraph(VARparams, directed = T, diag = T, edge.labels = T)
 
 # Example figure of sampling:
 
-matplot(simui, type = "l", ylab = "Within person symptom process", xlab = "Time", main = "Two samples are observed from one person.", family = "serif")
+matplot(Sim1, type = "l", ylab = "Within person symptom process", xlab = "Time", main = "Two samples are observed from one person.", family = "serif")
 abline( v = time1 ) # Observation 1
 abline( v = time2 ) # Observation 2
-
+}
