@@ -29,7 +29,7 @@ SI is a additive confounding causal model that explains the positive manifold by
 Widiger, Oltmans and others suggested this [I believe at least here](https://doi.org/10.1521/pedi_2021_35_530) as a response to p factor theory.  
 
 ## General idea
-![A: simple (causal) network, B: Simple LV model, C: SI model represented with bonds that are synonymous to impairments.](applicationFigure.png)
+![A: simple (causal) network, B: Simple LV model, C: SI model represented with bonds that are synonymous to impairments.](figure/applicationFigure.png)
 
 ## General idea
 They often make the same predictions at least in cross-sectional data:  
@@ -101,7 +101,7 @@ round( cov( na.omit(simstime2) ), 2)
 
 AR processes are of course limited in real world scenarios without time-varying parameters.  
 
-![Image of a white noise, true AR(1), and AR(1) model fit to true stepwise linear model.](ARProcess.png)
+![Image of a white noise, true AR(1), and AR(1) model fit to true stepwise linear model.](figure/ARProcess.png)
 
 
 ## Intervention designs.
@@ -117,5 +117,5 @@ In practice, the difficulty might be 'fat handedness' [, e.g. Eronen (2020)](htt
 
 ## Intervention designs.
 
-![Some differences in how interventions might affect different models. A: Intervention hitting a 'central node' (although this idea has already been critized. B: Most effective intervention for an LV model. C: Conceputalization of a most (transdiagnostically) effective intervetion to SI model. D: Sketch of absolutely fat handed itervention.)](applicationFigure4.png)
+![Some differences in how interventions might affect different models. A: Intervention hitting a 'central node' (although this idea has already been critized. B: Most effective intervention for an LV model. C: Conceputalization of a most (transdiagnostically) effective intervetion to SI model. D: Sketch of absolutely fat handed itervention.)](figure/applicationFigure4.png)
 
