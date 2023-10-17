@@ -3,11 +3,11 @@
 # Between person homogeneous -> heterogeneous.
 # D: Create random VAR(1) process coefficient (drift) matrix:
 
+Nruns <- 100
+simstime1 <- matrix(NA , ncol = 3, nrow = Nruns ) # Placeholder matrices for simulation data.
+simstime2 <- matrix(NA , ncol = 3, nrow = Nruns )
 
-simstime1 <- matrix(NA , ncol = 3, nrow = 100 ) # Placeholder matrices for simulation data.
-simstime2 <- matrix(NA , ncol = 3, nrow = 100 )
-
-for ( i in 1:100 ) { 
+for ( i in 1:Nruns ) { 
   VARparams <- matrix(c(.3,.3,.3, 
                         .3,.3,.3,
                         .3,.3,.3) + 
