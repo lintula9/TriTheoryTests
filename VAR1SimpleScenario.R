@@ -20,7 +20,7 @@ simstime2 <- matrix(NA , ncol = 3, nrow = Nruns )
 
 
 
-if (T) {
+if(F) {
   pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
                        max = Nruns, # Maximum value of the progress bar
                        style = 3,    # Progress bar style (also available style = 1 and style = 2)
@@ -46,7 +46,10 @@ if (T) {
     
   }
     
-
+if(F) {utils::write.csv(file = "Simulation1.csv" , x = cbind(simstime1, simstime2), )} # Save simulation
+if(F) {simstime1 <- utils::read.csv("Simulation1.csv")[,2:4]
+       simstime2 <- utils::read.csv("Simulation1.csv")[,5:7]} # Read simulation.
+  
 round( cov( na.omit(simstime1) ) - cov( na.omit(simstime2) ), 3 ) # C, Result: Difference between covariance matrices is small to non-existent, indicating 'measurement invariance'.
 
 if(F){
@@ -59,4 +62,4 @@ matplot(Sim1, type = "l", ylab = "Within person symptom process", xlab = "Time",
 abline( v = time1 ) # Observation 1
 abline( v = time2 ) # Observation 2
 }
-}
+

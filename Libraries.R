@@ -1,6 +1,6 @@
 # Libraries
 
-packages <- c("lavaan", "qgraph", "psych", "mlVAR")
+packages <- c("lavaan", "qgraph", "psych", "mlVAR", "knitr")
 
 for ( i in packages ) {
   if ( !requireNamespace( i, 

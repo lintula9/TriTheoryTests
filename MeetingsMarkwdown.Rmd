@@ -119,3 +119,13 @@ In practice, the difficulty might be 'fat handedness' [, e.g. Eronen (2020)](htt
 
 ![Some differences in how interventions might affect different models. A: Intervention hitting a 'central node' (although this idea has already been critized. B: Most effective intervention for an LV model. C: Conceputalization of a most (transdiagnostically) effective intervetion to SI model. D: Sketch of absolutely fat handed itervention.)](figure/applicationFigure4.png)
 
+- This could've been used in a Bayesian averaging setting, with each of the A-D comprising an individual process through which intervention (e.g., psychotherapy) affects. Then you could've seen if any model is superior in terms of weight in the Bayesian model.  
+
+## Ergodicity
+
+- I suspect that most ergodic data-generating processes won't be able to distinguish between Network, LV or SI models.  
+
+This is because we already know that the cross-sectional data does not distinguish between the models (up to second order moments at least). Then it follows that these processes won't also distinguish between models, when we're inspecting them over time instead. By definition of ergodicity, they are the same processess when observed cross-sectionally over multiple subjects, or observed over time.  
+
+
+## 
