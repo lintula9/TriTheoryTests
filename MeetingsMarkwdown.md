@@ -1,8 +1,10 @@
 ---
 title: "Kuuma Peruna (KP) simulation results"
 author: "Sakari"
-date: "2023-10-17"
-output: ioslides_presentation
+date: "2023-10-18"
+output:
+  slidy_presentation: default
+  ioslides_presentation: default
 fig_caption: no
 ---
 
@@ -46,6 +48,7 @@ They often make the same predictions at least in cross-sectional data:
 
 
 ## Scenarios where they might differ are unclear.
+
 - Longitudinal repeated cross-sectional (i.e., measurement invariance).  
 
 - Intervention data distinguishes in some scenarios (but 'fat hand' etc problems).  
@@ -83,18 +86,18 @@ I.e., we get measurement invariance.
 (Between person) covariance at random time 1, of 10000 samples.  
 
 ```
-##      [,1] [,2] [,3]
-## [1,] 0.25 0.15 0.14
-## [2,] 0.15 0.25 0.14
-## [3,] 0.14 0.14 0.24
+##      V1   V2   V3
+## V1 0.25 0.15 0.14
+## V2 0.15 0.25 0.14
+## V3 0.14 0.14 0.24
 ```
 Covariance at random time 2 =  time 1 + 100, of 10000 samples.  
 
 ```
-##      [,1] [,2] [,3]
-## [1,] 0.24 0.14 0.14
-## [2,] 0.14 0.25 0.14
-## [3,] 0.14 0.14 0.24
+##      V4   V5   V6
+## V4 0.24 0.14 0.14
+## V5 0.14 0.25 0.14
+## V6 0.14 0.14 0.24
 ```
 ## Longitudinal data, temporal analysis.
 
@@ -112,7 +115,7 @@ Definitely different implications for interventions.
 
 - LP predicts, that most effective intervention is directly aimed at the underlying process. E.g., attacking emotion regulation might be one such process, that then creates (transdiagnostic) healing.  
 
-In practice, the difficulty might be 'fat handedness' [, e.g. Eronen (2020)](https://doi.org/10.1016/j.newideapsych.2020.100785), of interventions.    
+In practice, the difficulty might be 'fat handedness' [, e.g. Eronen (2020)](https://doi.org/10.1016/j.newideapsych.2020.100785), of interventions.     
 
 ## Intervention designs.
 
@@ -120,11 +123,14 @@ In practice, the difficulty might be 'fat handedness' [, e.g. Eronen (2020)](htt
 
 - This could've been used in a Bayesian averaging setting, with each of the A-D comprising an individual process through which intervention (e.g., psychotherapy) affects. Then you could've seen if any model is superior in terms of weight in the Bayesian model.  
 
-## Ergodicity
+## Ergodicity and stationary processses
 
 - I suspect that most ergodic data-generating processes won't be able to distinguish between Network, LV or SI models.  
 
-This is because we already know that the cross-sectional data does not distinguish between the models (up to second order moments at least). Then it follows that these processes won't also distinguish between models, when we're inspecting them over time instead. By definition of ergodicity, they are the same processess when observed cross-sectionally over multiple subjects, or observed over time.  
+- Ergodicity implies stationarity -> 'Wide sense stationarity' (sufficient for typically analysed processes..?) implies mean and covariance of a stochastic process being time-invariant.  
+
+-> If we already know that cross-sectional data (up to second order moments, covariance) does not distinguish LV from Network model, then stationary processes won't also distinguish between them (between subjects).  
+-> Maybe get into the within level, non-ergodic processes pretty quickyl?
 
 
 ## 

@@ -48,6 +48,7 @@ They often make the same predictions at least in cross-sectional data:
 
 
 ## Scenarios where they might differ are unclear.
+
 - Longitudinal repeated cross-sectional (i.e., measurement invariance).  
 
 - Intervention data distinguishes in some scenarios (but 'fat hand' etc problems).  
@@ -103,6 +104,10 @@ AR processes are of course limited in real world scenarios without time-varying 
 
 ![Image of a white noise, true AR(1), and AR(1) model fit to true stepwise linear model.](figure/ARProcess.png)
 
+## Longitudinal data, temporal analysis.
+
+- Is it generally discussed how AR processes predict symptomatology [e.g, ]
+
 
 ## Intervention designs.
 Definitely different implications for interventions.  
@@ -113,7 +118,7 @@ Definitely different implications for interventions.
 
 - LP predicts, that most effective intervention is directly aimed at the underlying process. E.g., attacking emotion regulation might be one such process, that then creates (transdiagnostic) healing.  
 
-In practice, the difficulty might be 'fat handedness' [, e.g. Eronen (2020)](https://doi.org/10.1016/j.newideapsych.2020.100785), of interventions.    
+In practice, the difficulty might be 'fat handedness' [, e.g. Eronen (2020)](https://doi.org/10.1016/j.newideapsych.2020.100785), of interventions.     
 
 ## Intervention designs.
 
@@ -121,11 +126,14 @@ In practice, the difficulty might be 'fat handedness' [, e.g. Eronen (2020)](htt
 
 - This could've been used in a Bayesian averaging setting, with each of the A-D comprising an individual process through which intervention (e.g., psychotherapy) affects. Then you could've seen if any model is superior in terms of weight in the Bayesian model.  
 
-## Ergodicity
+## Ergodicity and stationary processses
 
 - I suspect that most ergodic data-generating processes won't be able to distinguish between Network, LV or SI models.  
 
-This is because we already know that the cross-sectional data does not distinguish between the models (up to second order moments at least). Then it follows that these processes won't also distinguish between models, when we're inspecting them over time instead. By definition of ergodicity, they are the same processess when observed cross-sectionally over multiple subjects, or observed over time.  
+- Ergodicity implies stationarity -> 'Wide sense stationarity' (sufficient for typically analysed processes..?) implies mean and covariance of a stochastic process being time-invariant.  
+
+-> If we already know that cross-sectional data (up to second order moments, covariance) does not distinguish LV from Network model, then stationary processes won't also distinguish between them (between subjects).  
+-> Maybe get into the within level, non-ergodic processes pretty quickyl?
 
 
 ## 
