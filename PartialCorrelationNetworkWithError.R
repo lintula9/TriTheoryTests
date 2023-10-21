@@ -45,3 +45,16 @@ lavInspect( factorResult, what = "implied")
 lavInspect( factorResult, what = "information")
 
 polychoric(X_withErrorRounded)
+
+# Factor analysis has its faults too. No error X ~ mvrnorm(mu, sigma) is defined as having erroneous variables.
+# The meaning of the error terms is of course questionable and solely dependent on assumptions.
+factorResult2 <- sem(model = 'F1 =~ X1+X2+X3',
+                    data = data.frame(X), estimator = "ml", std.lv = T, parameterization = "delta" )
+inspect(factorResult2, "est")$lambda %*% t(inspect(factorResult2, "est")$lambda)
+inspect(factorResult2, "est")$theta
+
+inspect(factorResult2, "implied") ; cov(X)
+
+pcaResult <- principal(cov(X), covar = T)
+pcaResult$residual
+pcaResult$Structure
