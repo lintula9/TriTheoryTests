@@ -1,0 +1,399 @@
+---
+title: "Theoretical study Quarto -document"
+format: pdf
+date: "2026-01-28"
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### To do 22.1.
+
+-   Add/integrate previous Rmd file of theoretical result as extension
+    to this one.
+
+-   Analysis check.
+
+-   Integrating Tom's notes (26.1 onwards)
+
+### Strict sense stationary VAR(1) and strict longitudinal measurement invariance
+
+In the following VAR(1) process and strict longitudinal measurement
+invariance (s-LMI) are compared to each other by the covariance
+structure that VAR(1) imposes and how an s-LMI model fits to this (here
+equivalently 'is compatible' with) covariance. s-LMI makes sense as a
+theoretical model since it captures the simplest scenario of a true
+common factor model where only the common factor itself can change.
+VAR(1) is also a simple, if not the simplest, vector autoregression
+symptom-network model. CT-VAR and VAR can be linked through a
+transformation when fixed time intervals are used, or separate study for
+CT-VAR can be done.
+
+Especially noteworthy results from mathematical analysis could be
+possible contradictions that arise and how these contradictions guide
+empirical simulations and tell us the reason why s-LMI might not be
+compatible with VAR(1) generated data in the first place. Alternatively,
+if some VAR(1) models can generate s-LMI compatible data, what
+constraints are necessary for the VAR(1) process to produce it?
+
+First VAR(1) imposed covariance is derived. Then s-LMI imposed
+covariance. Then we move on to inspect how they compare by equating them
+together to observe possible contradictions or restrictions. We begin
+with the simplest and possibly most common scenario where two subsequent
+measurement time points (from hereon simply time points) of symptoms are
+observed.
+
+#### VAR(1) covariance structure at two subsequent time points
+
+The VAR(1) model is defined in matrix format as
+$X_{t}=C+AX_{t-1}+\Gamma_t$, where $\Gamma_t$ is independent error
+column vector with $E[\Gamma_t]=0$, $C$ is a constant assumed zero. Also
+assume centered $X$, $E[X_t]=0$, in our case. Centering makes covariance
+calculations easier as the products of expected values can be mostly
+ignored (they become 0). $A$ is $K \times K$ (borrowing from CT-VAR
+terminology) 'drift' matrix that includes all lagged effects of
+$K\times1$ column vectors $X_t$ to $X_{t-1}$, $K$ being the number of
+observed items (symptoms). In this section the focus is on the
+$2K\times2K$ covariance matrix where two subsequent measurement time
+points are observed. All matrices used are real-valued.
+
+First, the covariance matrix (assumed stationary over time) is
+
+$$
+\begin{align*}
+\text{Cov}(X_t) &= E[X_tX_t^T] \\
+&= E[(AX_{t-1}+\Gamma_t)(AX_{t-1}+\Gamma_t)^T] \\
+&= E[AX_{t-1}X_{t-1}^TA^T] + \underbrace{E[\Gamma \Gamma^T]}_{=: \Psi} \\
+&= AE[X_{t-1}X_{t-1}^T]A^T + \Psi \\
+&= \Sigma_t=:\Sigma_{VAR(1)}
+\end{align*}
+$$ where stationarity poses that $\Sigma$ is not dependent of time and
+so the covariance of VAR(1) is denoted as above from hereon.
+
+The vectorized covariance matrix can be solved to equal\
+$$
+\begin{align*}
+\text{vec}(E[X_tX_t^T])&=\text{vec}(\Sigma_{VAR(1)}) \\
+&=\text{vec}(AE[X_{t-1}X_{t-1}^T]A^T + \Psi) \\
+&=\text{vec}(AE[X_{t-1}X_{t-1}^T]A^T) + \text{vec}(\Psi) \\
+&=\text{vec}(A\otimes A)E[X_{t-1}X_{t-1}^T]+\text{vec}(\Psi) \\
+\Longrightarrow\\
+\text{vec}(E[X_tX_t^T])&=\text{vec}(A\otimes A)\text{vec}(E[X_{t-1}X_{t-1}^T])+\text{vec}(\Psi)&\Rightarrow\\
+\text{vec}(E[X_tX_t^T])&=\text{vec}(A\otimes A)\text{vec}(E[X_{t-1}X_{t-1}^T])+\text{vec}(\Psi)&\Rightarrow\\
+I&=\text{vec}(A\otimes A)+\text{vec}(\Psi)\text{vec}(E[X_tX_t^T])^{-1}&\Rightarrow\\
+I-\text{vec}(A\otimes A) &= \text{vec}(\Psi)\text{vec}(E[X_tX_t^T])^{-1}&\Rightarrow\\
+\text{vec}(E[X_tX_t^T])&= (I-A \otimes A)^{-1} \text{vec}(\Psi)
+\end{align*}
+$$
+
+Where vec is the vectorization operator and $\otimes$ is the Kronecker
+prodcut. In the above the mixed Kronecker matrix vector product is used.
+We will equate the VAR(1) posed $\Sigma_{VAR(1)}$ to s-LMI imposed
+covariance further down below.
+
+Second, VAR(1) poses that observations at the time points $X_t, X_{t-1}$
+have covariance $$
+\begin{align*}
+\text{Cov}(X_t,X_{t-1})&=
+E[X_tX_{t-1}^T]-E[X_t]E[X_{t-1}]\\&=
+E[(AX_{t-1}+\Gamma_t)X_{t-1}^T]\\&=
+E[AX_{t-1}X_{t-1}^T]+E[\Gamma_tX_{t-1}^T]\\&=
+A\Sigma_{t-1}+E[\Gamma_tX_{t-1}^T]
+\end{align*}
+$$ Independent errors means that
+$E[\Gamma_tX_{t-1}^T]=Cov(\Gamma_t,X_{t-1})=0$ leading to $$
+\begin{align*}
+\text{Cov}(X_t,X_{t-1})&= A\Sigma_{t-1}\\
+\text{Cov}(X_{t-1},X_t)&= \Sigma_{t-1}^T A^T \\
+\end{align*}
+$$ Where the two covariances above must be the same - i.e., the
+covariance matrix is symmetric. This means that every VAR(1) process
+implies that covariance of observations from two subsequent time points
+$t, t-1$ is $$
+Cov((X_{t-1},X_{t}),(X_{t-1},X_{t})) = 
+\begin{pmatrix} 
+  \Sigma_{t-1} & A\Sigma_{t-1} \\
+  \Sigma_{t-1}^TA^T & \Sigma_t
+\end{pmatrix} $$ Where the above covariance matrix is the $2K\times 2K$
+covariance matrix of the observed data from the two time points. In
+addition, stationarity directly implies $\Sigma_t=\Sigma_{t-1}$. (For
+now, notation with sub-index *i* will be kept for clarity as it is.
+s-LMI is not necessarily stationary, so confusion might be avoided.)
+
+#### s-LMI covariance structure at two subsequent time points
+
+s-LMI with 1 common factor decomposes $\Sigma_{t-1}$ into following
+$$\Sigma_{t-1}=\Lambda\Lambda^T+\Omega_{t-1}$$where by definition of
+s-LMI $\Omega_{t-1}$ is diagonal and and $\Lambda$ is a $K\times1$
+column vector of factor loadings constant over time. We also need the
+covariance of the common factor at both time points. Let $\delta$ be the
+latent regression coefficient which links the common factor to itself at
+a previous time point such that $\eta_t=\delta\eta_{t-1}+\psi_t$, where
+$\psi_t$ is independent random term ('innovation', 'error',
+'disturbance') with $E[\psi_t]=0$. Assuming standardized common factor
+such that $E[\eta_{t-1}]=0,\:Var(\eta_{t-1})=1$ covariance of the common
+factor at two subsequent time points is
+
+$$
+\begin{align*} \text{Cov}(\eta_{t-1},\eta_t)= E[\eta_{t-1}\eta_t]-E[\eta_{t-1}]E[\eta_t]&=\\ E[\eta_{t-1}(\delta\eta_{t-1}+\psi_t)]&=\\ E[\delta\eta_{t-1}^2+\eta_{t-1}\psi_t]&=\\ \delta Var(\eta_{t-1})&= \delta \end{align*}
+$$ Now lets look at the $2K\times 2K$ covariance matrix from the
+perspective of strict LMI. A s-LMI model imposes that $$
+\text{Cov}((X_{t},X_{t-1}),(X_{t},X_{t-1}))= \begin{pmatrix}    \Lambda & 0
+\\   0 & \Lambda \end{pmatrix}  \begin{pmatrix}   1 & \delta 
+\\   \delta & \delta+Var(\psi_t) \end{pmatrix} \begin{pmatrix}    \Lambda^T & 0
+\\   0 & \Lambda^T \end{pmatrix} + \begin{pmatrix}   \Omega_{t-1} & \Omega_{across} 
+\\   \Omega_{across}^T & \Omega_t \end{pmatrix} 
+$$
+
+where
+
+$$\begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix}$$ is a
+block diagonal matrix that sandwiches the $2\times2$ covariance matrix
+of the common factor at both time points.
+
+$$
+\begin{align*}&\begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix} \begin{pmatrix}   1 & \delta \\   \delta & \delta+Var(\psi_t) \end{pmatrix} \begin{pmatrix}    \Lambda^T & 0\\   0 & \Lambda^T \end{pmatrix}+ \begin{pmatrix}   \Omega_{t-1} & \Omega_{across} \\   \Omega_{across}^T & \Omega_t \end{pmatrix} =\\
+&\begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix} \begin{pmatrix}    \Lambda^T & \delta\Lambda^T\\   \Lambda^T\delta & (\delta+Var(\psi_t)\Lambda^T \end{pmatrix} + 
+\begin{pmatrix}   
+\Omega_{t-1} & \Omega_{across} \\   
+\Omega_{across}^T & \Omega_t \end{pmatrix}=\\
+& \begin{pmatrix}    
+\Lambda\Lambda^T + \Omega_{t-1}& \Lambda\Lambda^T\delta + \Omega_{across}\\   
+\Lambda\Lambda^T\delta + \Omega_{across}^T & \Lambda\Lambda^T(\delta+Var(\psi_t)) + \Omega_t 
+\end{pmatrix} 
+\end{align*}
+$$ From the above we see that the strict LMI can only be compatible with
+any process with stationary covariance, if
+$\delta+Var(\psi_t)=1\Rightarrow1-\delta=Var(\psi_t)$ (assuming
+$\Lambda$ is non-zero). (When fitting a s-LMI model this is allowed.) We
+also see that s-LMI is compatible with non-stationary processes where
+the covariance is proportional to $\delta+Var(\psi_t)$ aligning with
+previous theoretical \[Note: insert Tom's analysis\] analysis where
+covariance increased over time in a LMI preserving model.
+
+Using the above auxiliary results we can move to analyse the null
+hypothesis (hypotheses) of no difference between VAR(1) and s-LMI.
+
+#### Working null hypothesis (1): If covariance matrix generated by a true VAR(1) model at some (measurement) time point is perfectly explained by a common factor model, then s-LMI model fits perfectly.
+
+Considering only the subset of VAR(1) processes which create a
+covariance matrix that can be perfectly explained by a common factor
+model is done because if true it tells us how (if at all) VAR(1) can
+deviate from s-LMI. Understandably, if any VAR(1) model creates
+covariance structure incompatible with s-LMI model at some time point,
+then deviation must occur (although the extent to which this occurs is
+not clear at this point).
+
+If the VAR(1) generated $2K\times2K$ matrix cannot be explained by the
+strict LMI model, this seems likely to be because the off diagonal
+blocks of covariance matrices across time points are non-compatible with
+the respective s-LMI model imposed across time covariance. Combined with
+the restriction on the within time point covariance, this might lead to
+contradictions.
+
+This gives us the following null hypothesis (1) equations (from the
+$2K\times2K$ matrices imposed by VAR(1) and s-LMI)
+
+$$
+(I-A \otimes A)^{-1} \text{vec}(\Psi) = \text{vec}(\Lambda \Lambda^T + \Omega)
+$$
+
+and
+
+$$
+\begin{align*}
+&A\Sigma_{t-1}=\Lambda\Lambda^T\delta+\Omega_{across}
+\end{align*}
+$$
+
+both of which must be true for the null hypothesis (1) to hold. Assuming
+that the null hypothesis (1) is true, further analysis of the respective
+equations show
+
+$$
+\begin{aligned}
+A\Sigma_{t-1} &= \Lambda\Lambda^T\delta+\Omega_{cross} \Leftrightarrow\\
+A &= \Lambda\Lambda^T\delta \Sigma_{t-1}^{-1} + \Omega_{cross} \Sigma_{t-1}^{-1} \Leftrightarrow\\
+A + \delta \Omega \Sigma_{t-1}^{-1} &= \Lambda\Lambda^T\delta \Sigma_{t-1}^{-1} + \delta \Omega \Sigma_{t-1}^{-1} + \Omega_{cross} \Sigma_{t-1}^{-1} \Leftrightarrow\\
+A + \delta \Omega \Sigma_{t-1}^{-1} &= \delta \underbrace{(\Lambda\Lambda^T + \Omega)}_{=\Sigma_{t-1} \text{ by assumption}} \Sigma_{t-1}^{-1} + \Omega_{cross} \Sigma_{t-1}^{-1} \Leftrightarrow\\
+A &= \delta I + (\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1}.
+\end{aligned}
+$$
+
+From the above equation we see that $A$ must be symmetric under the null
+hypothesis (1) because both $\Sigma,\Sigma_{across}$ are covariance
+matrices (or a precision matrix) and otherwise only rescaling with a
+scalar or summation of symmetric (covariance) matrices is done.
+
+#### Auxiliary null hypothesis (A1): Strict LMI fit to data generated by VAR(1) degrades as a function of distance between time points - i.e., lag length.
+
+As the scenario where two subsequent measurement points are observed is
+possibly the most common one, we'll keep the main null hypothesis (1) as
+the respective scenario. On the other hand, it is of interest to analyze
+what happens when multiple subsequent time points are included. This is
+perhaps less common in measurement invariance literature, but more
+common in VAR literature.
+
+We have the (yet to be formally proven) assumption that as the distance
+in time between two time points $\Delta t=(t_1-t_2)\to\infty$ samples
+from VAR(1) model generated data at those two time points have 0
+covariance. This makes the $2K\times2K$ perfectly explained by a
+measurement invariance model, because the main diagonal covariance
+matrices $\Sigma_{t-1}=\Sigma_t$ are perfectly explained by a common
+factor model by assumption, and the off diagonal matrices are 0, which
+is allowed in a strict LMI model (no cross-covariance between the
+observed time points and 0 regression coefficient for the latent
+variable). This is a fairly simple, although less practically meaningful
+case. Scenarios when 0 across time points covariance are not as often
+observed presumably. This also does prove that a VAR(1) process could in
+some sense be the true data generating process even if no across time
+point covariance is observed (no lagged effects are estimated) if one
+were to claim that $\Delta t$ is very small: We're just not observing
+time points close enough to each other to see the VAR(1).
+
+Nevertheless - considering that the above scenario is not a typical one
+in psychopathology research - we can attempt to generalize the above
+results concerning the $2K\times2K$ matrix to an $TK\times TK$ matrix
+where we have $T$ measurement of $K$ symptoms over occasions at constant
+time intervals. Here change the notation and use an arbitrary time point
+1 as the first measurement time point, increasing ${1, 2,...,T}$. The
+$TK\times TK$ matrix is
+
+$$
+\begin{array}
+  \\\Sigma_1&...&\Sigma_{1,T}
+  \\ \vdots&\ddots&\vdots
+  \\ \Sigma_{1,T}^T&...&\Sigma_T
+\end{array}
+$$
+
+Proceeding again from VAR(1) to s-LMI and then equating between the
+models. The $\Sigma_{1,T}$ for VAR(1) is
+
+$$
+\Sigma_{1,T}=\text{Cov}(X_1, X_{T}) = A^{(T)}\Sigma_{VAR(1)}
+$$
+
+where $^{(T)}$ denotes matrix power (not transpose). For s-LMI,
+respectively, we'll use
+$\delta_2, \delta_3, ...,\delta_{t+1},..., \delta_T$ to denote the
+regression coefficient between subsequent time points. Also, the
+$\Omega_{across}$ needs to be generalized to include residual
+covariances between any two time points so that $\Omega_{1,T}$ is the
+residual covariance between time point 1 (and $\Omega$ is a within time
+point residual covariance) and time point $T$.
+
+The common factor regression equation also changes to
+$\eta_{t+1}=\delta_{t+1}\eta_{t}+\psi_{t+1}$ leading to
+
+$$
+\begin{align*}
+\text{Cov}(\eta_t,\eta_{t+2})&=E[\eta_{t}\eta_{t+2}]\\
+&=E[\eta_{t}  (\delta_{t+2}\eta_{t+1}+\psi_{t+2})  ]\\
+&=E[\eta_{t}  (\delta_{t+2}(\delta_{t+1}\eta_{t}+\psi_{t+1})+\psi_{t+2})  ]\\
+&=E[\eta_{t}  (\delta_{t+2}\delta_{t+1}\eta_{t}+\delta_{t+2}\psi_{t+1}+\psi_{t+2})  ]\\
+&=E[\delta_{t+2}\delta_{t+1}\eta_{t}\eta_{t}]+E[\delta_{t+2}\psi_{t+1}\eta_{t}]+E[\psi_{t+2}\eta_{t}]\\
+&=\delta_{t+2}\delta_{t+1}
+\end{align*}
+$$
+
+and further
+
+$$
+\text{Cov}(\eta_t,\eta_{t+\Delta t})=\prod_{t}^{t+\Delta t}\delta_t
+$$
+
+##### (The above could be proven by induction but for now omitted.) 
+
+From the previous result for the $2K\times2K$ matrix we can then
+generalize to the $TK\times TK$ matrix
+
+$$
+\begin{array}
+\\\Lambda\Lambda^T + \Omega & ... &  \Lambda\Lambda^T \prod_{t=2}^{T}\delta_t + \Omega_{1,T}
+\\ \vdots&\ddots&\vdots
+\\ \Lambda\Lambda^T \prod_{t=2}^{T}\delta_t + \Omega_{1,T}^T&...&\Lambda\Lambda^T(\prod_{t=2}^{T}\delta_t+Var(\psi_t)) + \Omega_t
+\end{array}
+$$
+
+Now we can obtain the more general (A1) equations relating the across
+time point covariances and within time point covariances for any lag
+
+$$
+\begin{align*}
+\Sigma_{1,T}&=\\
+A^{(T)}\Sigma_{VAR(1)}&=\Lambda\Lambda^T \prod_{t=2}^{T}\delta_t + \Omega_{1,T}
+\end{align*}
+$$
+
+##### below is outdated!
+
+Few of specific scenarios that restrict the possible VAR(1) model set
+are seen.
+
+-   We see that in the case where no across time idiosyncratic
+    covariances exist ($\Omega_{across} = 0$), the right-hand-side
+    becomes a diagonal matrix and hence $A$ must also be diagonal.
+
+-   We see that when $\delta=0$, i.e. there is no lagged effect on the
+    common factor and $\Omega_{across} = 0$, $A$ is 0.
+
+-   We see that when $\delta=0$, and $\Omega_{across}\ne0$,
+    $A=\Omega_{across}\Sigma_{t-1}^{-1}\:\Longrightarrow\: A\Sigma_{t-1}=\Omega_{across}$
+    means that there is no cross-symptom covariance across time.
+
+All of these cases are very specific and arguably would not be
+consistent with symptom-network theory. That is, 0 cross-lagged effects,
+or 0 lagged effects at all are not consistent with symptom-network
+theory. These are possibly somewhat rarely observed.
+
+Perhaps the more general result is that since the right-hand-side is
+always symmetric (since the diagonal matrix $\deltaI$ is symmetric,
+and a covariance matrix multiplied by a diagonal matrix is also
+symmetric, as is the sum of two symmetric square matrices) then $A$ must
+also be symmetric in all cases for the null hypothesis (1) to hold. This
+constrains set of s-LMI compatible VAR(1) models generally.
+
+### Implications
+
+-   We see that $A$ must be symmetric since the rhs of the above only
+    contains symmetric matrices. This places a constraint on $A$, and
+    implies that s-LMI fit to data generated from VAR(1) process varies
+    as a function of asymmetry. It would then make sense to focus on
+    asymmetry of $A$ when creating simulated observations from symptom
+    network and common factor distributions $F_{SN},F_{CF}$
+-   Measures of asymmetry such as $s$ $$
+    s \equiv (|A_{sym}|-|A_{anti}|)/(|A_{sym}|+|A_{anti}|)
+    $$ {#eq-asymmetry} where $A$ is decomposed into its symmetric and
+    asymmetric parts can be used also. The metric above is shown at:
+    [stack
+    exchange](https://math.stackexchange.com/questions/2048817/metric-for-how-symmetric-a-matrix-is).
+    Asymmetry of $A$ could further be approached analytically for
+    example by decomposing $A$ into its symmetric and asymmetric parts,
+    and/or through simulations where asymmetry of $A$ is varied by
+    producing random matrices with some logic with how asymmetric is
+    produced in $A$.
+-   Perhaps one possibility is something like Chi-squared testing with
+    vectorized (non-redundant) squared elements of
+    $A_{lower-tri}^T-A_{upper-tri}$.
+-   At this point it still is not evident that VAR(1) can generate a
+    covariance matrix perfectly decomposable to a common factor
+    model(?). Unless we see it directly from (1), which might be the
+    case since $\delta, \Omega$ are freely estimated and so $A$ maybe
+    exists.
+-   Also it is not clear what happens when sampling from a population at
+    different time points so that subjects are sampled at different time
+    lags.
+-   Further analysis could extend to lags, with the probable result that
+    powers of $A$ multiply $\Sigma$ to obtain across time covariance
+    matrices for higher order lags.
+-   Stationarity is also not necessarily a condition which should be
+    imposed, which can be discussed further.
+-   VAR(1) is a special case of CT-VAR. The respective transformations
+    from CT-VAR to VAR(1) are available.
+
+#### 
