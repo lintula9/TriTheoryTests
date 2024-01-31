@@ -243,11 +243,12 @@ A &= \delta I + (\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1}.
 \end{aligned}
 $$
 
-From the above equation we see that $A$ must be symmetric under the null
-hypothesis (1) because both $\Sigma,\Sigma_{across}$ are covariance
-matrices (or a precision matrix) and otherwise only re-scaling with a
-scalar, multiplying by a diagonal matrix (since diagonal matrix commutes
-with all matrices) is done for symmetric matrices.
+From the above equation we see that $A$ must NOT NECESSARILY be
+symmetric under the null hypothesis (1) because both
+$\Sigma,\Sigma_{across}$ are covariance matrices (or a precision matrix)
+and otherwise only re-scaling with a scalar, multiplying by a diagonal
+matrix (since diagonal matrix commutes with all matrices) is done for
+symmetric matrices.
 
 Combining, we get a system of (matrix) equations
 
@@ -290,7 +291,7 @@ $$
 \end{align*}
 $$
 
-leads to no easycontradiction.
+leads to no easy contradiction.
 
 #### VAR(1) covariance compared to s-LMI covariance at T time points.
 
@@ -427,8 +428,8 @@ A^{(\Delta t)}&=(\Lambda\Lambda^T \delta^{\Delta t} + \Omega_{\Delta t})\Sigma^{
 \end{align*}
 $$
 
-which is symmetric, as was the case for the null hypothesis equation
-(1). (The above is true for all $\Delta t$.)
+which is NOT NECESSARILY symmetric, as was the case for the null
+hypothesis equation (1). (The above is true for all $\Delta t$.)
 
 ### Summary and implications 30.1.2024
 
