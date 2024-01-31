@@ -22,7 +22,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   Integrating Tom's notes (26.1 onwards)
 
-### Strict sense stationary VAR(1) and strict longitudinal measurement invariance
+### Weak sense stationary VAR(1) and strict longitudinal measurement invariance
 
 In the following VAR(1) process and strict longitudinal measurement
 invariance (s-LMI) are compared to each other by the covariance
@@ -49,6 +49,20 @@ with the simplest and possibly most common scenario where two subsequent
 measurement time points (from hereon simply time points) of symptoms are
 observed.
 
+Before the analysis, a brief theoretical consideration. We will assume
+(*as Jaakko suggested*) that the symptom-network represented as the
+VAR(1) model is a state. That is, while stationarity tells us that the
+VAR(1) retains its first and second order moments, we will assume that
+there is no external cause, which would make systematic changes
+('shocks') to the symptoms. These changes could, if included, be
+represented as correlated innovations. This assumption then gives us
+theoretical circumstance so that the innovations of the VAR(1) are
+independent of each other. While this assumption (that no life-events
+affect the symptom-network) is unlikely to be true in a real-world
+scenario especially when considering longer periods of time (e.g.,
+weeks, months), in any case theoretical analysis would become near
+impossible if no restrictions of this kind are made.
+
 #### VAR(1) covariance structure at two subsequent time points
 
 The VAR(1) model is defined in matrix format as
@@ -74,12 +88,14 @@ $$
 &= \Sigma_t=:\Sigma_{VAR(1)}
 \end{align*}
 $$ where stationarity poses that $\Sigma$ is not dependent of time and
-so the covariance of VAR(1) is denoted as above from hereon. $\Gamma_t$
-is a random $K\times1$ column vector of (serially) independent
-innovations at time point $t$, with
-\$E\[\\Gamma\]=0,\\text{Var}(\\Gamma=1)\$. $\Psi$ is covariance of the
-innovations within time point $t$ - i.e., the contemporaneous
-covariance.
+so the covariance of VAR(1) is denoted as above from hereon. We will use
+$\Sigma_{VAR(1)}$ when we wish to be explicit about meaning the VAR(1)
+imposed within time point covariance. $\Gamma_t$ is a random $K\times1$
+column vector of (serially) independent innovations at time point $t$,
+with \$E\[\\Gamma\]=0,\\text{Var}(\\Gamma=1)\$. $\Psi$ is covariance of
+the innovations within time point $t$ - i.e., the contemporaneous
+covariance. We will assume that the innovations are independent, and so
+$\Psi$ is diagonal.
 
 The vectorized covariance matrix can be solved to equal\
 $$
@@ -98,7 +114,39 @@ I-\text{vec}(A\otimes A) &= \text{vec}(\Psi)\text{vec}(E[X_tX_t^T])^{-1}&\Righta
 $$
 
 Where vec is the vectorization operator and $\otimes$ is the Kronecker
-prodcut. In the above the mixed Kronecker matrix vector product is used.
+product. In the above the mixed Kronecker matrix vector product is used
+to obtain the result. Using that we assumed the innovations to be
+independent of each other we can rewrite the right hand side so that
+
+$$
+\begin{align*}
+\text{vec}(\Psi)&=(\psi_{[1,1]},\psi_{[1,2]},...,\psi_{[2,2]},\psi_{[2,3]},...,\psi_{[K,K]})
+\\
+&=(\psi_{[1,1]},0,...,\psi_{[2,2]},0,...,\psi_{[K,K]}),\\
+\end{align*}
+$$ and $I-A \otimes A$ is $$
+\begin{align*}
+\begin{array}
+&&1-a_{1,1}a_{1,1}&a_{1,1}a_{1,2}&...&a_{1,1}a_{1,K}&...&...&a_{1,K}a_{1,1}&a_{1,K}a_{1,2}&...&a_{1,K}a_{1,K}&\\
+&a_{1,1}a_{2,1}&1-a_{1,1}a_{2,2}&...&a_{1,1}a_{2,K}&...&...&a_{1,K}a_{2,1}&a_{2,K}a_{2,2}&...&a_{2,K}a_{2,K}&\\
+&\vdots&\vdots&\ddots&\vdots&&&\vdots&\vdots&\ddots&\vdots&\\
+&a_{1,1}a_{K,1}&a_{1,1}a_{K,2}&...&1-a_{1,1}a_{K,K}&...&...&a_{1,K}a_{K,1}&a_{2,K}a_{K,2}&...&a_{2,K}a_{K,K}&\\
+&\vdots&\vdots&&\vdots&\ddots&&\vdots&\vdots&&\vdots&\\
+&\vdots&\vdots&&\vdots&&\ddots&\vdots&\vdots&&\vdots&\\
+&a_{K,1}a_{1,1}&a_{K,1}a_{1,2}&...&a_{K,1}a_{1,K}&...&...&1-a_{K,K}a_{1,1}&a_{K,K}a_{1,2}&...&a_{K,K}a_{1,K}&\\
+&a_{K,1}a_{2,1}&a_{K,1}a_{2,2}&...&a_{K,1}a_{2,K}&...&...&a_{K,K}a_{2,1}&1-a_{K,K}a_{2,2}&...&a_{K,K}a_{2,K}&\\
+&\vdots&\vdots&\ddots&\vdots&&&\vdots&\vdots&\ddots&\vdots&\\
+&a_{K,1}a_{K,1}&a_{K,1}a_{K,2}&...&a_{K,1}a_{K,K}&...&...&a_{K,K}a_{K,1}&a_{K,K}a_{K,2}&...&1-a_{K,K}a_{K,K}&
+\end{array}
+\end{align*}
+$$
+
+Let $c_{[i,j]}$ be and element of $\Sigma$. $\text{vec}(\Sigma)$ then is
+$(c_{[1,1]},c_{[2,1]},...,c_{[K,1]},c_{[1,2]},...,c_{[K,2]},...,c_{[K,K]})$.
+$(I-A\otimes A) \text{vec}(\Sigma)$ then becomes
+
+##### the above might be omitted, since it maybe is not going anywhere. It does lead to an equation for each innovations gamma_i,j, which might be not relevant.
+
 We will equate the VAR(1) posed $\Sigma_{VAR(1)}$ to s-LMI imposed
 covariance further down below.
 
@@ -159,8 +207,8 @@ $$
 where
 
 $$\begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix}$$ is a
-block diagonal matrix that sandwiches the $2\times2$ covariance matrix
-of the common factor at both time points.
+block matrix that sandwiches the $2\times2$ covariance matrix of the
+common factor at both time points.
 
 $$
 \begin{align*}&\begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix} \begin{pmatrix}   1 & \delta \\   \delta & \delta+Var(\psi_t) \end{pmatrix} \begin{pmatrix}    \Lambda^T & 0\\   0 & \Lambda^T \end{pmatrix}+ \begin{pmatrix}   \Omega_{t-1} & \Omega_{across} \\   \Omega_{across}^T & \Omega_t \end{pmatrix} =\\
@@ -212,7 +260,9 @@ $2K\times2K$ matrices imposed by VAR(1) and s-LMI)
 
 $$
 \begin{align*}
-(I-A \otimes A)^{-1} \text{vec}(\Psi) &= \text{vec}(\Lambda \Lambda^T + \Omega)
+(I-A \otimes A)^{-1} \text{vec}(\Psi) &= \text{vec}(\Lambda \Lambda^T + \Omega)&&\Rightarrow
+\\
+(I-A \otimes A)^{-1} \text{vec}(\Psi) &= \text{vec}(\Lambda \Lambda^T) + \text{vec}(\Omega)
 \\
 AE[X_{t-1}X_{t-1}^T]A^T + \Psi&=\Lambda \Lambda^T + \Omega\Rightarrow
 \\
@@ -259,7 +309,8 @@ $$
 \end{cases}
 $$
 
-substituting $A$ into the upper equation and then $A-\delta I$
+substituting $A$ into the upper equation and further substituting
+$A-\delta I$
 
 $$
 \begin{align*}
@@ -291,7 +342,12 @@ $$
 \end{align*}
 $$
 
-leads to no easy contradiction.
+The analysis leads to no easy contradiction. (Chat GPT 3.5 confirmed
+that the above analysis is correct. Hence, we're uncertain if it is
+correct.) We'll see if contradictions arise when including three time
+points in the analysis below. But first, we need to do some
+generalizations and discuss the implications of VAR(1) model and the
+null hypothesis (1) further.
 
 #### VAR(1) covariance compared to s-LMI covariance at T time points.
 
@@ -370,8 +426,9 @@ observations might be sparse in psychopathology literature and it is
 accepted in the literature that even if any autoregressive model would
 be the true data generating model, it would unlikely be stationary over
 lengthier time periods (e.g., years again). This property of stationary
-VAR(1) does (*as Jaakko suggested*) restrain the analysis to a
-psychopathological state, but this contemplation is omitted here.
+VAR(1) does - as we have -- (*as Jaakko suggested*) restrain the
+analysis to a psychopathological state, but this contemplation is
+omitted here.
 
 For s-LMI, respectively, we'll use
 $\delta_{2}, \delta_{3}, ..., \delta_t,\delta_{t+1},...,\delta_{T}$ to
@@ -382,17 +439,73 @@ between any two time points so that $\Omega_{t,T}$ is the residual
 covariance between time point $t$ and time point $T$. $\Omega$ is the
 within time point residual covariance invariant over time.
 
-Few more generalizations before we can equate the VAR(1) implied
-covariance to the s-LMI implied covariance. We have that the VAR(1)
-imposed covariance between any two subsequent time points is the same.
-This also generalizes to the VAR(1) imposed covariance between any two
-equidistant time points as they are $A^{\Delta t}\Sigma$. This means
-that $\delta_t$ must be a constant since otherwise the s-LMI imposed
-covariance $\Lambda\Lambda^T\delta + \Omega_{t,t+1}$ would not be the
-same between two subsequent time points. $\Omega_{t,t+1}$ is diagonal
-and so can only change the diagonal to some extent - off-diagonal
-elements would not be the same. This also means that $\Omega_{t,t+1}$ is
-the same for any $t$. More clearly put $$
+Few more generalizations and constraints before we can equate the VAR(1)
+implied covariance to the s-LMI implied covariance again using multiple
+time points. We have that the VAR(1) imposed covariance between any two
+subsequent time points is the same. This also generalizes to the VAR(1)
+imposed covariance between any two equidistant time points as they are
+$A^{\Delta t}\Sigma$, which only depends on the distance in time. This
+means that $\delta_t$ must be a constant since otherwise the s-LMI
+imposed covariance between two subsequent time points
+$\Lambda\Lambda^T\delta + \Omega_{t,t+1}$ would not be the same. More
+precisely, $\Omega_{t,t+1}$ is by definition diagonal and so can only
+change the diagonal to some extent - off-diagonal elements would not be
+the same. This also means that $\Omega_{t,t+1}$ is the same for any $t$.
+
+Using that $\delta$ is constant (and other assumptions established
+above), the covariance between the common factor to itself between any
+time points two time intervals apart from each other is
+
+$$
+\begin{align*}
+\text{Cov}(\eta_t,\eta_{t+2})&=E[\eta_{t}\eta_{t+2}]\\
+&=E[\eta_{t}  (\delta_{t+2}\eta_{t+1}+\psi_{t+2})  ]\\
+&=E[\eta_{t}  (\delta_{t+2}(\delta_{t+1}\eta_{t}+\psi_{t+1})+\psi_{t+2})  ]\\
+&=E[\eta_{t}  (\delta_{t+2}\delta_{t+1}\eta_{t}+\delta_{t+2}\psi_{t+1}+\psi_{t+2})  ]\\
+&=E[\delta_{t+2}\delta_{t+1}\eta_{t}\eta_{t}]+E[\delta_{t+2}\psi_{t+1}\eta_{t}]+E[\psi_{t+2}\eta_{t}]\\
+&=\delta_{t+2}\delta_{t+1}=\delta^2
+\end{align*}
+$$
+
+and for three time intervals apart
+
+$$
+\begin{align*}
+\text{Cov}(\eta_t,\eta_{t+3})&=E[\eta_{t}\eta_{t+3}]\\
+&=E[\eta_{t}  (\delta\eta_{t+2}+\psi_{t+3})  ]\\
+&=E[\eta_{t}  (\delta(\delta\eta_{t+1}+\psi_{t+2})+\psi_{t+3})  ]\\
+&=E[\eta_{t}  (\delta(\delta(\delta\eta_{t}+\psi_t)+\psi_{t+2})+\psi_{t+3})  ]\\
+&=E[\eta_{t}  (\delta(\delta^2\eta_{t}+\delta\psi_t)+\psi_{t+2})+\psi_{t+3})  ]\\
+&=E[\eta_{t}  (\delta^3\eta_{t}+\delta^2\psi_t+\delta\psi_{t+2}+\psi_{t+3})  ]\\
+&=E[\eta_{t}\delta^3\eta_{t}+\eta_{t}\delta^2\psi_t+\eta_{t}\delta\psi_{t+2}+\eta_{t}\psi_{t+3})  ]\\
+&=\delta^3=\text{Cov}(\eta_t,\eta_{t+2})\delta
+\end{align*}
+$$
+
+Implying that
+
+$$
+\begin{align*}
+\text{Cov}((X_{t},X_{t+3}),(X_{t},X_{t+3}))
+&= 
+\begin{pmatrix}    \Lambda & 0
+\\   0 & \Lambda \end{pmatrix}  \begin{pmatrix}   1 & \delta^2 
+\\   \delta^2& \delta^2+Var(\psi_{t+3}) \end{pmatrix} \begin{pmatrix}    \Lambda^T & 0
+\\   0 & \Lambda^T \end{pmatrix} + \begin{pmatrix}   \Omega & \Omega_{t,t+3} 
+\\   \Omega_{t,t+3}^T & \Omega 
+\end{pmatrix} 
+\\
+&=
+\begin{pmatrix}    
+ \Lambda\Lambda^T + \Omega & \Lambda\Lambda^T\delta^2 + \Omega_{t,t+3} \\   
+ \Lambda\Lambda^T\delta^2 + \Omega_{t,t+3}^T & \Lambda\Lambda^T(\delta^2+Var(\psi_{t+3})) + \Omega 
+\end{pmatrix} 
+\end{align*}
+$$
+
+##### the above equations could be proven by induction. Other route maybe is to show that the ratio between covariances between two time points of distance delta_t and delta_t+1 is constant. This is currently omitted.
+
+To summarize $$
 \begin{align*}
 \forall\Delta t:\text{Cov}(X_t,X_{t+\Delta t})&=A^{\Delta t}\Sigma&&\Rightarrow
 \\
@@ -401,8 +514,7 @@ the same for any $t$. More clearly put $$
 \Omega_{t,t+1}=\Omega_{t,t+2}=...&=\Omega_{\Delta t}
 \end{align*}
 $$ must be true for s-LMI to be compatible with VAR(1) generated data.
-This implies that the covariance between the common factor to itself at
-any two time points must be
+And this implies that the covariance between any two time points must be
 $\Lambda\Lambda^T\delta^{\Delta t} + \Omega_{t,T}$.
 
 From the previous result for the $2K\times2K$ matrix we can then
@@ -431,7 +543,28 @@ $$
 which is NOT NECESSARILY symmetric, as was the case for the null
 hypothesis equation (1). (The above is true for all $\Delta t$.)
 
-### Summary and implications 30.1.2024
+Now, equating the VAR(1) imposed covariances and s-LMI imposed
+covariances, as before, using three subsequent time points we have
+
+$$
+\begin{cases}
+&(I-A \otimes A)^{-1} \text{vec}(\Psi) &=& \text{vec}(\Lambda \Lambda^T + \Omega)\\
+&A &=& \delta I + (\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}\\
+&A^{(2)}&=&\delta^2 I + (\Omega_{1,3} - \delta^2 \Omega)\Sigma_{}^{-1}
+\end{cases}
+$$
+
+hence
+
+$$
+\begin{align*}
+A^{(2)}&=(\delta I + (\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1})(\delta I + (\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1})\\
+&=\delta^2I+\delta I(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}+(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}\delta I+(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}\\
+&=\delta^2I+\delta I(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}+(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}\delta I+(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}\\
+\end{align*}
+$$
+
+### Summary and implications OLD 31.1.2024
 
 -   A direct observation from the null hypothesis (1) and auxiliary null
     hypothesis (A1) equations shown above is that $A$ must always be
