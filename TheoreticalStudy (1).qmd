@@ -51,17 +51,16 @@ observed.
 
 Before the analysis, a brief theoretical consideration. We will assume
 (*as Jaakko suggested*) that the symptom-network represented as the
-VAR(1) model is a state. That is, while stationarity tells us that the
-VAR(1) retains its first and second order moments, we will assume that
-there is no external cause, which would make systematic changes
-('shocks') to the symptoms. These changes could, if included, be
-represented as correlated innovations. This assumption then gives us
-theoretical circumstance so that the innovations of the VAR(1) are
-independent of each other. While this assumption (that no life-events
-affect the symptom-network) is unlikely to be true in a real-world
-scenario especially when considering longer periods of time (e.g.,
-weeks, months), in any case theoretical analysis would become near
-impossible if no restrictions of this kind are made.
+VAR(1) model is a state. In addition to stationarity, this means
+assuming that there are no external causes, which would make systematic
+changes to the symptoms and cause correlated innovations (or errors, but
+innovations hereon). This assumption then gives us theoretical
+circumstance so that the innovations of the VAR(1) are independent of
+each other. While this assumption (that no life-events affect the
+symptom-network) is unlikely to be true in a real-world scenario
+especially when considering longer periods of time (e.g., weeks,
+months), in any case theoretical analysis would become near impossible
+if no restrictions of this kind are made.
 
 #### VAR(1) covariance structure at two subsequent time points
 
@@ -94,8 +93,8 @@ imposed within time point covariance. $\Gamma_t$ is a random $K\times1$
 column vector of (serially) independent innovations at time point $t$,
 with \$E\[\\Gamma\]=0,\\text{Var}(\\Gamma=1)\$. $\Psi$ is covariance of
 the innovations within time point $t$ - i.e., the contemporaneous
-covariance. We will assume that the innovations are independent, and so
-$\Psi$ is diagonal.
+covariance. We assumed that the innovations are independent, as
+described above, and so $\Psi$ is diagonal.
 
 The vectorized covariance matrix can be solved to equal\
 $$
@@ -540,26 +539,40 @@ A^{(\Delta t)}&=(\Lambda\Lambda^T \delta^{\Delta t} + \Omega_{\Delta t})\Sigma^{
 \end{align*}
 $$
 
-Now, equating the VAR(1) imposed covariances and s-LMI imposed
-covariances, as before, using three subsequent time points we have
+We can now resume to the working null hypothesis (1). Equating the
+VAR(1) imposed covariances and s-LMI imposed covariances, as before, but
+now using three subsequent time points we have
 
 $$
 \begin{cases}
-&A\Sigma A^T+\Psi&=&\Sigma\\
+&A\Sigma A^T+\Psi&=&\Lambda \Lambda^T + \Omega\\
 &A &=& \delta I + (\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}\\
 &A^{(2)}&=&\delta^2 I + (\Omega_{1,3} - \delta^2 \Omega)\Sigma_{}^{-1}
 \end{cases}
 $$
 
-hence
+From the above we see that
 
 $$
 \begin{align*}
-A^{(2)}&=(\delta I + (\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1})(\delta I + (\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1})\\
-&=\delta^2I+\delta I(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}+(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}\delta I+(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}\\
-&=\delta^2I+\delta I(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}+(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}\delta I+(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}(\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1}\\
+A\Sigma A^T=\Lambda \Lambda^T + \Omega-\Psi
 \end{align*}
 $$
+
+and so the $A\Sigma A^T$ is perfectly estimated by the factor loadings,
+up to the diagonal elements ($\Sigma, \Psi$ are diagonal). We could
+analyse that
+
+$$
+\begin{align*}
+A^{(2)}
+&=(\delta I + (\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1})(\delta I + (\Omega_{1,2} - \delta \Omega)\Sigma_{}^{-1})^T\\
+&=(\delta I + A-\delta I)(\delta I + A^T-\delta I)\\
+&=AA^T
+\end{align*}
+$$
+
+Otherwise, the analysis seems to get complex.
 
 ### Summary and implications OLD 31.1.2024
 
