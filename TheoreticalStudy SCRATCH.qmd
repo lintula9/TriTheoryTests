@@ -1,0 +1,74 @@
+---
+title: "Theoretical study Quarto -document"
+format: pdf
+date: "2026-01-28"
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Scratch.
+
+Combining, we get a system of (matrix) equations
+
+$$ 
+\begin{cases} &(I-A \otimes A)^{-1} \text{vec}(\Psi) &=& \text{vec}(\Lambda \Lambda^T + \Omega)\\ &A &=& \delta I + (\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1} \end{cases} 
+$$
+
+substituting $A$ into the upper equation and further substituting
+$A-\delta I$
+
+$$ 
+\begin{align*} (I-(\delta I + (\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1}) \otimes (\delta I + (\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1}))^{-1} \text{vec}(\Psi) &=  \\  (I-(\delta I + (\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1}) \otimes\delta I \\+ (\delta I + (\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1})\otimes ((\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1}))^{-1} \text{vec}(\Psi)&= \\ (I-\delta I\otimes \delta I + (\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1} \otimes\delta I + \delta I\otimes(\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1} \\+   (\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1}\otimes (\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1})^{-1} \text{vec}(\Psi)&= \\ (I-\delta^2I+(\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1} \otimes\delta I + \delta I\otimes(\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1} \\+(\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1}\otimes (\Omega_{cross} - \delta \Omega)\Sigma_{t-1}^{-1})^{-1} \text{vec}(\Psi)&= \\ (I-\delta^2I+(A- \delta I) \otimes\delta I + \delta I\otimes(A- \delta I) \\+(A- \delta I)\otimes (A- \delta I))^{-1} \text{vec}(\Psi)&= \\ (I-\delta^2I + A\otimes \delta I - \delta^2I + \delta I\otimes A + \delta^2I \\+ (A- \delta I)\otimes A + (A- \delta I)\otimes (- \delta I))^{-1} \text{vec}(\Psi)&= \\ (I-2\delta^2I+ \delta^2I + A\otimes \delta I + \delta I\otimes A  \\+ A\otimes A - \delta I\otimes A + A\otimes(- \delta I) - \delta I\otimes (- \delta I))^{-1} \text{vec}(\Psi)&= \\ (I-2\delta^2I+ \delta^2I   + A\otimes A   - \delta I\otimes (- \delta I))^{-1} \text{vec}(\Psi)&= \\ (I-2\delta^2I+ 2\delta^2I   + A\otimes A  )^{-1} \text{vec}(\Psi)&= (I-A\otimes A  )^{-1} \text{vec}(\Psi) \end{align*} 
+$$
+The analysis leads to no easy contradiction. (Chat GPT 3.5 confirmed that the above analysis is correct. Hence, we're uncertain if it is correct.) 
+
+The vectorized covariance matrix can be solved to equal
+$$
+\begin{align*}
+\text{vec}(E[X_tX_t^T])&=\text{vec}(\Sigma_{VAR(1)}) \\
+&=\text{vec}(AE[X_{t-1}X_{t-1}^T]A^T + \Psi) \\
+&=\text{vec}(AE[X_{t-1}X_{t-1}^T]A^T) + \text{vec}(\Psi) \\
+&=\text{vec}(A\otimes A)E[X_{t-1}X_{t-1}^T]+\text{vec}(\Psi) \\
+\Longrightarrow\\
+\text{vec}(E[X_tX_t^T])&=\text{vec}(A\otimes A)\text{vec}(E[X_{t-1}X_{t-1}^T])+\text{vec}(\Psi)&\Rightarrow\\
+\text{vec}(E[X_tX_t^T])&=\text{vec}(A\otimes A)\text{vec}(E[X_{t-1}X_{t-1}^T])+\text{vec}(\Psi)&\Rightarrow\\
+I&=\text{vec}(A\otimes A)+\text{vec}(\Psi)\text{vec}(E[X_tX_t^T])^{-1}&\Rightarrow\\
+I-\text{vec}(A\otimes A) &= \text{vec}(\Psi)\text{vec}(E[X_tX_t^T])^{-1}&\Rightarrow\\
+\text{vec}(E[X_tX_t^T])&= (I-A \otimes A)^{-1} \text{vec}(\Psi)
+\end{align*}
+$$
+
+Using that we assumed the innovations to be independent of each other we can rewrite the right hand side so that
+
+$$
+\begin{align*}
+\text{vec}(\Psi)&=(\psi_{[1,1]},\psi_{[1,2]},...,\psi_{[2,2]},\psi_{[2,3]},...,\psi_{[K,K]})
+\\
+&=(\psi_{[1,1]},0,...,\psi_{[2,2]},0,...,\psi_{[K,K]}),\\
+\end{align*}
+$$ and $I-A \otimes A$ is 
+$$
+\begin{align*}
+\begin{array}
+&&1-a_{1,1}a_{1,1}&a_{1,1}a_{1,2}&...&a_{1,1}a_{1,K}&...&...&a_{1,K}a_{1,1}&a_{1,K}a_{1,2}&...&a_{1,K}a_{1,K}&\\
+&a_{1,1}a_{2,1}&1-a_{1,1}a_{2,2}&...&a_{1,1}a_{2,K}&...&...&a_{1,K}a_{2,1}&a_{2,K}a_{2,2}&...&a_{2,K}a_{2,K}&\\
+&\vdots&\vdots&\ddots&\vdots&&&\vdots&\vdots&\ddots&\vdots&\\
+&a_{1,1}a_{K,1}&a_{1,1}a_{K,2}&...&1-a_{1,1}a_{K,K}&...&...&a_{1,K}a_{K,1}&a_{2,K}a_{K,2}&...&a_{2,K}a_{K,K}&\\
+&\vdots&\vdots&&\vdots&\ddots&&\vdots&\vdots&&\vdots&\\
+&\vdots&\vdots&&\vdots&&\ddots&\vdots&\vdots&&\vdots&\\
+&a_{K,1}a_{1,1}&a_{K,1}a_{1,2}&...&a_{K,1}a_{1,K}&...&...&1-a_{K,K}a_{1,1}&a_{K,K}a_{1,2}&...&a_{K,K}a_{1,K}&\\
+&a_{K,1}a_{2,1}&a_{K,1}a_{2,2}&...&a_{K,1}a_{2,K}&...&...&a_{K,K}a_{2,1}&1-a_{K,K}a_{2,2}&...&a_{K,K}a_{2,K}&\\
+&\vdots&\vdots&\ddots&\vdots&&&\vdots&\vdots&\ddots&\vdots&\\
+&a_{K,1}a_{K,1}&a_{K,1}a_{K,2}&...&a_{K,1}a_{K,K}&...&...&a_{K,K}a_{K,1}&a_{K,K}a_{K,2}&...&1-a_{K,K}a_{K,K}&
+\end{array}
+\end{align*}
+$$
+
+Let $c_{[i,j]}$ be and element of $\Sigma$. $\text{vec}(\Sigma)$ then is $(c_{[1,1]},c_{[2,1]},...,c_{[K,1]},c_{[1,2]},...,c_{[K,2]},...,c_{[K,K]})$. $(I-A\otimes A) \text{vec}(\Sigma)$ then becomes
+
+the above might be omitted, since it maybe is not going anywhere. It does lead to an equation for each innovations gamma_i,j, which might be not relevant.
