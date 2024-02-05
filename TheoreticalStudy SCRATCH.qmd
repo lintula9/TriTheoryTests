@@ -72,3 +72,35 @@ $$
 Let $c_{[i,j]}$ be and element of $\Sigma$. $\text{vec}(\Sigma)$ then is $(c_{[1,1]},c_{[2,1]},...,c_{[K,1]},c_{[1,2]},...,c_{[K,2]},...,c_{[K,K]})$. $(I-A\otimes A) \text{vec}(\Sigma)$ then becomes
 
 the above might be omitted, since it maybe is not going anywhere. It does lead to an equation for each innovations gamma_i,j, which might be not relevant.
+
+
+
+
+
+
+
+As the scenario where two subsequent measurement points are observed is possibly the most common one, we'll keep the above discussion in place for now. On the other hand, it is of interest to analyze what happens when multiple subsequent time points are included. This is perhaps less common in measurement invariance literature, but more common in VAR literature.
+
+We have (proven below) that as the distance in time between two time points $\Delta t=(t_i-t_j)\to\infty, \:i>j$ samples from VAR(1) model generated data at those two time points have 0 covariance. This would make the asymptotic $2K\times2K$ perfectly explained by a measurement invariance model, because the main diagonal covariance matrices $\Sigma_{t-1}=\Sigma_t$ are perfectly explained by a common factor model by assumption, and the off diagonal matrices are 0, which is allowed in a strict LMI model (no cross-covariance between the observed time points and 0 regression coefficient for the latent variable). Again, we are assuming that VAR(1) model generated $\Sigma$ perfectly compatible with s-LMI. This is a less practically meaningful case arguably since observed data with 0 across time point covariance is not common. This also does prove that a VAR(1) process could in some sense be the true data generating process even if no across time point covariance is observed (no lagged effects are estimated) if one were to claim that $\Delta t$ is very small: We're just not observing time points close enough to each other to see the VAR(1).
+
+Nevertheless - considering that the above scenario is not a typical one in psychopathology research - we can attempt to generalize the above results concerning the $2K\times2K$ matrix to an $TK\times TK$ matrix where we have $T$ measurement of $K$ symptoms over occasions at constant time intervals. Brief notes are made as we move on and a summary at the end.
+
+
+Proof of the asymptotic 0 across time point covariance. On a brief note we can further decompose the above equation, using the power method of eigenvalues, into
+
+$$ PD^{(T)}P^{-1}\Sigma_{VAR(1)} $$
+
+where $D$ is a diagonal matrix of eigenvalues of $A$, $P$ is and orthonormal matrix of eigenvectors of $A$ as columns. From this decomposition we directly see the above mentioned asymptotic property that as distance in time between time points increases, $D$ is raised to a larger power and decreases eventually to the zero matrix. This is because eigenvalues of (stationary) $A$ are less than one, meaning that all diagonal elements of $\text{diag}(D):|d_{ii}|<1$ as well, and hence the matrix power converges to $0$. This means that a true data generating stationary VAR(1) model should produce across time point covariances that reduce to zero as distance in time between any two time points increases (practically speaking perhaps as years pass). Such observations might be sparse in psychopathology literature and it is accepted in the literature that even if any autoregressive model would be the true data generating model, it would unlikely be stationary over lengthier time periods (e.g., years again). This property of stationary VAR(1) does - as we have – (as Jaakko suggested) restrain the analysis to a psychopathological state, but this contemplation is omitted here.
+
+
+
+
+
+
+
+S Where the two covariances above must be the same - i.e., the covariance matrix is symmetric. This means that every VAR(1) process implies that covariance of observations from two subsequent time points $t, t-1$ is $$
+Cov((X_{t-1},X_{t}),(X_{t-1},X_{t})) = 
+\begin{pmatrix} 
+  \Sigma_{t-1} & A\Sigma_{t-1} \\
+  \Sigma_{t-1}^TA^T & \Sigma_t
+\end{pmatrix} $$ Where the above covariance matrix is the $2K\times 2K$ covariance matrix of the observed data from the two time points. In addition, stationarity directly implies $\Sigma_t=\Sigma_{t-1}$. (For now, notation with sub-index i will be kept for clarity as it is. s-LMI is not necessarily imply stationary, so confusion might be avoided.)

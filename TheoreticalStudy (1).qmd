@@ -5,6 +5,7 @@ date: "2026-01-28"
 editor: 
   markdown: 
     wrap: 72
+bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -16,8 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 -   Main consideration: Should measurement error be dropped from the
     s-LMI model and just call it autoregressive common factor model.
     This largely simplifies, and is justifiable in the sense that VAR(1)
-    does not contain measurement errors - hence it should not produce
-    data with measurement error.
+    does not contain across time point measurement errors (innovations).
 
 -   Add/integrate previous Rmd file of theoretical result as extension
     to this one.
@@ -30,98 +30,115 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   Serially independent innovations force the
 
-### Weak sense stationary VAR(1) and strict longitudinal measurement invariance
+-   Many proofs are currently in scratch file, accessible from there.
 
-In the following VAR(1) process and strict longitudinal measurement
-invariance (s-LMI) are compared to each other by the covariance
-structure that VAR(1) imposes and how an s-LMI model fits to this (here
-equivalently 'is compatible' with) covariance. s-LMI makes sense as a
-theoretical model since it captures the simplest scenario of a true
-common factor model where only the common factor itself can change.
-VAR(1) is also a simple, if not the simplest, vector autoregression
-symptom-network model. CT-VAR and VAR can be linked through a
-transformation when fixed time intervals are used, or separate study for
-CT-VAR can be done.
+### Empirical distinguishability
 
-Especially noteworthy results from mathematical analysis could be
-possible constraints that arise and how they can guide empirical
-simulations and tell us the reason why s-LMI might not be compatible
-with VAR(1) generated data in the first place. Alternatively, if some
-VAR(1) models can generate s-LMI compatible data, what constraints are
-necessary for the VAR(1) process to produce it?
+Common Factor theoretical model
 
-First VAR(1) imposed covariance is derived. Then s-LMI imposed
-covariance. Then we move on to inspect how they compare by equating them
-together to observe possible contradictions or restrictions. We begin
-with the simplest and possibly most common scenario where two subsequent
-measurement time points (from hereon simply time points) of symptoms are
-observed.
+:   A latent variable $\eta$ is a causal entity which creates observable
+    symptoms. Conditional independence of variables
+    $P(X_i|\eta,X_j)=P(X_i|\eta):\:i\ne j$ given the common factor
+    $\eta$ is the central proposition of the model. All changes in
+    symptoms are due to changes in $\eta$. $M_1$ will represent an
+    empirical (data-generating) model of the common factor theory.
+
+Mutualistic symptom-network theoretical model
+
+:   Symptoms have causal effects on each others. Symptoms can change by
+    themselves or change due to effects not within the symptom-network
+    itself. The symptom-network is all the symptoms. $M_2$ will
+    represent an empirical (data-generating) model of the
+    symptom-network theory.
+
+The models need to be kept vague for now, as the key parts of both
+differ in each scenario to be examined. Empirical distinguishability is
+here defined up to the fourth order moment:
+
+Empirical distinguishability
+
+:   $$\begin{aligned} E_{M_1}(X)-E_{M_2}(X)&=D_E\\\   \text{Cov} _{M_1}(X)-\text{Cov} _{M_2}(X)&=D_C  \\   \text{Skew} _{M_1}(X)-\text{Skew} _{M_2}(X)&=D_S\\   \text{Kurt} _{M_1}(X)-\text{Kurt} _{M_2}(X)&=D_S   \end{aligned}  $$
+
+That is, after defining the models, data simulated from both of these
+models should always be the same w.r.t. their expectation, covariance,
+skewness and kurtosis. Our aim is to identify practical conditions,
+where the distinguishability is highest - i.e., when the differences in
+either expectation or covariance become largest. We do this in X
+different scenarios. In all scenarios we define a respective common
+factor theory model as well as a symptom-network mutualism model. We
+then aim to analytically show the differences between the models, and
+then through simulation quantify what types of practical difference we
+might see. We'll be denoting symptoms as random matrix $X$, of which
+columns are the symptoms. We use two theoretical models:
+
+The several scenarios relate to study designs, in which both models have
+been used using real world empirical data. First, we examine changes
+over time. Second, ..., X:th.
+
+### Change across time: Strict Longitudinal Measurement Invariance vs VAR(1) models
+
+Regarding changes in symptoms across time, the most basic models that we
+can use for common factor and symptom-network theory are the strict
+longitudinal measurement invariance (s-LMI) referred to as and the
+vector autoregressive model of order one (VAR(1)). Here we will
+analytically approach differences between these models and then perform
+simulations to quantify how well empirically the models differ when
+generating from a mixture distribution. We will first inspect what type
+of covariance structure VAR(1) imposes, and then similarly s-LMI.
+
+#### VAR(1) covariance structure
 
 Before the analysis, a brief theoretical consideration. We will assume
-(*as Jaakko suggested*) that the symptom-network represented as the
-VAR(1) model is a state. In addition to stationarity, this means
-assuming that there are no external causes, which would make systematic
-changes to the symptoms and cause correlated innovations (or errors, but
-innovations hereon). This assumption then gives us theoretical
-circumstance so that the innovations of the VAR(1) are independent of
-each other. While this assumption (that no external events affect the
-symptom-network) is unlikely to be true in a real-world scenario
-especially when considering longer periods of time (e.g., weeks,
-months), in any case theoretical analysis would become near impossible
-if no restrictions of this kind are made.
-
-#### VAR(1) covariance structure at two subsequent time points
-
-The VAR(1) model is defined in matrix format as
-$X_{t}=C+AX_{t-1}+\Gamma_t$, where $\Gamma_t$ is independent error
-column vector with $E[\Gamma_t]=0$, $C$ is a constant assumed zero. Also
-assume centered $X$, $E[X_t]=0$, in our case. Centering makes covariance
-calculations easier as the products of expected values can be mostly
-ignored (they become 0). $A$ is $K \times K$ (borrowing from CT-VAR
-terminology) 'drift' matrix that includes all lagged effects of
-$K\times1$ column vectors $X_t$ to $X_{t-1}$, $K$ being the number of
-observed items (symptoms). In this section the focus is on the
-$2K\times2K$ covariance matrix where two subsequent measurement time
-points are observed. All matrices used are real-valued.
+that the symptom-network represented as the VAR(1) model is a state.
+This means that VAR(1) is stationary, and that there are no external
+causes meaning that the innovations are uncorrelated - only symptoms can
+correlate to each other. The VAR(1) model is defined in matrix format
+for $K$ symptoms as $X_{t+1}=C+AX_{t}+\Gamma_t$, where $\Gamma_t$ is
+independent error column vector with $E[\Gamma_t]=0$, $C$ is a constant
+assumed zero. Also assume centered $X$, $E[X_t]=0$, in our case.
+Centering makes covariance calculations easier as the products of
+expected values can be mostly ignored (they become 0). $A$ is
+$K \times K$ (borrowing from CT-VAR terminology) 'drift' matrix that
+includes all lagged effects of $K\times1$ column vectors $X_t$ to
+$X_{t-1}$. $A$ is independent of time. All matrices used are
+real-valued.
 
 First, the covariance matrix (assumed stationary over time) is
 
-$$
-\begin{align*}
-\text{Cov}(X_t) &= E[X_tX_t^T] \\
-&= E[(AX_{t-1}+\Gamma_t)(AX_{t-1}+\Gamma_t)^T] \\
-&= E[AX_{t-1}X_{t-1}^TA^T] + \underbrace{E[\Gamma_t \Gamma_t^T]}_{=: \Psi} \\
-&= AE[X_{t-1}X_{t-1}^T]A^T + \Psi \\
-&= \Sigma_t=:\Sigma_{VAR(1)}
-\end{align*}
-$$ where stationarity poses that $\Sigma$ is not dependent of time and
-so the covariance of VAR(1) is denoted as above from hereon. We will use
-$\Sigma_{VAR(1)}$ when we wish to be explicit about meaning the VAR(1)
-imposed within time point covariance. $\Gamma_t$ is a random $K\times1$
-column vector of (serially) independent innovations at time point $t$,
-with \$E\[\\Gamma\]=0,\\text{Var}(\\Gamma=1)\$. $\Psi$ is covariance of
-the innovations within time point $t$ - i.e., the contemporaneous
-covariance. We assumed that the innovations are independent, as
-described above, and so $\Psi$ is diagonal.
+$$ \begin{align*} \text{Cov}(X_t) &= E[X_tX_t^T] \\ &= E[(AX_{t-1}+\Gamma_t)(AX_{t-1}+\Gamma_t)^T] \\ &= E[AX_{t-1}X_{t-1}^TA^T] + \underbrace{E[\Gamma_t \Gamma_t^T]}_{=: \Psi} \\ &= AE[X_{t-1}X_{t-1}^T]A^T + \Psi \\ &= \Sigma_t \end{align*} $$
 
 The vectorized covariance matrix can be solved to equal\
-$$
-\begin{align*}
-\text{vec}(\Sigma_{VAR(1)})
-=
-(I-A \otimes A)^{-1} \text{vec}(\Psi)
-\end{align*}
-$$
+$$ \begin{align*} \text{vec}(\Sigma_{VAR(1)}) = (I-A \otimes A)^{-1} \text{vec}(\Psi) \end{align*} $$
 
 Where vec is the vectorization operator and $\otimes$ is the Kronecker
 product. In the above the mixed Kronecker matrix vector product is used
 to obtain the result. (Derivation is currently in a scratch file.)
 
-We will equate the VAR(1) posed $\Sigma_{VAR(1)}$ to s-LMI imposed
-covariance further down below.
+Stationarity poses that $\Sigma$ is not dependent of time. We will use
+$\Sigma_{VAR(1)}$ when we wish to be explicit about meaning the VAR(1)
+imposed within time point covariance. $\Gamma_t$ is a random $K\times1$
+column vector of (serially) independent innovations at time point $t$,
+with $E[\Gamma]=0$. $\Psi$ is covariance of the innovations within time
+point $t$ - i.e., the contemporaneous covariance. We assumed that the
+innovations are independent, as described above, and so $\Psi$ is
+diagonal. We use an arbitrary time point $t$ as the 'first' measurement
+time point, so that time points increase ${t, t+1,t+2,...,T}$, where $T$
+is the last measurement time point. Here we focus on an across time
+point $TK\times TK$ covariance matrix. The $TK\times TK$ covariance
+matrix will be denoted as
 
-Second, VAR(1) poses that observations at the time points $X_t, X_{t-1}$
-have covariance $$
+$$ \begin{array}   
+\\\Sigma_t&\Sigma_{t,t+1}&...&\Sigma_{t,T}
+\\  \Sigma_{t+1,t}&\Sigma_{t+1}&...&\Sigma_{t+1,T}
+\\ \vdots&\vdots&\ddots&\vdots   
+\\ \Sigma_{T,t}^T&\Sigma_{T,t+1}^T&...&\Sigma_T \end{array} $$
+
+Where the diagonal elements are within time points covariance matrices,
+and off-diagonal elements are across time point covariance matrices. Let
+$^{(T)}$ denote the matrix raised to power of $T$.
+
+VAR(1) poses that observations at the time points $X_t, X_{t-1}$ have
+covariance $$
 \begin{align*}
 \text{Cov}(X_t,X_{t-1})&=
 E[X_tX_{t-1}^T]-E[X_t]E[X_{t-1}]\\&=
@@ -129,44 +146,44 @@ E[(AX_{t-1}+\Gamma_t)X_{t-1}^T]\\&=
 E[AX_{t-1}X_{t-1}^T]+E[\Gamma_tX_{t-1}^T]\\&=
 A\Sigma_{t-1}+E[\Gamma_tX_{t-1}^T]
 \end{align*}
-$$ Independent errors means that
+$$ Independent innovations means that
 $E[\Gamma_tX_{t-1}^T]=\text{Cov}(\Gamma_t,X_{t-1})=0$ leading to $$
 \begin{align*}
 \text{Cov}(X_t,X_{t-1})&= A\Sigma_{t-1}\\
-\text{Cov}(X_{t-1},X_t)&= \Sigma_{t-1}^T A^T \\
 \end{align*}
-$$ Where the two covariances above must be the same - i.e., the
-covariance matrix is symmetric. This means that every VAR(1) process
-implies that covariance of observations from two subsequent time points
-$t, t-1$ is $$
-Cov((X_{t-1},X_{t}),(X_{t-1},X_{t})) = 
-\begin{pmatrix} 
-  \Sigma_{t-1} & A\Sigma_{t-1} \\
-  \Sigma_{t-1}^TA^T & \Sigma_t
-\end{pmatrix} $$ Where the above covariance matrix is the $2K\times 2K$
-covariance matrix of the observed data from the two time points. In
-addition, stationarity directly implies $\Sigma_t=\Sigma_{t-1}$. (For
-now, notation with sub-index *i* will be kept for clarity as it is.
-s-LMI is not necessarily imply stationary, so confusion might be
-avoided.)
+$$
+
+This can be generalized to any two time points. The $\Sigma_{t,T}$ for
+VAR(1) is
+
+$$ \Sigma_{t,T}=\text{Cov}(X_t, X_{t+\Delta t}) = A^{(\Delta t)}\Sigma_{VAR(1)} $$
+
+(Above needs proof by induction for example.)
 
 #### s-LMI covariance structure at two subsequent time points
 
-s-LMI with 1 common factor decomposes $\Sigma_{t-1}$ into following
-$$\Sigma=\Lambda\Lambda^T+\Omega_{t-1}$$where by definition of s-LMI
-$\Omega_{t-1}$ is diagonal and and $\Lambda$ is a $K\times1$ column
+We will use the s-LMI model to represent the common factor model for the
+across time scenario. s-LMI is usually used with respect to measurement
+development. However, it also makes a theoretical prediction as well.
+s-LMI with 1 common factor decomposes $\Sigma_{t}$ of $K$ symptoms into
+the following $$\Sigma_t=\Lambda\Lambda^T+\Omega$$where by definition of
+s-LMI $\Omega$ is diagonal and and $\Lambda$ is a $K\times1$ column
 vector of factor loadings constant over time. We also need the
-covariance of the common factor at both time points. Let $\delta$ be the
+covariance of the common factor across time points. Let $\delta$ be the
 latent regression coefficient which links the common factor to itself at
-a previous time point such that $\eta_t=\delta\eta_{t-1}+\psi_t$, where
-$\psi_t$ is independent random term ('innovation', 'error',
-'disturbance') with $E[\psi_t]=0$. Assuming standardized common factor
-such that $E[\eta_{t-1}]=0,\:Var(\eta_{t-1})=1$ covariance of the common
-factor at two subsequent time points is
+a previous time point such that $\eta_{t+1}=\delta\eta_{t}+\psi_{t+1}$,
+where $\psi_t$ is independent random term mostly called measurement
+error with $E[\psi_t]=0$. Assuming standardized common factor such that
+$E[\eta_{t-1}]=0,\:Var(\eta_{t-1})=1$ covariance of the common factor at
+two subsequent time points is
 
 $$
 \begin{align*} \text{Cov}(\eta_{t-1},\eta_t)= E[\eta_{t-1}\eta_t]-E[\eta_{t-1}]E[\eta_t]&=\\ E[\eta_{t-1}(\delta\eta_{t-1}+\psi_t)]&=\\ E[\delta\eta_{t-1}^2+\eta_{t-1}\psi_t]&=\\ \delta Var(\eta_{t-1})&= \delta \end{align*}
-$$ Now lets look at the $2K\times 2K$ covariance matrix from the
+$$
+
+Go straight to the general case !!!
+
+Now lets look at the $2K\times 2K$ covariance matrix from the
 perspective of strict LMI. A s-LMI model imposes that $$
 \text{Cov}((X_{t},X_{t-1}),(X_{t},X_{t-1}))= \begin{pmatrix}    \Lambda & 0
 \\   0 & \Lambda \end{pmatrix}  \begin{pmatrix}   1 & \delta 
@@ -275,86 +292,6 @@ discuss the implications of VAR(1) model and the null hypothesis (1)
 further.
 
 #### VAR(1) covariance compared to s-LMI covariance at T time points.
-
-As the scenario where two subsequent measurement points are observed is
-possibly the most common one, we'll keep the above discussion in place
-for now. On the other hand, it is of interest to analyze what happens
-when multiple subsequent time points are included. This is perhaps less
-common in measurement invariance literature, but more common in VAR
-literature.
-
-We have (proven below) that as the distance in time between two time
-points $\Delta t=(t_i-t_j)\to\infty, \:i>j$ samples from VAR(1) model
-generated data at those two time points have 0 covariance. This would
-make the asymptotic $2K\times2K$ perfectly explained by a measurement
-invariance model, because the main diagonal covariance matrices
-$\Sigma_{t-1}=\Sigma_t$ are perfectly explained by a common factor model
-by assumption, and the off diagonal matrices are 0, which is allowed in
-a strict LMI model (no cross-covariance between the observed time points
-and 0 regression coefficient for the latent variable). Again, we are
-assuming that VAR(1) model generated $\Sigma$ perfectly compatible with
-s-LMI. This is a less practically meaningful case arguably since
-observed data with 0 across time point covariance is not common. This
-also does prove that a VAR(1) process could in some sense be the true
-data generating process even if no across time point covariance is
-observed (no lagged effects are estimated) if one were to claim that
-$\Delta t$ is very small: We're just not observing time points close
-enough to each other to see the VAR(1).
-
-Nevertheless - considering that the above scenario is not a typical one
-in psychopathology research - we can attempt to generalize the above
-results concerning the $2K\times2K$ matrix to an $TK\times TK$ matrix
-where we have $T$ measurement of $K$ symptoms over occasions at constant
-time intervals. Brief notes are made as we move on and a summary at the
-end.
-
-Here we change the notation a little and use an arbitrary time point $t$
-as the 'first' measurement time point, so that time points increase
-${t, t+1,t+2,...,T}$, where $T$ is the last measurement time point. The
-$TK\times TK$ matrix is
-
-$$
-\begin{array}
-  \\\Sigma_t&...&\Sigma_{t,T}
-  \\ \vdots&\ddots&\vdots
-  \\ \Sigma_{t,T}^T&...&\Sigma_T
-\end{array}
-$$
-
-Proceeding again from VAR(1) to s-LMI and then equating between the
-models. Let $^{(T)}$ denote the matrix raised to power of $T$. The
-$\Sigma_{t,T}$ for VAR(1) is
-
-$$
-\Sigma_{t,T}=\text{Cov}(X_t, X_{T}) = A^{(T)}\Sigma_{VAR(1)}
-$$
-
-*Proof of the asymptotic 0 across time point covariance*. On a brief
-note we can further decompose the above equation, using the power method
-of eigenvalues, into
-
-$$
-PD^{(T)}P^{-1}\Sigma_{VAR(1)}
-$$
-
-where $D$ is a diagonal matrix of eigenvalues of $A$, $P$ is and
-orthonormal matrix of eigenvectors of $A$ as columns. From this
-decomposition we directly see the above mentioned asymptotic property
-that as distance in time between time points increases, $D$ is raised to
-a larger power and decreases eventually to the zero matrix. This is
-because eigenvalues of (stationary) $A$ are less than one, meaning that
-all diagonal elements of $\text{diag}(D):|d_{ii}|<1$ as well, and hence
-the matrix power converges to $0$. This means that a true data
-generating stationary VAR(1) model should produce across time point
-covariances that reduce to zero as distance in time between any two time
-points increases (practically speaking perhaps as years pass). Such
-observations might be sparse in psychopathology literature and it is
-accepted in the literature that even if any autoregressive model would
-be the true data generating model, it would unlikely be stationary over
-lengthier time periods (e.g., years again). This property of stationary
-VAR(1) does - as we have -- (*as Jaakko suggested*) restrain the
-analysis to a psychopathological state, but this contemplation is
-omitted here.
 
 For s-LMI, respectively, we'll use
 $\delta_{2}, \delta_{3}, ..., \delta_t,\delta_{t+1},...,\delta_{T}$ to
