@@ -28,6 +28,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   Integrating Tom's notes (26.1 onwards)
 
+-   Serially independent innovations force the
+
 ### Weak sense stationary VAR(1) and strict longitudinal measurement invariance
 
 In the following VAR(1) process and strict longitudinal measurement
@@ -482,32 +484,23 @@ If measurement error exists ($\Omega\ne0$)
 
 $$
 \begin{aligned}
-&A^{(\Delta t)}\Sigma=\Lambda\Lambda^T \delta^{\Delta t}&\\     
+&A^{(\Delta t)}\Sigma=\Lambda\Lambda^T \delta^{\Delta t}&\\    
+&A^{(\Delta t)}=\Lambda\Lambda^T \delta^{\Delta t}(\Lambda\Lambda^T+\Omega)^{-1}&\\   
+ &A^{(\Delta t)}=\Lambda\Lambda^T \delta^{\Delta t}(\Lambda\Lambda^T+\Omega)^{-1}&\\   
 \end{aligned}
 $$
 
-where we observe that the left hand side is rank 1, since
-$\Lambda\Lambda^T$ is a product of two column vectors.
-$\Lambda\Lambda^T$ has one non-zero eigenvalue (the magnitude of the
-common factor).
+where we observe that $A$ has rank 1.
 
-### Summary and implications OLD 31.1.2024
+### Result
 
--   A direct observation from the null hypothesis (1) and auxiliary null
-    hypothesis (A1) equations shown above is that $A$ must always be
-    symmetric for the common factor s-LMI model to be compatible with
-    stationary VAR(1) generated data. Hence, asymmetry in $A$ produces
-    incompatibility to s-LMI.
+When using the fact that serially independent innovations force across
+time independent measurement errors, VAR(1) process cannot generate
+s-LMI compatible data. The amount to which they deviate depends on
+multiple factors.
 
--   s-LMI is compatible with the idea that VAR(1) poses that across time
-    point covariance approaches 0 as the distance between two time
-    points increases. This scenario might not be frequently observed
-    however, suggesting that - at least some part of - psychopathology
-    processes cannot be understood as vector autoregressive processes.
-    This is true for any stationary process to my knowledge, as the
-    requirement is that the process will necessarily remain bounded to
-    some extent to its 'state'. In fact, it might be reasonable to
-    integrate both viewpoints as is done in trait-state models.
+-   The amount of linear independence in the columns of $A$. This means
+    that drift coefficients must all be
 
 ### Next
 
