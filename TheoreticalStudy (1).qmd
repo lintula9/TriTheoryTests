@@ -10,6 +10,7 @@ bibliography: references.bib
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 ```
 
 ### To do 4.2.
@@ -85,6 +86,52 @@ analytically approach differences between these models and then perform
 simulations to quantify how well empirically the models differ when
 generating from a mixture distribution. We will first inspect what type
 of covariance structure VAR(1) imposes, and then similarly s-LMI.
+
+Their difference is not always evident. See for example the figure below, where data was generated from both models.
+```{r, echo=FALSE}
+set.seed(1)
+library(mlVAR); library(ggplot2)
+X_CF = arima.sim(model = list(ar = sqrt(0.5)), n = 200, n.start = 200, innov = rnorm(n = 200, mean = 0, sd = sqrt(0.5)))
+X_CF = matrix(ncol = 3, rnorm(3*200, mean = 0, sd = 1)) + as.numeric(X_CF)
+
+ggplot() + 
+  geom_line(aes(y = X_CF[,1], x = seq_along(X_CF[,1]))) +
+  geom_line(aes(y = X_CF[,2], x = seq_along(X_CF[,2])), lty = 2) +
+  geom_line(aes(y = X_CF[,3], x = seq_along(X_CF[,3])), lty = 3) +
+  ylab("X") +
+  xlab("Time") 
+
+```
+The model was set up so that there is a true common factor $\eta$ causing three variables $X$. The common factor had an autoregressive coefficient (of order 1) of $\sqrt{0.5}\approx0.7071$ to itself and $\psi_t \sim N(0, \sqrt{0.5})$ innovations (0.5 variance). Each of the $X_{i,t}$ also had their own measurement errors $\omega_{i,t}\sim N(0,\sqrt{0.5})$. $X_t$ has a covariance matrix approximately such that the diagonal elements are 2, and off-diagonal elements are 1.
+
+If simulating from another numerical example, this time a VAR(1) process, we can observe a fairly similar looking pattern.
+```{r, echo = F}
+library(fastmatrix)
+set.seed(1)
+A = matrix(ncol = 3, nrow = 3, 
+           c(0.3,0.3,0.3,
+             0.3,0.3,0.3,
+             0.3,0.3,0.3))
+library(mlVAR)
+
+# matrix(solve((diag(1,ncol = 3*3, nrow = 3*3) - kronecker.prod(A))) %*% vec(diag(c(0.9,0.9,0.9))),ncol = 3)
+
+X_VAR = simulateVAR(pars = A, Nt = 200, init = 200, residuals = diag(c(0.9,0.9,0.9)))
+ggplot() +
+  geom_line(aes(x = seq_along(X_VAR$V1), y = X_VAR$V1)) +
+  geom_line(aes(x = seq_along(X_VAR$V1), y = X_VAR$V2), lty = 2) +
+  geom_line(aes(x = seq_along(X_VAR$V1), y = X_VAR$V3), lty = 3) +
+  ylab("X") +
+  xlab("Time") 
+```
+The difference between the two example time series in $D_C$ is 
+```{r}
+D_C = (cov(X_VAR) - cov(X_CF))
+dimnames(D_C) = list(paste("X",1:3,sep = ""),paste("X",1:3,sep = ""))
+round(D_C, 2)
+
+```
+
 
 #### VAR(1) covariance structure
 
