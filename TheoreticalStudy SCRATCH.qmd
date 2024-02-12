@@ -104,3 +104,13 @@ Cov((X_{t-1},X_{t}),(X_{t-1},X_{t})) =
   \Sigma_{t-1} & A\Sigma_{t-1} \\
   \Sigma_{t-1}^TA^T & \Sigma_t
 \end{pmatrix} $$ Where the above covariance matrix is the $2K\times 2K$ covariance matrix of the observed data from the two time points. In addition, stationarity directly implies $\Sigma_t=\Sigma_{t-1}$. (For now, notation with sub-index i will be kept for clarity as it is. s-LMI is not necessarily imply stationary, so confusion might be avoided.)
+
+
+
+Covariance between $X_{i,t},X_{j,t+\Delta t}$ at different time points is
+$$
+\begin{cases}
+\delta \lambda_{i,t}\lambda_{j,t+\Delta t}=\sigma_{ \{i,j,t,t+\Delta t\} } \\
+a_t=\sigma_{ \{i,j,t,t+\Delta t\}}
+\end{cases}
+$$
