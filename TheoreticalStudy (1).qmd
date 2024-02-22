@@ -12,13 +12,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
-### To do 4.2.
+### To do 22.2.
 
--   Main consideration: Should measurement error be dropped from the
-    s-LMI model and just call it autoregressive common factor model.
-    This largely simplifies, and is justifiable in the sense that VAR(1)
-    does not contain measurement errors - hence it should not produce
-    data with measurement error.
+-   Main consideration: Should measurement invariance be dropped from
+    the common factor model and just call it autoregressive common
+    factor model - or something similar. This would work as a
+    simplification for the theoretical part.
+
+    -   Then in simulations, we turn to measurement invariance studies
+        and introduce LMI. s-LMI being independent of stationarity makes
+        a certain point on its usefullness. Maybe LMI models can in fact
+        be used to study non-stationary processess with orthogonal
+        factors, which can be then projected back (if necessary)
+        ordinary covariance.
 
 -   Add/integrate previous Rmd file of theoretical result as extension
     to this one.
@@ -27,7 +33,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   Check if subindex VAR(1) is necessary for Sigma.
 
--   Integrating Tom's notes (26.1 onwards)
+-   Proofs, analysis...
+
+#### Notes:
+
+-   Everything is a scratch and works as a basis for argument, which
+    will be clarified when results are in. At this stage result is that
+    drift matrix must be symmetric. This is already useful for
+    simulations - and very interesting - but we'll see what other things
+    turn out. I (Sakari) am not sure at this point still if VAR(1) can
+    in facto produce covariance matrix compatible with a common factor
+    model, though i consider it very likely.
+
+-   This file will be iterated and grows from autoregression -stuff onto
+    the full article. Some foundational layouts are already put in
+    place, but should not be treated as set.
 
 ### Weak sense stationary VAR(1) and strict longitudinal measurement invariance
 
@@ -68,14 +88,14 @@ Mutualistic symptom-network theoretical model
 
 The models need to be kept vague for now, as the key parts of both
 differ in each scenario to be examined. Empirical distinguishability is
-here defined up to the fourth order moment:
+here defined - for now - up to the fourth order moment:
 
 Empirical distinguishability
 
 :   $$\begin{aligned} E_{M_1}(X)-E_{M_2}(X)&=D_E\\\   \text{Cov} _{M_1}(X)-\text{Cov} _{M_2}(X)&=D_C  \\   \text{Skew} _{M_1}(X)-\text{Skew} _{M_2}(X)&=D_S\\   \text{Kurt} _{M_1}(X)-\text{Kurt} _{M_2}(X)&=D_S   \end{aligned}  $$
 
 That is, after defining the models, data simulated from both of these
-models should always be the same w.r.t. their expectation, covariance,
+models should not be the same w.r.t. their expectation, covariance,
 skewness and kurtosis. Our aim is to identify practical conditions,
 where the distinguishability is highest - i.e., when the differences in
 either expectation or covariance become largest. We do this in X
@@ -177,10 +197,10 @@ with such a theoretical view on their imposed covariance structure, and
 later move to simulate data from both to see how distinguishable they
 are in commonly encountered longitudinal scenarios.
 
-Before the analysis, a brief substantive consideration. We will assume
-(*as Jaakko suggested*) that the symptom-network represented as the
-VAR(1) model is a state. By this we mean that it is stationary. In
-addition to stationarity, we also assume that there are no external
+Before the theoretical analysis, a brief substantive consideration. We
+will assume (*as Jaakko suggested*) that the symptom-network represented
+as the VAR(1) model is a state. By this we mean that it is stationary.
+In addition to stationarity, we also assume that there are no external
 causes, which would make systematic changes to the symptoms and cause
 correlated innovations (or errors, innovations hereon). This assumption
 then gives us theoretical circumstance so that the innovations of the
@@ -215,12 +235,12 @@ $$
 &= \Sigma_t=:\Sigma_{VAR(1)}
 \end{aligned}
 $$ where stationarity poses that $\Sigma$ is not dependent of time and
-so the covariance of VAR(1) is denoted as above from hereon. We will use
+so the covariance of VAR(1) is denoted as such from hereon. We will use
 $\Sigma_{VAR(1)}$ when we wish to be explicit about meaning the VAR(1)
 imposed within time point covariance. $\Gamma_t$ is a random $K\times1$
 column vector of (serially) independent innovations at time point $t$,
-with \$E\[\\Gamma\]=0,\\text{Var}(\\Gamma=1)\$. $\Psi$ is covariance of
-the innovations within time point $t$ - i.e., the contemporaneous
+with $E[\Gamma]=0,\text{Var}(\Gamma=1)$. $\Psi$ is covariance of the
+innovations within time point $t$ - i.e., the contemporaneous
 covariance. We assumed that the innovations are independent, as
 described above, and so $\Psi$ is diagonal.
 
@@ -462,9 +482,8 @@ observations might be sparse in psychopathology literature and it is
 accepted in the literature that even if any autoregressive model would
 be the true data generating model, it would unlikely be stationary over
 lengthier time periods (e.g., years again). This property of stationary
-VAR(1) does - as we have -- (*as Jaakko suggested*) restrain the
-analysis to a psychopathological state, but this contemplation is
-omitted here.
+VAR(1) does - as we have -- restrain the analysis to a
+psychopathological state, but this contemplation is omitted here.
 
 For s-LMI, respectively, we'll use
 $\delta_{2}, \delta_{3}, ..., \delta_t,\delta_{t+1},...,\delta_{T}$ to
@@ -518,39 +537,16 @@ $$
 \end{aligned}
 $$
 
-Implying that
+which can be by induction (not currently properly done) shown to result
+in
 
 $$
 \begin{aligned}
-\text{Cov}((X_{t},X_{t+3}),(X_{t},X_{t+3}))
-&= 
-\begin{pmatrix}    \Lambda & 0
-\\   0 & \Lambda \end{pmatrix}  \begin{pmatrix}   1 & \delta^2 
-\\   \delta^2& \delta^2+Var(\psi_{t+3}) \end{pmatrix} \begin{pmatrix}    \Lambda^T & 0
-\\   0 & \Lambda^T \end{pmatrix} + \begin{pmatrix}   \Omega & \Omega_{t,t+3} 
-\\   \Omega_{t,t+3}^T & \Omega 
-\end{pmatrix} 
-\\
-&=
-\begin{pmatrix}    
- \Lambda\Lambda^T + \Omega & \Lambda\Lambda^T\delta^2 + \Omega_{t,t+3} \\   
- \Lambda\Lambda^T\delta^2 + \Omega_{t,t+3}^T & \Lambda\Lambda^T(\delta^2+Var(\psi_{t+3})) + \Omega 
-\end{pmatrix} 
+\text{Cov}(\eta_t,\eta_{t+\Delta t})&=\delta^{\Delta t}
 \end{aligned}
 $$
 
-##### the above equations could be proven by induction to be true for delta\^(Dt). Other route maybe is to show that the ratio between covariances between two time points of distance delta_t and delta_t+1 is constant. Or show injectivity maybe. This is currently omitted.
-
-To summarize $$
-\begin{aligned}
-\forall\Delta t:\text{Cov}(X_t,X_{t+\Delta t})&=A^{\Delta t}\Sigma&&\Rightarrow
-\\
-\delta_1=\delta_2=...&=\delta
-\\
-\Omega_{1,2}=\Omega_{2,3}=...&=\Omega_{t,t+1}
-\end{aligned}
-$$ must be true for s-LMI to be compatible with VAR(1) generated data.
-And this implies that the covariance between any two time points must be
+This implies that the covariance between any two time points must be
 $\Lambda\Lambda^T\delta^{\Delta t} + \Omega_{t,T}$.
 
 From the previous result for the $2K\times2K$ matrix we can then
@@ -575,10 +571,50 @@ A^{(\Delta t)}\Sigma&=\Lambda\Lambda^T \delta^{\Delta t}+ \Omega_{\Delta t}&&
 \end{aligned}
 $$
 
+This directly tells us that $A$ must be symmetric, positive definite:
+
+$$
+\begin{aligned}
+            & A^{(\Delta t)}\Sigma&=\Lambda\Lambda^T \delta^{\Delta t}+ \Omega_{\Delta t}&&\\
+\Rightarrow & A^{(\Delta t)}&=(\Lambda\Lambda^T \delta^{\Delta t}+ \Omega_{\Delta t})\Sigma^{-1}&&\\
+\end{aligned}
+$$
+
+where the right hand side is a multiplication of two positive-definite
+(covariance) symmetric square matrices, which must also be positive
+definite and symmetric.
+
+#### Discussion notes
+
+The above result has the substantive implications, that a
+symptom-network VAR(1) model can only be compatible with a common factor
+model in the restricted case of all symptoms affecting each other with
+bi-directional effects which are equivalently strong in each direction
+$X_i\to X_j=X_i\leftarrow X_j$. That is, distinguishability $D_C$ will
+be larger the more asymmetric the drift matrix $A$ is.
+
+Looking from a measurement perspective, we might be interested what
+happens in a 0 measurement error scenario. So assume there is no unique
+variance in $X$. In this case we obtain
+
+$$
+\begin{aligned}
+&A^{(\Delta t)}\Sigma=\Lambda\Lambda^T \delta^{\Delta t}+ \underbrace{\Omega_{\Delta t}}_{=0}&\\     
+\Rightarrow&A^{(\Delta t)}\Sigma=\underbrace {\Lambda\Lambda^T}_{\text{By assumption: }\Sigma-\Omega=\Sigma} \delta^{\Delta t}&\\
+\Rightarrow&A^{(\Delta t)}\Sigma=\delta^{\Delta t}\Sigma&\\
+\Rightarrow&A^{(\Delta t)}=\delta^{\Delta t}I&
+\end{aligned}
+$$
+
+that is, $A$ must be a scalar multiple of the identity matrix. This
+would lead to a contradiction (if we assume that there must be positive
+covariance between symptoms at least), since now there should be 0
+covariances between symptoms.
+
 #### Without measurement error
 
 WE SHOULD ASSUME NO SERIAL COVARIANCE OF ERRORS! If we simplify, and
-assume that there is no measurement error ($\Omega=0$), then $$
+assume that there is no unique variance ($\Omega=0$), then $$
 \begin{aligned}
 &A^{(\Delta t)}\Sigma=\Lambda\Lambda^T \delta^{\Delta t}+ \underbrace{\Omega_{\Delta t}}_{=0}&\\     
 \Rightarrow&A^{(\Delta t)}\Sigma=\underbrace {\Lambda\Lambda^T}_{\text{By assumption: }\Sigma-\Omega=\Sigma} \delta^{\Delta t}&\\
