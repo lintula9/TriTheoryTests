@@ -8,7 +8,7 @@ editor:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = F)
 
 ```
 
@@ -68,6 +68,8 @@ simulations and tell us the reason why s-LMI might not be compatible
 with VAR(1) generated data in the first place. Alternatively, if some
 VAR(1) models can generate s-LMI compatible data, what constraints are
 necessary for the VAR(1) process to produce it?
+
+Add citations to anchor existing research!
 
 Common Factor theoretical model
 
@@ -156,13 +158,20 @@ VAR(1) process, we can observe a fairly similar looking pattern.
 ```{r, echo = F}
 library(fastmatrix)
 set.seed(1)
-A = matrix(ncol = 3, nrow = 3, 
-           c(0.3,0.3,0.3,
-             0.3,0.3,0.3,
-             0.3,0.3,0.3))
+A = matrix(ncol = 4, nrow = 4, 
+           c(0.3,0.2,0.2,0.2,
+             0.2,0.3,0.2,0.2,
+             0.2,0.2,0.3,0.2,
+             0.2,0.2,0.2,0.3))
 library(mlVAR)
+eigen(A)
 
-# matrix(solve((diag(1,ncol = 3*3, nrow = 3*3) - kronecker.prod(A))) %*% vec(diag(c(0.9,0.9,0.9))),ncol = 3)
+
+matrix(solve((diag(1,ncol = 4*4, nrow = 4*4) - kronecker.prod(A))) %*% fastmatrix::vec(diag(c(0.9,0.9,0.9,0.9))),ncol = 4)
+A%*%matrix(solve((diag(1,ncol = 4*4, nrow = 4*4) - kronecker.prod(A))) %*% fastmatrix::vec(diag(c(0.9,0.9,0.9,0.9))),ncol = 4)
+
+summary(psych::fa(r = matrix(solve((diag(1,ncol = 4*4, nrow = 4*4) - kronecker.prod(A))) %*% fastmatrix::vec(diag(c(0.9,0.9,0.9,0.9))),ncol = 4), nfactors = 1, n.obs = 10000))
+
 
 X_VAR = simulateVAR(pars = A, Nt = 200, init = 200, residuals = diag(c(0.9,0.9,0.9)))
 ggplot() +
@@ -231,7 +240,7 @@ $$
 \text{Cov}(X_t) &= E[X_tX_t^T] \\
 &= E[(AX_{t-1}+\Gamma_t)(AX_{t-1}+\Gamma_t)^T] \\
 &= E[AX_{t-1}X_{t-1}^TA^T] + \underbrace{E[\Gamma_t \Gamma_t^T]}_{=: \Psi} \\
-&= AE[X_{t-1}X_{t-1}^T]A^T + \Psi \\
+&= AE[X_{t-1}X_{t-1}^T]A^T + \Psi=\Lambda\Lambda^T+\Omega \\
 &= \Sigma_t=:\Sigma_{VAR(1)}
 \end{aligned}
 $$ where stationarity poses that $\Sigma$ is not dependent of time and
@@ -452,11 +461,11 @@ $$
 $$
 
 Proceeding again from VAR(1) to s-LMI and then equating between the
-models. Let $^{(T)}$ denote the matrix raised to power of $T$. The
-$\Sigma_{t,T}$ for VAR(1) is
+models. Let $^{(c)}$ denote the matrix raised to power of $c$ and
+$\Delta t=t_k-t_j,\:j<k$. The $\Sigma_{t,T}$ for VAR(1) is
 
 $$
-\Sigma_{t,T}=\text{Cov}(X_t, X_{T}) = A^{(T)}\Sigma_{VAR(1)}
+\Sigma_{t,T}=\text{Cov}(X_j, X_{k}) = A^{(\Delta t)}\Sigma_{VAR(1)}
 $$
 
 *Proof of the asymptotic 0 across time point covariance*. On a brief
@@ -482,7 +491,7 @@ observations might be sparse in psychopathology literature and it is
 accepted in the literature that even if any autoregressive model would
 be the true data generating model, it would unlikely be stationary over
 lengthier time periods (e.g., years again). This property of stationary
-VAR(1) does - as we have -- restrain the analysis to a
+VAR(1) does - as we have - restrain the model to analysis of a
 psychopathological state, but this contemplation is omitted here.
 
 For s-LMI, respectively, we'll use
@@ -505,7 +514,7 @@ imposed covariance between two subsequent time points
 $\Lambda\Lambda^T\delta + \Omega_{t,t+1}$ would not be the same. More
 precisely, $\Omega_{t,t+1}$ is by definition diagonal and so can only
 change the diagonal to some extent - off-diagonal elements would not be
-the same. This also means that $\Omega_{t,t+1}$ is the same for any $t$.
+the same. This also means that $\Omega_{t,t+1}$ is the same for all $t$.
 
 Using that $\delta$ is constant (and other assumptions established
 above), the covariance between the common factor to itself between any
@@ -580,9 +589,9 @@ $$
 \end{aligned}
 $$
 
-where the right hand side is a multiplication of two positive-definite
-(covariance) symmetric square matrices, which must also be positive
-definite and symmetric.
+where the right hand side, if $\delta$ is positive, is a multiplication
+of two positive-definite (covariance) symmetric square matrices, which
+must also be positive definite and symmetric.
 
 #### Discussion notes
 
