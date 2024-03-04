@@ -14,18 +14,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### To do 22.2.
 
--   Main consideration: Should measurement invariance be dropped from
-    the common factor model and just call it autoregressive common
-    factor model - or something similar. This would work as a
-    simplification for the theoretical part.
-
-    -   Then in simulations, we turn to measurement invariance studies
-        and introduce LMI. s-LMI being independent of stationarity makes
-        a certain point on its usefullness. Maybe LMI models can in fact
-        be used to study non-stationary processess with orthogonal
-        factors, which can be then projected back (if necessary)
-        ordinary covariance.
-
 -   Add/integrate previous Rmd file of theoretical result as extension
     to this one.
 
@@ -162,7 +150,7 @@ A = matrix(ncol = 3, nrow = 3,
              0.3,0.3,0.3))
 library(mlVAR)
 
-# matrix(solve((diag(1,ncol = 3*3, nrow = 3*3) - kronecker.prod(A))) %*% vec(diag(c(0.9,0.9,0.9))),ncol = 3)
+matrix(solve((diag(1,ncol = 3*3, nrow = 3*3) - kronecker.prod(A))) %*% vec(diag(c(0.9,0.9,0.9))),ncol = 3)
 
 X_VAR = simulateVAR(pars = A, Nt = 200, init = 200, residuals = diag(c(0.9,0.9,0.9)))
 ggplot() +
@@ -267,7 +255,7 @@ have covariance $$
 E[X_tX_{t-1}^T]-E[X_t]E[X_{t-1}]\\&=
 E[(AX_{t-1}+\Gamma_t)X_{t-1}^T]\\&=
 E[AX_{t-1}X_{t-1}^T]+E[\Gamma_tX_{t-1}^T]\\&=
-A\Sigma_{t-1}+E[\Gamma_tX_{t-1}^T]
+A\Sigma+E[\Gamma_tX_{t-1}^T]
 \end{aligned}
 $$ Independent errors means that
 $E[\Gamma_tX_{t-1}^T]=\text{Cov}(\Gamma_t,X_{t-1})=0$ leading to $$

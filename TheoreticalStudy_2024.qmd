@@ -1,0 +1,69 @@
+---
+title: "TheoreticalStudy_2024"
+author: "Sakari Lintula, Jaakko Tammilehto, Tom Rosenström"
+format: pdf
+editor: visual
+---
+
+## Notes
+
+-   Not meant to be readable necessarily, but to include main analytical results.
+
+-   Some proofs may be required if not found from sources.
+
+-   Most of mathematics might go to supplement, but this will be easy and fun to write after math part is finished.
+
+-   Do we actually need stationarity for VAR(1)?
+
+# Distinguishability of Vector Autoregressive Symptom-Network and Common Factor models
+
+Common Factor theoretical model
+
+:   A latent variable $\eta$ is a causal entity which creates observable symptoms. Conditional independence of variables $P(X_i|\eta,X_j)=P(X_i|\eta):\:i\ne j$ given the common factor $\eta$ is the central proposition of the model. All changes in symptoms are due to changes in $\eta$ and measuremenet error, meaning that all covariance is explained by $\eta$. $M_1$ denotes the common factor model.
+
+Mutualistic symptom-network theoretical model
+
+:   Symptoms have causal effects on each others. Symptoms can change by themselves or change due to effects not within the symptom-network itself. The symptom-network is all the symptoms. $M_2$ denotes the symptom network model.
+
+Empirical distinguishability
+
+:   The models are distinguishable up to some moment if $M_1,M_2$ differ in that moment.
+
+    $$\begin{aligned} E_{M_1}(X)-E_{M_2}(X)&=D_E\\\   \text{Cov} _{M_1}(X)-\text{Cov} _{M_2}(X)&=D_C  \\   \text{Skew} _{M_1}(X)-\text{Skew} _{M_2}(X)&=D_S\\   \text{Kurt} _{M_1}(X)-\text{Kurt} _{M_2}(X)&=D_S   \end{aligned}  $$
+
+### Change across time: Strict Longitudinal Measurement Invariance vs VAR(1) models
+
+Regarding changes in symptoms across time, the simplest models with practical relevance that we can use for common factor and symptom-network theory are the strict longitudinal measurement invariance (s-LMI) referred to as and the vector autoregressive model of order one (VAR(1)). Here we will analytically approach differences between these models and then perform simulations to quantify how well empirically the models differ when generating from a mixture distribution. We will first inspect what type of covariance structure VAR(1) imposes, and then similarly s-LMI.
+
+#### VAR(1) symptom-network covariance structure at two subsequent time points
+
+The VAR(1) model is defined in matrix format as $X_{t}=C+AX_{t-1}+\Gamma_t$, where $\Gamma_t$ is independent 'error' or 'innovation' column vector with $E[\Gamma_t]=0$, $C$ is a constant assumed zero. Also assume centered $X$, $E[X_t]=0$, in our case. Centering makes covariance calculations easier as the products of expected values can be mostly ignored (they become 0). $A$ is $K \times K$ (borrowing from CT-VAR terminology) 'drift' matrix that includes all lagged effects of $K\times1$ column vectors $X_t$ to $X_{t-1}$, $K$ being the number of observed items (symptoms). In this section the focus is on the $2K\times2K$ covariance matrix where two subsequent measurement time points are observed. All matrices used are real-valued.
+
+First, the covariance matrix (assumed stationary over time) is
+
+$$ \begin{aligned} \text{Cov}(X_t) &= E[X_tX_t^T] \\ &= E[(AX_{t-1}+\Gamma)(AX_{t-1}+\Gamma)^T] \\ &= E[AX_{t-1}X_{t-1}^TA^T] + \underbrace{E[\Gamma \Gamma^T]}_{=: \Psi} \\ &= AE[X_{t-1}X_{t-1}^T]A^T + \Psi \\ &= \Sigma_t = \Sigma\end{aligned} $$where stationarity poses that $\Sigma$ is not dependent of time and so the covariance of VAR(1) is denoted as such from hereon. $\Gamma$ is a random $K\times1$ column vector of (serially) independent innovations at time point $t$, with $E[\Gamma]=0$. $\Psi$ is covariance of the innovations within time point $t$ - i.e., the contemporaneous covariance. We assume that the innovations are independent and so $\Psi$ is diagonal. The vectorized covariance matrix can also be solved to equal\
+$$ \begin{aligned} \text{vec}(\Sigma_{VAR(1)}) = (I-A \otimes A)^{-1} \text{vec}(\Psi) \end{aligned} $$
+
+Where vec is the vectorization operator and $\otimes$ is the Kronecker product. In the above the mixed Kronecker matrix vector product is used to obtain the result. This will be handy when doing numerical demonstrations. Let $^{(p)}$ denote matrix power of $p$.
+
+Second, the covariance between two time points is
+
+$$ \Sigma_{t,t+\Delta t}=\text{Cov}(X_t, X_{t+\Delta t}) = A^{(\Delta t)}\Sigma $$
+
+*(Proof can be done by induction if no reference is found. I checked for Delta = 1,2.)*
+
+The symmetric $TK\times TK$ matrix is $$
+\begin{aligned}
+\begin{pmatrix}   
+   \Sigma                 & A\Sigma &  A^2\Sigma    & \dots & A^{\Delta t}\Sigma
+\\ \Sigma_{t,t+1}         & \Sigma  &  A\Sigma  & \dots  & \vdots
+\\ \Sigma_{t,t+2}&\Sigma_{t+1,t+2}&\Sigma  &
+\\  \vdots                & \ddots        & \ddots  & \ddots   & \vdots
+\\ \Sigma_{t,t+\Delta t}  &   \dots      &  \dots   & \dots    &\Sigma
+ \end{pmatrix} 
+ \end{aligned}
+$$which is the most important result as we will compare this to C-F imposed covariance. On a brief note we can further decompose the above equation, using the power method of eigenvalues, into
+
+$$ A^{(\Delta t)}\Sigma=PD^{(\Delta t)}P^{-1}\Sigma $$
+
+where $D$ is a diagonal matrix of eigenvalues of $A$, $P$ is and orthonormal matrix of eigenvectors of $A$ as columns. Because eigenvalues of (stationary) $A$ are less than one, i.e., $\text{diag}(D):|d_{ii}|<1$ as well, and hence the matrix power converges to $D^{(\Delta t)}\xrightarrow[\infty]{n} 0$. *(This restrains the analysis to psychopathological states as desired.)*
