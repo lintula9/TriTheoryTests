@@ -20,7 +20,7 @@ bibliography: references.bib
 
 ### Previous research
 
-Two central, juxtaposed, models to the comorbidity problem of psychopathology exist in the literature: Symptom-network models as well as common factor models. These are hard to distinguish. Perhaps the first notion of equivalence between mutualistic symptom networks and latent factor models was explicitly stated by [@molenaar2010]. Further studies have shown that cross-sectional networks can be estimated using latent variables [@marsman2015], that each factor model indeed produces a network model if considering the Gaussian case [@epskamp2018b] and for categorical variables there exists a map from multidimensional latent factor item response theory models to network models [@epskamp2018a]. Recent Nature review discusses symptom-networks and factor/dimensional models of psychopathology [@eaton2023], however attempts at identifying distinguishability conditions for the two are scarce if non-existent.
+Two central, juxtaposed, models to the comorbidity problem of psychopathology exist in the literature: Symptom-network models as well as common factor models. These are hard to distinguish. Perhaps the first notion of equivalence between mutualistic symptom networks and latent factor models was explicitly stated by [@molenaar2010]. Further studies have shown that cross-sectional networks can be estimated using latent variables [@marsman2015], that each factor model indeed produces a network model if considering the Gaussian case [@epskamp2018b] and for categorical variables there exists a map from multidimensional latent factor item response theory models to network models [@epskamp2018a]. Criticism has been put forth for both. Recent Nature review discusses symptom-networks and factor/dimensional models of psychopathology [@eaton2023], however attempts at identifying distinguishability conditions for the two are scarce if non-existent.
 
 Common Factor theoretical model
 
@@ -48,18 +48,18 @@ As is typically done we will restrict our analysis to the stationariy, non-seaso
 
 First, the covariance matrix (assumed stationary over time) is
 
-$$ \begin{aligned} \text{Cov}(X_t) &= E[X_tX_t^T] \\ &= E[(AX_{t-1}+\Gamma)(AX_{t-1}+\Gamma)^T] \\ &= E[AX_{t-1}X_{t-1}^TA^T] + \underbrace{E[\Gamma \Gamma^T]}_{=: \Psi} \\ &= AE[X_{t-1}X_{t-1}^T]A^T + \Psi \\ &= \Sigma_t = \Sigma\end{aligned} $$where stationarity poses that $\Sigma$ is not dependent of time and so the covariance of VAR(1) is denoted as such from hereon. $\Gamma$ is a random $K\times1$ column vector of (serially) independent innovations at time point $t$, with $E[\Gamma]=0$. $\Psi$ is covariance of the innovations within time point $t$ - i.e., the contemporaneous covariance. We assume that the innovations are independent and so $\Psi$ is diagonal. The vectorized covariance matrix can also be solved to equal\
+$$ \begin{aligned} \text{Cov}(X_t) &= E[X_tX_t^T] \\ &= E[(AX_{t-1}+\Gamma)(AX_{t-1}+\Gamma)^T] \\ &= E[AX_{t-1}X_{t-1}^TA^T] + \underbrace{E[\Gamma \Gamma^T]}_{=: \Psi} \\ &= AE[X_{t-1}X_{t-1}^T]A^T + \Psi \\ &= \Sigma_t = \Sigma\end{aligned} $$where stationarity poses that $\Sigma$ is not dependent of time and so the covariance of VAR(1) is denoted as such from hereon. $\Gamma$ is a random $K\times1$ column vector of (serially) independent innovations at time point $t$, with $E[\Gamma]=0$. $\Psi$ is covariance of the innovations within time point $t$ - i.e., the contemporaneous covariance. We assume that the innovations are independent and so $\Psi$ is diagonal. The vectorized covariance matrix can also be solved to equal [@liitkepohl]\
 $$ \begin{aligned} \text{vec}(\Sigma_{VAR(1)}) = (I-A \otimes A)^{-1} \text{vec}(\Psi) \end{aligned} $$
 
-Where vec is the vectorization operator and $\otimes$ is the Kronecker product. In the above the mixed Kronecker matrix vector product is used to obtain the result. This will be handy when doing numerical demonstrations. Let $^{(p)}$ denote matrix power of $p$.
+(We'll use the above notation for VAR(1) covariance when clarity is needed.) Where vec is the vectorization operator and $\otimes$ is the Kronecker product. In the above the mixed Kronecker matrix vector product is used to obtain the result. This will be handy when doing numerical demonstrations. Let $^{(p)}$ denote matrix power of $p$.
 
-Second, the covariance between two time points is
+Second, the covariance between two time points called cross covariance is
 
 $$ \Sigma_{t,t+\Delta t}=\text{Cov}(X_t, X_{t+\Delta t}) = A^{(\Delta t)}\Sigma $$
 
-*(Proof can be done by induction if no reference is found. I checked for Delta = 1,2.)*
+*(Proof can be done by induction if no reference is found. I checked for Delta = 1,2. - Sakari)*
 
-The symmetric $TK\times TK$ matrix is $$
+The symmetric $TK\times TK$ cross covariance matrix is $$
 \begin{aligned}
 \begin{pmatrix}   
    \Sigma                 & A\Sigma &  A^2\Sigma    & \dots & A^{\Delta t}\Sigma
@@ -73,10 +73,27 @@ $$which is the most important result as we will compare this to C-F imposed cova
 
 $$ A^{(\Delta t)}\Sigma=PD^{(\Delta t)}P^{-1}\Sigma $$
 
-where $D$ is a diagonal matrix of eigenvalues of $A$, $P$ is and orthonormal matrix of eigenvectors of $A$ as columns. Because eigenvalues of (stationary) $A$ are less than one, i.e., $\text{diag}(D):|d_{ii}|<1$ as well, and hence the matrix power converges to $D^{(\Delta t)}\xrightarrow[\infty]{n} 0$. *(This restrains the analysis to psychopathological states as desired.)*
+where $D$ is a diagonal matrix of eigenvalues of $A$, $P$ is and orthonormal matrix of eigenvectors of $A$ as columns. Because eigenvalues of (stationary) $A$ are less than one, i.e., $|D_{ii}|<1$ as well, and hence the matrix power converges to $D^{(\Delta t)}\xrightarrow[\infty]{n} 0$. *(This restrains the analysis to psychopathological states as desired.)*
 
 #### S-LMI common factor covariance structure
 
-Notably, there also exists the dynamic factor model [@molenaar1985] which is a general case of a dynamic latent process. S-LMI differs in that it does not require stationarity to be estimable, the residuals (or 'errors' or 'innovations') are assumed to be independent of each other with diagonal covariance function (i.e., cross-sectional covariance and between time points covariance is diagonal).
+Notably, there also exists the dynamic factor model [@molenaar1985] which is a general case of a dynamic latent process. S-LMI differs in that it does not require stationarity to be estimable, the residuals (or 'errors' or 'innovations') are assumed to be independent of each other with diagonal covariance function (i.e., cross-sectional covariance and between time points covariance is diagonal) and that the cross-covariance between any two time points is symmetric as we will see below. s-LMI with 1 common factor decomposes the covariance as $$\Sigma=\Lambda\Lambda^T+\Omega$$where by definition of s-LMI $\Omega$ is assumed diagonal and and $\Lambda$ is a $K\times1$ column vector of 'factor loadings' assumed constant over time. We also need the cross covariance of the common factor. Let $\delta$ be the latent regression coefficient which links the common factor to itself at a previous time point such that $\eta_{t+1}=\delta\eta_t+\psi_t$, where $\psi_t$ is independent random term ('innovation', 'error', 'disturbance') with $E[\psi_t]=0$. Assuming standardized common factor such that $E[\eta]=0,\:Var(\eta)=1$ covariance of the common factor at two subsequent time points is
+
+The s-LMI imposed $TK\times TK$ covariance matrix is $$
+\begin{pmatrix}
+   \Lambda\Lambda^T + \Omega & ... &  \Lambda\Lambda^T \prod\delta + \Omega_{\Delta}
+\\ \vdots&\ddots&\vdots
+\\ \Lambda\Lambda^T\prod \delta + \Omega_{\Delta}^T&...&\Lambda\Lambda^T(\prod\delta+Var(\psi_t)) + \Omega
+\end{pmatrix}
+$$
+
+(Proof is in another file.)
+
+The above cross-covariance matrix has only symmetric matrices as its blocks.
+
+{{< pagebreak >}}
 
 ### References
+
+::: {#refs}
+:::
