@@ -1,10 +1,10 @@
 # Covariance numerical calulations
 library(fastmatrix)
-A = matrix(c(.2,.2,.2,.2,
-             .2,.2,.2,.2,
-             .2,.2,.2,.2,
-             .2,.2,.2,.2), ncol = 4, byrow = F)
-Psi = diag( 0.2, 
+A = matrix(c(.25,.2,.2,.2,
+             .2,.25,.2,.2,
+             .2,.2,.25,.2,
+             .2,.2,.2,.3), ncol = 4, byrow = F)
+Psi = diag( 0.1, 
             ncol = ncol(A), 
             nrow = nrow(A) )
 I = diag(1, ncol = ncol(A)*ncol(A), nrow = nrow(A)*nrow(A))
@@ -38,7 +38,44 @@ C3K = do.call(args = list(
             cbind(Sigma,Sigma_12,Sigma_13),
             cbind(Sigma_12,Sigma,Sigma_12),
             cbind(Sigma_13,Sigma_12,Sigma)),
-            what = rbind); print(C3K)
+            what = rbind); print(round(C3K, 4))
 # this is given by simple division observable from
 Sigma_12 * 0.8 == Sigma_13
 Sigma_13 * 0.8 == Sigma_14
+
+# Manually fit a S-LMI
+lambda = sqrt(0.144444444444444444)
+
+
+
+# Fit s-lmi model
+library(lavaan);library(semTools)
+colnames(C2K) = c((paste("X",1:4,sep="")), paste("X", 5:8,sep=""))
+rownames(C2K) = c((paste("X",1:4,sep="")), paste("X", 5:8,sep=""))
+
+SLMI = "
+  CF1 =~ X1 + X2 + X3 + X4
+  CF2 =~ X5 + X6 + X7 + X8
+
+  CF2 ~ CF1
+
+  X1 ~~ X5
+  X2 ~~ X6
+  X3 ~~ X7
+  X4 ~~ X8"
+LMI_result = sem(model = SLMI, sample.cov = C2K, 
+                 sample.nobs = 1000, 
+                 std.lv = T, 
+                 estimator = "ml", 
+                 parameterization = "theta", auto.var = F)
+lavInspect(LMI_result)
+
+
+efa(sample.cov = C2K, rotation = "oblimin", sample.nobs = 1000, nfactors = 2, rotation.args = list(orthogonal = F))
+
+longFacNames <- list(CF = c("CF1", "CF2"))
+LMI_result= measEq.syntax(configural.model = configural.model, 
+                          ID.fac = "std.lv", 
+                          longFacNames = longFacNames, long.equal = "residual.covariances",
+                          return.fit = T, sample.cov = C2K, sample.nobs = 10000)
+

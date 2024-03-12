@@ -6,6 +6,14 @@ editor: visual
 bibliography: references.bib
 ---
 
+```{r, echo = F}
+pckg_nms = c("igraph", "eicm")
+for(i in pckg_nms){
+if(!requireNamespace(i)) install.packages(i) else library(i, character.only = T)
+   library(i, character.only = T)
+}
+```
+
 ## Notes
 
 -   Not meant to be readable necessarily, but to include main analytical results.
@@ -20,7 +28,7 @@ bibliography: references.bib
 
 ### Previous research
 
-Two central, juxtaposed, models to the comorbidity problem of psychopathology exist in the literature: Symptom-network models as well as common factor models. These are hard to distinguish. Perhaps the first notion of equivalence between mutualistic symptom networks and latent factor models was explicitly stated by [@molenaar2010]. Further studies have shown that cross-sectional networks can be estimated using latent variables [@marsman2015], that each factor model indeed produces a network model if considering the Gaussian case [@epskamp2018b] and for categorical variables there exists a map from multidimensional latent factor item response theory models to network models [@epskamp2018a]. Criticism has been put forth for both. Recent Nature review discusses symptom-networks and factor/dimensional models of psychopathology [@eaton2023], however attempts at identifying distinguishability conditions for the two are scarce if non-existent.
+Two central, juxtaposed, models to the comorbidity problem of psychopathology exist in the literature: Symptom-network models as well as common factor models. These are hard to distinguish. Perhaps the first notion of equivalence between mutualistic symptom networks and latent factor models was explicitly stated by [@molenaar2010]. Further studies have shown that cross-sectional networks can be estimated using latent variables [@marsman2015], that each factor model indeed produces a network model if considering the Gaussian case [@epskamp2018b] and for categorical variables there exists a map from multidimensional latent factor item response theory models to network models [@epskamp2018a]. Criticism has been put forth for both with mostly a focus on one theory or the other. A Nature review discusses symptom-networks and factor/dimensional models of psychopathology [@eaton2023], however attempts at identifying distinguishability conditions for the two are scarce if non-existent. In other words, there is a lack of comparative research.
 
 Common Factor theoretical model
 
@@ -40,11 +48,13 @@ For example [@ip2010a] discusses empirical (in)distinguishability of correlated 
 
 ### Change across time: Strict Longitudinal Measurement Invariance vs VAR(1) models
 
-Regarding changes in symptoms across time, the simplest models seen applied use that we can use for common factor and symptom-network theory are the strict longitudinal measurement invariance (s-LMI) and the vector autoregressive model of order one (VAR(1)). Notably any discrete time VAR model is a special case of continuous-time VAR model. As such, discrete time VAR works well for a simple theoretical model. Here we will analytically approach differences between these models and then perform simulations to quantify how well empirically the models differ when generating from a mixture distribution. We will first inspect what type of covariance structure VAR(1) imposes, and then similarly s-LMI.
+Regarding changes in symptoms across time, the simplest models seen applied use that we can use for common factor and symptom-network theory are the strict longitudinal measurement invariance (s-LMI) and the vector autoregressive model of order one (VAR(1)). Notably any discrete time VAR model is a special case of continuous-time VAR model. As such, discrete time VAR works well for a simple theoretical model. Here we will analytically approach differences between these models and then perform use numerical cases to evaluate how well they are distinguishable. We will first inspect what type of covariance structure VAR(1) imposes, and then similarly s-LMI.
+
+In general we are interested in the $TK\times TK$ covariance (block) matrix of all within time point covariance matrices included in the diagonal as well as cross time covariances in the off-diagonal blocks.
 
 #### VAR(1) symptom-network covariance structure
 
-As is typically done we will restrict our analysis to the stationariy, non-seasoanlly trended (hence ergodic [@molenaar2004]) VAR process. The VAR(1) model is defined in matrix format as $X_{t}=C+AX_{t-1}+\Gamma_t$, where $\Gamma_t$ is independent 'error' or 'innovation' column vector with $E[\Gamma_t]=0$, $C$ is a constant assumed zero. Also assume centered $X$, $E[X_t]=0$, in our case. Centering makes covariance calculations easier as the products of expected values can be mostly ignored (they become 0). $A$ is $K \times K$ (borrowing from CT-VAR terminology) 'drift' matrix that includes all lagged effects of $K\times1$ column vectors $X_t$ to $X_{t-1}$, $K$ being the number of observed items (symptoms). In this section the focus is on the $2K\times2K$ covariance matrix where two subsequent measurement time points are observed. All matrices used are real-valued.
+As is typically done we will restrict our analysis to the stationary, non-seasonally trended (hence ergodic [@molenaar2004]) VAR process. The VAR(1) model is defined in matrix format as $X_{t}=C+AX_{t-1}+\Gamma_t$, where $\Gamma_t$ is independent 'error' or 'innovation' column vector with $E[\Gamma_t]=0$, $C$ is a constant assumed zero. Also assume centered $X$, $E[X_t]=0$, in our case. Centering makes covariance calculations easier as the products of expected values can be mostly ignored (they become 0). $A$ is $K \times K$ (borrowing from CT-VAR terminology) 'drift' matrix that includes all lagged effects of $K\times1$ column vectors $X_t$ to $X_{t-1}$, $K$ being the number of observed items (symptoms). In this section the focus is on the $2K\times2K$ covariance matrix where two subsequent measurement time points are observed. All matrices used are real-valued.
 
 First, the covariance matrix (assumed stationary over time) is
 
@@ -53,23 +63,23 @@ $$ \begin{aligned} \text{vec}(\Sigma_{VAR(1)}) = (I-A \otimes A)^{-1} \text{vec}
 
 (We'll use the above notation for VAR(1) covariance when clarity is needed.) Where vec is the vectorization operator and $\otimes$ is the Kronecker product. In the above the mixed Kronecker matrix vector product is used to obtain the result. This will be handy when doing numerical demonstrations. Let $^{(p)}$ denote matrix power of $p$.
 
-Second, the covariance between two time points called cross covariance is
+Second, the covariance between two time points called cross covariance is [@liitkepohl]
 
-$$ \Sigma_{t,t+\Delta t}=\text{Cov}(X_t, X_{t+\Delta t}) = A^{(\Delta t)}\Sigma $$
+$$ \Sigma_{t,t+\Delta t}=\text{Cov}(X_t, X_{t+\Delta t}) = A^{(\Delta)}\Sigma $$
 
 *(Proof can be done by induction if no reference is found. I checked for Delta = 1,2. - Sakari)*
 
 The symmetric $TK\times TK$ cross covariance matrix is $$
 \begin{aligned}
 \begin{pmatrix}   
-   \Sigma                 & A\Sigma &  A^2\Sigma    & \dots & A^{\Delta t}\Sigma
+   \Sigma                 & A\Sigma &  A^2\Sigma    & \dots & A^{\Delta}\Sigma
 \\ \Sigma_{t,t+1}         & \Sigma  &  A\Sigma  & \dots  & \vdots
 \\ \Sigma_{t,t+2}&\Sigma_{t+1,t+2}&\Sigma  &
 \\  \vdots                & \ddots        & \ddots  & \ddots   & \vdots
-\\ \Sigma_{t,t+\Delta t}  &   \dots      &  \dots   & \dots    &\Sigma
+\\ \Sigma_{t,t+\Delta}  &   \dots      &  \dots   & \dots    &\Sigma
  \end{pmatrix} 
  \end{aligned}
-$$which is the most important result as we will compare this to C-F imposed covariance. On a brief note we can further decompose the above equation, using the power method of eigenvalues, into
+$$which is the most important result as we will compare this to S-LMI imposed covariance. On a brief note we can further decompose the above equation, using the power method of eigenvalues, into
 
 $$ A^{(\Delta t)}\Sigma=PD^{(\Delta t)}P^{-1}\Sigma $$
 
@@ -77,7 +87,9 @@ where $D$ is a diagonal matrix of eigenvalues of $A$, $P$ is and orthonormal mat
 
 #### S-LMI common factor covariance structure
 
-Notably, there also exists the dynamic factor model [@molenaar1985] which is a general case of a dynamic latent process. S-LMI differs in that it does not require stationarity to be estimable, the residuals (or 'errors' or 'innovations') are assumed to be independent of each other with diagonal covariance function (i.e., cross-sectional covariance and between time points covariance is diagonal) and that the cross-covariance between any two time points is symmetric as we will see below. s-LMI with 1 common factor decomposes the covariance as $$\Sigma=\Lambda\Lambda^T+\Omega$$where by definition of s-LMI $\Omega$ is assumed diagonal and and $\Lambda$ is a $K\times1$ column vector of 'factor loadings' assumed constant over time. We also need the cross covariance of the common factor. Let $\delta$ be the latent regression coefficient which links the common factor to itself at a previous time point such that $\eta_{t+1}=\delta\eta_t+\psi_t$, where $\psi_t$ is independent random term ('innovation', 'error', 'disturbance') with $E[\psi_t]=0$. Assuming standardized common factor such that $E[\eta]=0,\:Var(\eta)=1$ covariance of the common factor at two subsequent time points is
+We move to the S-LMI model. S-LMI and any longitudinal measurement invariance model are theoretical model with a causal implication. This is not always explicit when using any longitudinal measurement invariance models. It assumes that variation over time is only due to the common factor and serially (over time) correlated residuals/measurement errors/idiosyncratic variance in each symptom.
+
+Notably, there also exists the dynamic factor model [@molenaar1985] which is a general case of a dynamic latent process. S-LMI differs in that it does not require stationarity to be estimable, the residuals (or 'errors' or 'innovations') are assumed to be independent of each other with diagonal covariance function (i.e., cross-sectional covariance and between time points covariance is diagonal) and that the cross-covariance between any two time points is symmetric as we will see below. s-LMI with 1 common factor decomposes the covariance as $$\Sigma=\Lambda\Lambda^T+\Omega$$where by definition of s-LMI $\Omega$ is assumed diagonal and and $\Lambda$ is a $K\times1$ column vector of 'factor loadings' assumed constant over time. We also need the cross covariance of the common factor. Let $\delta$ be the latent regression coefficient which links the common factor to itself at a previous time point such that $\eta_{t+1}=\delta\eta_t+\psi_t$, where $\psi_t$ is independent random term ('innovation', 'error', 'disturbance') with $E[\psi_t]=0$. Assuming standardized common factor such that $E[\eta]=0,\:Var(\eta)=1$.
 
 The s-LMI imposed $TK\times TK$ covariance matrix is $$
 \begin{pmatrix}
@@ -89,10 +101,43 @@ $$
 
 (Proof is in another file.)
 
-The above cross-covariance matrix has only symmetric matrices as its blocks.
+Where, if we assume that the common factor has a constant variance over time, we can reduce the diagonal matrices to simply the first element of the first column. The above cross-covariance matrix has only symmetric matrices as its blocks. Effectively this is because the only thing that can change is the C-F $\eta$ and the serially correlated residuals. This results in the cross covariance being a sum of the dot product of the loadings (which is necessarily a rank 1 symmetric matrix) as well as a diagonal matrix.
 
 {{< pagebreak >}}
 
+### Distinguishability
+
+Several differences occur in the way that the models produce covariance. The major difference is that S-LMI requires symmetry in cross covariance matrices, whilst VAR(1) does not. Second, S-LMI imposes that cross covariance is only changed through possibly correlated measurement errors and through the latent variable regression parameter $\delta$. This means that VAR(1) must always produce a symmetric cross covariance which can only change by a scalar multiple as difference in time $\Delta$ increases.
+
+There exists a VAR(1) symptom-network which produces covariances also perfectly explained by a s-LMI model. Consider the numerical example of
+
+$$
+A=\begin{pmatrix} .2&.2&.2&.2\\.2&.2&.2&.2\\.2&.2&.2&.2\\.2&.2&.2&.2 \end{pmatrix},\:\Psi=\begin{pmatrix} .1&0&0&0\\0&.1&0&0\\0&0&.1&0\\0&0&0&.1\end{pmatrix}
+$$
+
+```{r, echo = F}
+# Some plot maybe
+A = matrix(rep(1, times = 16), ncol = 4) + diag(0.1,nrow=4,ncol=4)
+plotNetworkFromMatrix(adjacency = A)
+```
+
+It produces $2K\times 2K$ of (up to a rounding error)
+
+$$
+\begin{aligned}
+\begin{pmatrix}   
+.144 & .144 & .144 & .144 & .056 & .056 & .056 & .056\\
+.144 & .144 & .144 & .144 & .056 & .056 & .056 & .056 \\
+.144 & .144 & .144 & .144 & .056 & .056 & .056 & .056 \\
+.144 & .144 & .144 & .144 & .056 & .056 & .056 & .056 \\
+.056 & .056 & .056 & .056 & .144 & .144 & .144 & .144\\
+.056 & .056 & .056 & .056 & .144 & .144 & .144 & .144 \\
+.056 & .056 & .056 & .056 & .144 & .144 & .144 & .144 \\
+.056 & .056 & .056 & .056 & .144 & .144 & .144 & .144 \\
+ \end{pmatrix} 
+ \end{aligned}
+$$
+In this special case the cross covariance is simply a multiplication of the within time point covariance by a scalar. Choosing $\Lambda = (\sqrt{0.144},\sqrt{0.144},\sqrt{0.144},\sqrt{0.144})$ we obtain a correct within time point covariance matrix. Choosing $\delta = 0.056/0.144=0.3888889$ we have the correct scalar which multiplies $\Lambda\Lambda^T$. We also need to have all $\Omega=0$, that is, no residuals. This result can be generalized to any $cA,\:c\in\mathbb{R}$ - i.e. any scalar multiple of $A$ - which is stationary (eigenvalues modulus less than 1). The same seems to apply for $cA + B:B=aI,\:a\in\mathbb{R}$ and maybe for any diagonal $B$ which still satisfies stationarity.
 ### References
 
 ::: {#refs}
