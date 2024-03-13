@@ -15,7 +15,15 @@ Sigma_13 = A %*% Sigma_12
 Sigma_14 = A %*% Sigma_13
 Sigma_15 = A %*% Sigma_14
 
+# NOTE that symmetry is not enough, but every off-diagonal element of cross-covariances must be a scalar multiple
+# of each other
+for (i in list(Sigma_12,Sigma_13,Sigma_14,Sigma_15)) print(isSymmetric(i))
 eigen(Sigma - Psi)
+
+# For each matrix, off diagonal elements of these matrices must be equal
+Sigma_12 / Sigma
+Sigma_13 / Sigma_12
+
 
 # The 2K x 2K
 
@@ -38,7 +46,8 @@ C3K = do.call(args = list(
             cbind(Sigma,Sigma_12,Sigma_13),
             cbind(Sigma_12,Sigma,Sigma_12),
             cbind(Sigma_13,Sigma_12,Sigma)),
-            what = rbind); print(round(C3K, 4))
+            what = rbind); print(round(C3K, 4)) 
+
 # this is given by simple division observable from
 Sigma_12 * 0.8 == Sigma_13
 Sigma_13 * 0.8 == Sigma_14
