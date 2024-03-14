@@ -44,7 +44,7 @@ $$
 AA=(cJ+dI)(c_2J+dI)=c^2kJ+dcJ+dcJ+d^2I=J\underbrace{(c^2k+2dc)}_{\in\mathbb{R}}+\underset{\in\mathbb{R}}{d^2}I\in span(J,I)
 $$
 
-where we can see that $AA,A$ are proportional to each other so that $J_A = c_qJ_{AA},\:d_AI=d_qAA$
+where we can see that $AA,A$ have coordinates in the space $span(J,I)$ being proportional to each other's respective coordinates.
 
 and hence $AA ...  A\Sigma\in span(J,I)$ which means that all cross covariances for any $\Delta=t_T-t_0$ in time are also in this space.
 
