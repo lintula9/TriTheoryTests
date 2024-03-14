@@ -1,0 +1,57 @@
+---
+title: "Proof for space of LMI producing drift matrices"
+format: pdf
+editor: visual
+---
+
+### Proof for $cJ_k+dI$ spanning matrix space
+
+Let $0<c,d\in\mathbb{R}$. Let $J_k$ be a $k$ dimensional matrix of ones, the subindex of which will be omitted in the following. Let $I_k$ be $k$ dimensional identity matrix, similarly omitting the subindex in the following. We will first show that the space which these two matrices span contains a set of drift matrices $A\in span(J,I)$ that produce covariance matrices perfectly also explained by S-LMI model.
+
+Let $A=cJ+dI$. Let $\Sigma$ be the covariance matrix of random variables $X$ observed at different time points $t\in\mathbb{N}$. We will omit any special cases that might occur at small $k\leq3$ due to the factor model being just identifiable at $k=3$. The cross-covariance is $A\Sigma=(cJ+dI)\Sigma=cJ\Sigma+d\Sigma$. Note that $J\Sigma$ is effectively summing over the covariances for each variable producing then $K$ different values such that
+
+$$
+cJ\Sigma=
+\begin{pmatrix} 
+ c\sum_{i=1}^k\sigma_{i1}&\dots& c\sum_{i=1}^k\sigma_{ik} \\
+ \vdots&\ddots&\vdots \\
+ c\sum_{i=1}^k\sigma_{i1}&\dots& c\sum_{i=1}^k\sigma_{ik}
+\end{pmatrix} = 
+\begin{pmatrix} 
+ a&\dots& b \\
+ \vdots&\ddots&\vdots \\
+ a&\dots& b
+\end{pmatrix}
+$$where $a\in\mathbb{R}$ and clearly $d\Sigma$ is just a scalar multiple of the covariance. Define innovations contained in $\Gamma\in\mathbb{R}^{K\times1}$ to have mean of 0 $E[\Gamma] = 0$ and are independent $E[\Gamma\Gamma^T]=0$. We also have that, since $A$ completely now defines covariances of $X$, that all variables have identical covariance $\sigma_{12}=\sigma_{13}=\sigma_{23}…=\sigma_{ij}$ for all $i\ne j$. This is because $A$ has identical cross-lagged autoregression coefficients for all $x\in X$. Note that $A$ also has identical autoregression coefficients and hence the variances are also identical for all $x$. This means that
+
+$$
+cJ\Sigma=\begin{pmatrix} 
+ a&\dots& a \\
+ \vdots&\ddots&\vdots \\
+ a&\dots& a \end{pmatrix}
+\in span(J)
+$$
+
+and $d\Sigma,\Sigma\in span(J,I)$ hence also
+
+$$
+A\Sigma=(cJ+dI)\Sigma\in span(J,I)
+$$
+
+Also see that
+
+$$
+AA=(cJ+dI)(c_2J+dI)=c^2kJ+dcJ+dcJ+d^2I=J\underbrace{(c^2k+2dc)}_{\in\mathbb{R}}+\underset{\in\mathbb{R}}{d^2}I\in span(J,I)
+$$
+
+where we can see that $AA,A$ are proportional to each other so that $J_A = c_qJ_{AA},\:d_AI=d_qAA$
+
+and hence $AA ...  A\Sigma\in span(J,I)$ which means that all cross covariances for any $\Delta=t_T-t_0$ in time are also in this space.
+
+Now, since we have that all covariances are the same, then for the common factor model with $\text{Var}(\eta)=1,E[\eta]=0$ all factor loadings must be the same so that$\lambda_1=\lambda_2=…=\lambda_k=\lambda:\text{Cov}(X_i,X_k)=\lambda^2,i\ne j$ . (By this point the practical constraint is evident, but will be discussed elsewhere. - Sakari) Now we have that the S-LMI imposed cross covariance is
+
+$$
+\Lambda\Lambda^T \prod_{i=0}^{\Delta}\delta_i+\Omega_\Delta= cJ+dI\in span(J,I)
+$$
+
+where $\delta\in\mathbb{R}$ is the regression coefficient for subsequent $\eta_1,\eta_2$ and the respective product is for multiple subsequent regressions.

@@ -23,6 +23,7 @@ eigen(Sigma - Psi)
 # For each matrix, off diagonal elements of these matrices must be equal
 Sigma_12 / Sigma
 Sigma_13 / Sigma_12
+Sigma_14 / Sigma_13
 
 
 # The 2K x 2K
