@@ -22,7 +22,7 @@ cJ\Sigma=
  \vdots&\ddots&\vdots \\
  a&\dots& b
 \end{pmatrix}
-$$where $a\in\mathbb{R}$ and clearly $d\Sigma$ is just a scalar multiple of the covariance. Define innovations contained in $\Gamma\in\mathbb{R}^{K\times1}$ to have mean of 0 $E[\Gamma] = 0$ and are independent $E[\Gamma\Gamma^T]=0$. We also have that, since $A$ completely now defines covariances of $X$, that all variables have identical covariance $\sigma_{12}=\sigma_{13}=\sigma_{23}…=\sigma_{ij}$ for all $i\ne j$. This is because $A$ has identical cross-lagged autoregression coefficients for all $x\in X$. Note that $A$ also has identical autoregression coefficients and hence the variances are also identical for all $x$. This means that
+$$where $a\in\mathbb{R}$ and clearly $d\Sigma$ is just a scalar multiple of the covariance. Define innovations contained in $\Gamma\in\mathbb{R}^{K\times1}$ to have mean of 0 $E[\Gamma] = 0$ and are independent $E[\Gamma\Gamma^T]=0$. We also have that, since $A$ completely now defines covariances of $X$, that all variables have identical covariance $\sigma_{12}=\sigma_{13}=\sigma_{23}…=\sigma_{ij}$ for all $i\ne j$. This is because $A$ defines identical cross-lagged autoregression coefficients for all $x\in X$. Note that $A$ also has identical autoregression coefficients and hence the variances are also identical for all $x$. This means that
 
 $$
 cJ\Sigma=\begin{pmatrix} 
@@ -46,12 +46,20 @@ $$
 
 where we can see that $AA,A$ have coordinates in the space $span(J,I)$ being proportional to each other's respective coordinates.
 
-and hence $AA ...  A\Sigma\in span(J,I)$ which means that all cross covariances for any $\Delta=t_T-t_0$ in time are also in this space.
+and hence $AA ... A\Sigma\in span(J,I)$ which means that all cross covariances for any $\Delta=t_T-t_0$ in time are also in this space.
 
-Now, since we have that all covariances are the same, then for the common factor model with $\text{Var}(\eta)=1,E[\eta]=0$ all factor loadings must be the same so that$\lambda_1=\lambda_2=…=\lambda_k=\lambda:\text{Cov}(X_i,X_k)=\lambda^2,i\ne j$ . (By this point the practical constraint is evident, but will be discussed elsewhere. - Sakari) Now we have that the S-LMI imposed cross covariance is
+Now, since we have that all covariances are the same, then for the S-LMI model with $\text{Var}(\eta)=1,E[\eta]=0$ all factor loadings must be the same so that$\lambda_1=\lambda_2=…=\lambda_k=\lambda:\text{Cov}(X_i,X_k)=\lambda^2,i\ne j$ . (By this point the practical constraint is evident, but will be discussed elsewhere. - Sakari) Now we have that the S-LMI imposed cross covariance is
 
 $$
 \Lambda\Lambda^T \prod_{i=0}^{\Delta}\delta_i+\Omega_\Delta= cJ+dI\in span(J,I)
 $$
 
 where $\delta\in\mathbb{R}$ is the regression coefficient for subsequent $\eta_1,\eta_2$ and the respective product is for multiple subsequent regressions.
+
+ANother way to formulate the problem is that
+
+$$
+\Sigma \in span(\Lambda\Lambda+\Omega)=F
+$$
+
+and that $F$ is invariant under $A$.
