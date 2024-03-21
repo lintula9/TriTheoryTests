@@ -1,10 +1,14 @@
 ---
-title: "Proof for space of LMI producing drift matrices"
+title: "Space containing VAR networks indistinguishable from S-LMI"
 format: pdf
+type: document
 editor: visual
 ---
 
 ### Proof for $cJ_k+dI$ spanning (matrix) vector space
+
+- Refinements are necessary, but central ideas should be visible.
+- Some proofs might be good to show here and use this as a supplement.   
 
 Let $0<c,d\in\mathbb{R}$. Let $J_k$ be a $k$ dimensional matrix of ones, the subindex of which will be omitted in the following. Let $I_k$ be $k$ dimensional identity matrix, similarly omitting the subindex in the following. We will first show that the space which these two matrices span contains a set of drift matrices $A\in span(J,I)$ that produce covariance matrices perfectly also explained by S-LMI model.
 
@@ -54,4 +58,4 @@ $$
 
 where $\delta\in\mathbb{R}$ is the regression coefficient for subsequent $\eta_1,\eta_2$ and the respective product is for multiple subsequent regressions.
 
-Another, more general, criterion for indistinguishability that the subspace of positive definite symmetric matrices $(\Sigma=\Lambda\Lambda^T+\Omega)\in\mathbb{R}^{K\times K}$ must be invariant under $A$.
+Another, more general, criterion for indistinguishability that the subspace of positive semi-definite symmetric matrices $(\Sigma=\Lambda\Lambda^T+\Omega)\in\mathbb{R}^{K\times K}$ must be invariant under $A$. This is because $\Lambda\Lambda^T\delta + \Omega_{\Delta}$ is always positive semi-definite symmetric.
