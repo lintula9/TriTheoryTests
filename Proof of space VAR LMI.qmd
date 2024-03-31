@@ -7,8 +7,8 @@ editor: visual
 
 ### Proof for $cJ_k+dI$ spanning (matrix) vector space
 
-- Refinements are necessary, but central ideas should be visible.
-- Some proofs might be good to show here and use this as a supplement.   
+-   Refinements are necessary, but central ideas should be visible.
+-   Some proofs might be good to show here and use this as a supplement.
 
 Let $0<c,d\in\mathbb{R}$. Let $J_k$ be a $k$ dimensional matrix of ones, the subindex of which will be omitted in the following. Let $I_k$ be $k$ dimensional identity matrix, similarly omitting the subindex in the following. We will first show that the space which these two matrices span contains a set of drift matrices $A\in span(J,I)$ that produce covariance matrices perfectly also explained by S-LMI model.
 
@@ -58,4 +58,34 @@ $$
 
 where $\delta\in\mathbb{R}$ is the regression coefficient for subsequent $\eta_1,\eta_2$ and the respective product is for multiple subsequent regressions.
 
-Another, more general, criterion for indistinguishability that the subspace of positive semi-definite symmetric matrices $(\Sigma=\Lambda\Lambda^T+\Omega)\in\mathbb{R}^{K\times K}$ must be invariant under $A$. This is because $\Lambda\Lambda^T\delta + \Omega_{\Delta}$ is always positive semi-definite symmetric.
+#### General criterion for indistinguishability
+
+Assumptions
+
+$$
+\begin{aligned}
+|\lambda_A|&<1\Rightarrow \det A <1 &&& \text{(VAR is stationary.)} \\
+\det\Omega, \det\Psi&\ne0 &&& \text{(Diagonal residuals and innovations are non-zero.)} \\
+\text{rank }\Lambda\Lambda^T&=1&&& \text{(One common factor.)}
+\end{aligned}
+$$
+
+We have a set of conditions, and their implications, which must be satisfied, if indistinguishability holds:
+
+$$
+\begin{aligned}
+\Sigma&=A\Sigma A^T+\Psi &&&\text{(Within time point VAR covariance is common factor decomposable.)} \\
+&=\Lambda\Lambda^T+\Omega \\&=
+A(\Lambda\Lambda^T+\Omega)A^T + \Psi \\ 
+\\
+\Sigma_{\Delta}&=A^{\Delta}\Sigma &&&\text{(VAR cross-covariance is LMI decomposable.)} \\\ &=
+\Lambda\Lambda^T\delta_{\Delta}+\Omega_{\Delta} \\ &=
+A^{\Delta}(\Lambda\Lambda^T+\Omega) \\ \forall\Delta&\in1,2,3,... \\ \forall \delta_{\Delta}&\in\mathbb{R} \\ \\
+\Sigma_{\Delta}^T    &=(\Lambda\Lambda^T\delta_{\Delta})^T+\Omega_{\Delta}^T   &&&\text{(Cross-covariance is always symmetric.)} \\
+&=
+\Lambda\Lambda^T\delta_{\Delta}+\Omega_{\Delta} \\ &=
+\Sigma_{\Delta} 
+\\ \\
+\Sigma_{\Delta}&=A\Sigma_{\Delta-1}\\&=(A\Sigma_{\Delta-1})^T\\&=\Sigma_{\Delta-1}A^T
+\end{aligned}  
+$$
