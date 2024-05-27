@@ -7,24 +7,13 @@ editor: visual
 
 ### S-LMI Covariance
 
-s-LMI with 1 common factor decomposes $\Sigma_{t-1}$ into following
-$$\Sigma=\Lambda\Lambda^T+\Omega_{t-1}$$where by definition of s-LMI
-$\Omega_{t-1}$ is diagonal and and $\Lambda$ is a $K\times1$ column
-vector of factor loadings constant over time. We also need the
-covariance of the common factor at both time points. Let $\delta$ be the
-latent regression coefficient which links the common factor to itself at
-a previous time point such that $\eta_t=\delta\eta_{t-1}+\psi_t$, where
-$\psi_t$ is independent random term ('innovation', 'error',
-'disturbance') with $E[\psi_t]=0$. Assuming standardized common factor
-such that $E[\eta_{t-1}]=0,\:Var(\eta_{t-1})=1$ covariance of the common
-factor at two subsequent time points is
+s-LMI with 1 common factor decomposes $\Sigma_{t-1}$ into following $$\Sigma=\Lambda\Lambda^T+\Omega_{t-1}$$where by definition of s-LMI $\Omega_{t-1}$ is diagonal and and $\Lambda$ is a $K\times1$ column vector of factor loadings constant over time. We also need the covariance of the common factor at both time points. Let $\delta$ be the latent regression coefficient which links the common factor to itself at a previous time point such that $\eta_t=\delta\eta_{t-1}+\psi_t$, where $\psi_t$ is independent random term ('innovation', 'error', 'disturbance') with $E[\psi_t]=0$. Assuming standardized common factor such that $E[\eta_{t-1}]=0,\:Var(\eta_{t-1})=1$ covariance of the common factor at two subsequent time points is
 
 $$
 \begin{aligned} 
 \text{Cov}(\eta_{t-1},\eta_t)= E[\eta_{t-1}\eta_t]-E[\eta_{t-1}]E[\eta_t]&=\\ E[\eta_{t-1}(\delta\eta_{t-1}+\psi_t)]&=\\ E[\delta\eta_{t-1}^2+\eta_{t-1}\psi_t]&=\\ \delta Var(\eta_{t-1})&= \delta 
 \end{aligned}
-$$ Now lets look at the $2K\times 2K$ covariance matrix from the
-perspective of strict LMI. A s-LMI model imposes that $$
+$$ Now lets look at the $2K\times 2K$ covariance matrix from the perspective of strict LMI. A s-LMI model imposes that $$
 \text{Cov}((X_{t},X_{t-1}),(X_{t},X_{t-1}))= \begin{pmatrix}    \Lambda & 0
 \\   0 & \Lambda \end{pmatrix}  \begin{pmatrix}   1 & \delta 
 \\   \delta & \delta+Var(\psi_t) \end{pmatrix} \begin{pmatrix}    \Lambda^T & 0
@@ -32,8 +21,7 @@ perspective of strict LMI. A s-LMI model imposes that $$
 \\   \Omega_{across}^T & \Omega_t \end{pmatrix} 
 $$ where $$
 \begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix}
-$$ is a block matrix that sandwiches the $2\times2$ covariance matrix of
-the common factor at both time points. $$
+$$ is a block matrix that sandwiches the $2\times2$ covariance matrix of the common factor at both time points. $$
 \begin{aligned}
 &\begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix} \begin{pmatrix}   1 & \delta \\   \delta & \delta+Var(\psi_t) \end{pmatrix} \begin{pmatrix}    \Lambda^T & 0\\   0 & \Lambda^T \end{pmatrix}+ \begin{pmatrix}   \Omega_{t-1} & \Omega_{across} \\   \Omega_{across}^T & \Omega_t \end{pmatrix} =\\
 &\begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix} \begin{pmatrix}    \Lambda^T & \delta\Lambda^T\\   \Lambda^T\delta & (\delta+Var(\psi_t)\Lambda^T \end{pmatrix} + 
@@ -45,21 +33,11 @@ the common factor at both time points. $$
 \Lambda\Lambda^T\delta + \Omega_{across}^T & \Lambda\Lambda^T(\delta+Var(\psi_t)) + \Omega_t 
 \end{pmatrix} 
 \end{aligned}
-$$ From the above we see that the strict LMI can only be compatible with
-any process with stationary covariance, if
-$\delta+Var(\psi_t)=1\Rightarrow1-\delta=Var(\psi_t)$ (assuming
-$\Lambda$ is non-zero). (When fitting a s-LMI model this is allowed.) We
-also see that s-LMI is compatible with non-stationary processes where
-the covariance is proportional to $\delta+Var(\psi_t)$ aligning with
-previous theoretical analysis where covariance increased over time in a
-LMI preserving model.
+$$ From the above we see that the strict LMI can only be compatible with any process with stationary covariance, if $\delta+Var(\psi_t)=1\Rightarrow1-\delta=Var(\psi_t)$ (assuming $\Lambda$ is non-zero). (When fitting a s-LMI model this is allowed.) We also see that s-LMI is compatible with non-stationary processes where the covariance is proportional to $\delta+Var(\psi_t)$ aligning with previous theoretical analysis where covariance increased over time in a LMI preserving model.
 
-A brief note on notation: We'll be using simply $\Omega$ for the s-LMI
-residual covariance, since residual covariance is assumed invariant over
-time $\Omega_{t-1}=\Omega_{t}=\Omega_{t+1}=…=\Omega$ .
+A brief note on notation: We'll be using simply $\Omega$ for the s-LMI residual covariance, since residual covariance is assumed invariant over time $\Omega_{t-1}=\Omega_{t}=\Omega_{t+1}=…=\Omega$ .
 
-Using the above auxiliary results we can move to analyse the null
-hypothesis (hypotheses) of no difference between VAR(1) and s-LMI.
+Using the above auxiliary results we can move to analyse the null hypothesis (hypotheses) of no difference between VAR(1) and s-LMI.
 
 ### Proof for $cJ_k+dI$ spanning (matrix) vector space
 
@@ -116,8 +94,36 @@ $$
 
 where $\delta\in\mathbb{R}$ is the regression coefficient for subsequent $\eta_1,\eta_2$ and the respective product is for multiple subsequent regressions. $\delta_{\Delta}=\prod_{i=t}^{T}\delta_i$ is the product of regression coefficients of the latent variable to itsefl at previous timepoints. $\Omega_\Delta$ is a diagonal matix of residual covariances, all of which are the same.
 
+#### General criterion for indistinguishability
+
+Assumptions
+
+$$
+\begin{aligned}
+|\lambda_A|&<1\Rightarrow \det A <1 &&& \text{(VAR is stationary.)} \\
+\det\Omega, \det\Psi&\ne0 &&& \text{(Diagonal residuals and innovations are non-zero.)} \\
+\text{rank }\Lambda\Lambda^T&=1&&& \text{(One common factor.)}
+\end{aligned}
+$$
+
+We have a set of conditions, and their implications, which must be satisfied, if indistinguishability holds:
+
+$$
+\begin{aligned}
+\Sigma&=A\Sigma A^T+\Psi &&&\text{(Within time point VAR covariance is common factor decomposable.)} \\
+&=\Lambda\Lambda^T+\Omega \\&=
+A(\Lambda\Lambda^T+\Omega)A^T + \Psi \\ 
+\\
+\Sigma_{\Delta}&=A^{\Delta}\Sigma &&&\text{(VAR cross-covariance is LMI decomposable.)} \\\ &=
+\Lambda\Lambda^T\delta_{\Delta}+\Omega_{\Delta} \\ &=
+A^{\Delta}(\Lambda\Lambda^T+\Omega) \\ \forall\Delta&\in1,2,3,... \\ \forall \delta_{\Delta}&\in\mathbb{R} \\ \\
+\Sigma_{\Delta}^T    &=(\Lambda\Lambda^T\delta_{\Delta})^T+\Omega_{\Delta}^T   &&&\text{(Cross-covariance is always symmetric.)} \\
+&=
+\Lambda\Lambda^T\delta_{\Delta}+\Omega_{\Delta} \\ &=
+\Sigma_{\Delta} 
+\\ \\
+\Sigma_{\Delta}&=A\Sigma_{\Delta-1}\\&=(A\Sigma_{\Delta-1})^T\\&=\Sigma_{\Delta-1}A^T
+\end{aligned}  
+$$
+
 Another, more general, criterion for indistinguishability that the subspace of positive semi-definite symmetric matrices $(\Sigma=\Lambda\Lambda^T+\Omega)\in\mathbb{R}^{K\times K}$ must be invariant under $A$. This is because $\Lambda\Lambda^T\delta + \Omega_{\Delta}$ is always positive semi-definite symmetric.
-
--   Correlation cannot separate VAR from S-LMI as well as covariance. This is because the innovations will have identity correlation, which is required for indistinguishability. Using covariance, innovations might be estimated as non-equivalent.
-
--   
