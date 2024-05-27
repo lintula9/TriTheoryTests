@@ -13,7 +13,9 @@ $$
 \begin{aligned} 
 \text{Cov}(\eta_{t-1},\eta_t)= E[\eta_{t-1}\eta_t]-E[\eta_{t-1}]E[\eta_t]&=\\ E[\eta_{t-1}(\delta\eta_{t-1}+\psi_t)]&=\\ E[\delta\eta_{t-1}^2+\eta_{t-1}\psi_t]&=\\ \delta Var(\eta_{t-1})&= \delta 
 \end{aligned}
-$$ Now lets look at the $2K\times 2K$ covariance matrix from the perspective of strict LMI. A s-LMI model imposes that $$
+$$ 
+Now lets look at the $2K\times 2K$ covariance matrix from the perspective of strict LMI. A s-LMI model imposes that 
+$$
 \text{Cov}((X_{t},X_{t-1}),(X_{t},X_{t-1}))= \begin{pmatrix}    \Lambda & 0
 \\   0 & \Lambda \end{pmatrix}  \begin{pmatrix}   1 & \delta 
 \\   \delta & \delta+Var(\psi_t) \end{pmatrix} \begin{pmatrix}    \Lambda^T & 0
@@ -100,9 +102,9 @@ Assumptions
 
 $$
 \begin{aligned}
-|\lambda_A|&<1\Rightarrow \det A <1 &&& \text{(VAR is stationary.)} \\
-\det\Omega, \det\Psi&\ne0 &&& \text{(Diagonal residuals and innovations are non-zero.)} \\
-\text{rank }\Lambda\Lambda^T&=1&&& \text{(One common factor.)}
+|\lambda_A|&<1\Rightarrow \det A <1 & \text{(VAR is stationary.)} \\
+\det\Omega, \det\Psi&\ne0 & \text{(Diagonal residuals and innovations are non-zero.)} \\
+\text{rank }\Lambda\Lambda^T&=1& \text{(One common factor.)}
 \end{aligned}
 $$
 
@@ -110,19 +112,23 @@ We have a set of conditions, and their implications, which must be satisfied, if
 
 $$
 \begin{aligned}
-\Sigma&=A\Sigma A^T+\Psi &&&\text{(Within time point VAR covariance is common factor decomposable.)} \\
-&=\Lambda\Lambda^T+\Omega \\&=
-A(\Lambda\Lambda^T+\Omega)A^T + \Psi \\ 
-\\
-\Sigma_{\Delta}&=A^{\Delta}\Sigma &&&\text{(VAR cross-covariance is LMI decomposable.)} \\\ &=
-\Lambda\Lambda^T\delta_{\Delta}+\Omega_{\Delta} \\ &=
-A^{\Delta}(\Lambda\Lambda^T+\Omega) \\ \forall\Delta&\in1,2,3,... \\ \forall \delta_{\Delta}&\in\mathbb{R} \\ \\
-\Sigma_{\Delta}^T    &=(\Lambda\Lambda^T\delta_{\Delta})^T+\Omega_{\Delta}^T   &&&\text{(Cross-covariance is always symmetric.)} \\
-&=
-\Lambda\Lambda^T\delta_{\Delta}+\Omega_{\Delta} \\ &=
-\Sigma_{\Delta} 
-\\ \\
-\Sigma_{\Delta}&=A\Sigma_{\Delta-1}\\&=(A\Sigma_{\Delta-1})^T\\&=\Sigma_{\Delta-1}A^T
+\Sigma&=A\Sigma A^T+\Psi &\text{(Within time point VAR covariance is common factor decomposable.)} \\
+&=\Lambda\Lambda^T+\Omega& \\
+&=A(\Lambda\Lambda^T+\Omega)A^T + \Psi& \\ 
+&& \\
+\Sigma_{\Delta}&=A^{\Delta}\Sigma &\text{(VAR cross-covariance is LMI decomposable.)} \\\ 
+&=\Lambda\Lambda^T\delta_{\Delta}+\Omega_{\Delta}& \\ 
+&= A^{\Delta}(\Lambda\Lambda^T+\Omega) & \\ 
+\forall\Delta & \in1,2,3,... & \\ 
+\forall \delta_{\Delta}&\in\mathbb{R} & & \\ 
+& & \\
+\Sigma_{\Delta}^T    &=(\Lambda\Lambda^T\delta_{\Delta})^T+\Omega_{\Delta}^T   &\text{(Cross-covariance is always symmetric.)} \\
+&= \Lambda\Lambda^T\delta_{\Delta}+\Omega_{\Delta} & \\ 
+&= \Sigma_{\Delta} & \\ 
+& &\\
+\Sigma_{\Delta} & =A\Sigma_{\Delta-1} & \\
+& =(A\Sigma_{\Delta-1})^T & \\
+& =\Sigma_{\Delta-1}A^T &
 \end{aligned}  
 $$
 
