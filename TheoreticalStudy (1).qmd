@@ -614,15 +614,18 @@ covariances between symptoms.
 
 #### Without measurement error
 
-WE SHOULD ASSUME NO SERIAL COVARIANCE OF ERRORS! If we simplify, and
+WE SHOULD ASSUME NO SERIAL COVARIANCE OF ERRORS! If we look at a theoretical scenario where we observe psychopathology without measurement error, and
 assume that there is no unique variance ($\Omega=0$), then $$
 \begin{aligned}
 &A^{(\Delta t)}\Sigma=\Lambda\Lambda^T \delta^{\Delta t}+ \underbrace{\Omega_{\Delta t}}_{=0}&\\     
 \Rightarrow&A^{(\Delta t)}\Sigma=\underbrace {\Lambda\Lambda^T}_{\text{By assumption: }\Sigma-\Omega=\Sigma} \delta^{\Delta t}&\\
 \Rightarrow&A^{(\Delta t)}\Sigma=\delta^{\Delta t}\Sigma&\\
 \end{aligned}
-$$ We see that $A$ must hence be scalar multiple of the identity matrix
-(or a scalar). This is a contradiction, because a diagonal $A$ and
+$$ 
+We see that $A$ must hence be scalar multiple of the identity matrix
+(or a scalar). Since $\Sigma =\Lambda\Lambda^T$ this means, that $\Lambda$ must be an eigenvector of $A$.
+
+This is a contradiction, because a diagonal $A$ and
 diagonal $\Psi$ make covariances between the variables zero. This means
 that $\Lambda$ must also be zero. This is against our assumption of null
 hypothesis (1).

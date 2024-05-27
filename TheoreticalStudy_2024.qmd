@@ -1,7 +1,7 @@
 ---
 title: "TheoreticalStudy_2024"
 author: "Sakari Lintula, Jaakko Tammilehto, Tom Rosenström"
-format: pdf
+format: docx
 editor: visual
 bibliography: references.bib
 ---
@@ -136,8 +136,7 @@ $$
 .056 & .056 & .056 & .056 & .144 & .144 & .144 & .144 \\
  \end{pmatrix} 
  \end{aligned}
-$$ 
-In this special case the cross covariance is simply a multiplication of the within time point covariance by a scalar. Choosing $\Lambda = (\sqrt{0.144},\sqrt{0.144},\sqrt{0.144},\sqrt{0.144})$ we obtain a correct within time point covariance matrix. Choosing $\delta = 0.056/0.144=0.3888889$ we have the correct scalar which multiplies $\Lambda\Lambda^T$. We also need to have all $\Omega=0$, that is, no residuals. This result can be generalized to any $cA,\:c\in\mathbb{R}$ - i.e. any scalar multiple of $A$ - which is stationary (eigenvalues modulus less than 1). The same seems to apply for $cJ_K + B:B=aI,\:a\in\mathbb{R}$ where $J$ is a matrix of ones, and maybe for any diagonal $B$ which still satisfies stationarity.
+$$ In this special case the cross covariance is simply a multiplication of the within time point covariance by a scalar. Choosing $\Lambda = (\sqrt{0.144},\sqrt{0.144},\sqrt{0.144},\sqrt{0.144})$ we obtain a correct within time point covariance matrix. Choosing $\delta = 0.056/0.144=0.3888889$ we have the correct scalar which multiplies $\Lambda\Lambda^T$. We also need to have all $\Omega=0$, that is, no residuals. This result can be generalized to any $cA,\:c\in\mathbb{R}$ - i.e. any scalar multiple of $A$ - which is stationary (eigenvalues modulus less than 1). The same seems to apply for $cJ_K + B:B=aI,\:a\in\mathbb{R}$ where $J$ is a matrix of ones, and maybe for any diagonal $B$ which still satisfies stationarity.
 
 ### References
 

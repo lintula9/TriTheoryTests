@@ -121,18 +121,3 @@ Another, more general, criterion for indistinguishability that the subspace of p
 -   Correlation cannot separate VAR from S-LMI as well as covariance. This is because the innovations will have identity correlation, which is required for indistinguishability. Using covariance, innovations might be estimated as non-equivalent.
 
 -   
-
-
-
-### No measurement error scenario
-
-If we look at a theoretical scenario where we observe psychopathology without measurement error, and
-assume that there is no unique variance ($\Omega=0$), then $$
-\begin{aligned}
-&A^{(\Delta t)}\Sigma=\Lambda\Lambda^T \delta^{\Delta t}+ \underbrace{\Omega_{\Delta t}}_{=0}&\\     
-\Rightarrow&A^{(\Delta t)}\Sigma=\underbrace {\Lambda\Lambda^T}_{\text{By assumption: }\Sigma-\Omega=\Sigma} \delta^{\Delta t}&\\
-\Rightarrow&A^{(\Delta t)}\Sigma=\delta^{\Delta t}\Sigma&\\
-\end{aligned}
-$$ 
-We see that $A$ must hence be scalar multiple of the identity matrix
-(or a scalar). Since $\Sigma =\Lambda\Lambda^T$ this means, that $\Lambda$ must be an eigenvector of $A$.
