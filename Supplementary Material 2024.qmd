@@ -7,39 +7,39 @@ editor: visual
 
 ### S-LMI Covariance
 
-s-LMI with 1 common factor decomposes $\Sigma_{t-1}$ into following $$\Sigma=\Lambda\Lambda^T+\Omega_{t-1}$$where by definition of s-LMI $\Omega_{t-1}$ is diagonal and and $\Lambda$ is a $K\times1$ column vector of factor loadings constant over time. We also need the covariance of the common factor at both time points. Let $\delta$ be the latent regression coefficient which links the common factor to itself at a previous time point such that $\eta_t=\delta\eta_{t-1}+\psi_t$, where $\psi_t$ is independent random term ('innovation', 'error', 'disturbance') with $E[\psi_t]=0$. Assuming standardized common factor such that $E[\eta_{t-1}]=0,\:Var(\eta_{t-1})=1$ covariance of the common factor at two subsequent time points is
+s-LMI with 1 common factor decomposes $\Sigma_{t-1}$ into following $$\Sigma=\Lambda\Lambda^T+\Omega_{t-1}$$where by definition of s-LMI $\Omega_{t-1}$ is diagonal and and $\Lambda$ is a $K\times1$ column vector of factor loadings constant over time. We also need the covariance of the common factor at both time points. Let $\delta$ be the latent regression coefficient which links the common factor to itself at a previous time point such that $\eta_t=\delta\eta_{t}+\psi_t$, where $\psi_t$ is independent random term ('innovation', 'error', 'disturbance') with $E[\psi_t]=0$. Assuming standardized common factor such that $E[\eta_{t}]=0,\:Var(\eta_{t})=1$ covariance of the common factor at two subsequent time points is
 
 $$
 \begin{aligned} 
-\text{Cov}(\eta_{t-1},\eta_t)= E[\eta_{t-1}\eta_t]-E[\eta_{t-1}]E[\eta_t]&=\\ E[\eta_{t-1}(\delta\eta_{t-1}+\psi_t)]&=\\ E[\delta\eta_{t-1}^2+\eta_{t-1}\psi_t]&=\\ \delta Var(\eta_{t-1})&= \delta 
+\text{Cov}(\eta_{t},\eta_{t+1})= E[\eta_{t}\eta_{t+1}]-E[\eta_{t}]E[\eta_{t+1}]&=\\ E[\eta_{t}(\delta\eta_{t}+\psi_t)]&=\\ E[\delta\eta_{t}^2+\eta_{t}\psi_t]&=\\ \delta Var(\eta_{t})&= \delta 
 \end{aligned}
-$$ 
-Now lets look at the $2K\times 2K$ covariance matrix from the perspective of strict LMI. A s-LMI model imposes that 
-$$
-\text{Cov}((X_{t},X_{t-1}),(X_{t},X_{t-1}))= \begin{pmatrix}    \Lambda & 0
-\\   0 & \Lambda \end{pmatrix}  \begin{pmatrix}   1 & \delta 
+$$Now lets look at the $2K\times 2K$ covariance matrix from the perspective of strict LMI. Using $\Delta$ as the (integer) time difference between two time-points, an s-LMI model imposes that $$
+\text{Cov}((X_{t},X_{t-1}),(X_{t},X_{t-1}))= 
+\begin{pmatrix}    
+\Lambda & 0
+\\   0 & \Lambda \end{pmatrix}  \begin{pmatrix}   I & \delta 
 \\   \delta & \delta+Var(\psi_t) \end{pmatrix} \begin{pmatrix}    \Lambda^T & 0
-\\   0 & \Lambda^T \end{pmatrix} + \begin{pmatrix}   \Omega_{t-1} & \Omega_{across} 
-\\   \Omega_{across}^T & \Omega_t \end{pmatrix} 
+\\   0 & \Lambda^T \end{pmatrix} + \begin{pmatrix}   \Omega_1 & \Omega_{(\Delta = 1)} 
+\\   \Omega_{(\Delta = 1)} & \Omega_2 \end{pmatrix} 
 $$ where $$
 \begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix}
 $$ is a block matrix that sandwiches the $2\times2$ covariance matrix of the common factor at both time points. $$
 \begin{aligned}
-&\begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix} \begin{pmatrix}   1 & \delta \\   \delta & \delta+Var(\psi_t) \end{pmatrix} \begin{pmatrix}    \Lambda^T & 0\\   0 & \Lambda^T \end{pmatrix}+ \begin{pmatrix}   \Omega_{t-1} & \Omega_{across} \\   \Omega_{across}^T & \Omega_t \end{pmatrix} =\\
-&\begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix} \begin{pmatrix}    \Lambda^T & \delta\Lambda^T\\   \Lambda^T\delta & (\delta+Var(\psi_t)\Lambda^T \end{pmatrix} + 
+\begin{pmatrix}    
+\Lambda & 0\\   0 & \Lambda \end{pmatrix} \begin{pmatrix}   1 & \delta \\   \delta & \delta+Var(\psi_t) \end{pmatrix} \begin{pmatrix}    \Lambda^T & 0\\   0 & \Lambda^T \end{pmatrix}+ 
+\begin{pmatrix}   \Omega_{t-1} & \Omega_{(\Delta=1)} \\   \Omega_{(\Delta=1)}^T & \Omega_t \end{pmatrix} =\\
+\begin{pmatrix}    \Lambda & 0\\   0 & \Lambda \end{pmatrix} \begin{pmatrix}    \Lambda^T & \delta\Lambda^T\\   \Lambda^T\delta & (\delta+Var(\psi_t)\Lambda^T \end{pmatrix} + 
 \begin{pmatrix}   
-\Omega_{t-1} & \Omega_{across} \\   
-\Omega_{across}^T & \Omega_t \end{pmatrix}=\\
-& \begin{pmatrix}    
-\Lambda\Lambda^T + \Omega_{t-1}& \Lambda\Lambda^T\delta + \Omega_{across}\\   
-\Lambda\Lambda^T\delta + \Omega_{across}^T & \Lambda\Lambda^T(\delta+Var(\psi_t)) + \Omega_t 
+\Omega_{t-1} & \Omega_{(\Delta=1)} \\   
+\Omega_{(\Delta=1)}^T & \Omega_t \end{pmatrix}=\\
+\begin{pmatrix}    
+\Lambda\Lambda^T + \Omega_{t-1}& \Lambda\Lambda^T\delta + \Omega_{(\Delta=1)}\\   
+\Lambda\Lambda^T\delta + \Omega_{(\Delta=1)}^T & \Lambda\Lambda^T(\delta+Var(\psi_t)) + \Omega_t 
 \end{pmatrix} 
 \end{aligned}
-$$ From the above we see that the strict LMI can only be compatible with any process with stationary covariance, if $\delta+Var(\psi_t)=1\Rightarrow1-\delta=Var(\psi_t)$ (assuming $\Lambda$ is non-zero). (When fitting a s-LMI model this is allowed.) We also see that s-LMI is compatible with non-stationary processes where the covariance is proportional to $\delta+Var(\psi_t)$ aligning with previous theoretical analysis where covariance increased over time in a LMI preserving model.
+$$From the above we see that the strict LMI can only be compatible with any process with stationary covariance, if $\delta+Var(\psi_t)=1\Rightarrow1-\delta=Var(\psi_t)$ (assuming $\Lambda$ is non-zero). We also see that S-LMI is compatible with non-stationary (here equivalently, 'time-varying') processes where the covariance is proportional to $\delta+Var(\psi_t)$ aligning with previous theoretical analysis where covariance increased over time in a LMI preserving model.
 
-A brief note on notation: We'll be using simply $\Omega$ for the s-LMI residual covariance, since residual covariance is assumed invariant over time $\Omega_{t-1}=\Omega_{t}=\Omega_{t+1}=…=\Omega$ .
-
-Using the above auxiliary results we can move to analyse the null hypothesis (hypotheses) of no difference between VAR(1) and s-LMI.
+A brief note on notation: We'll be using simply $\Omega_{\Delta}$ for the S-LMI residual covariance across time, and assume residual covariance is invariant over time $\Omega_{t-1}=\Omega_{t}=\Omega_{t+1}=…=\Omega$
 
 ### Proof for $cJ_k+dI$ spanning (matrix) vector space
 
@@ -94,7 +94,7 @@ $$
 \Lambda\Lambda^T \delta_{\Delta}+\Omega_\Delta= cJ+dI\in span(J,I)
 $$
 
-where $\delta\in\mathbb{R}$ is the regression coefficient for subsequent $\eta_1,\eta_2$ and the respective product is for multiple subsequent regressions. $\delta_{\Delta}=\prod_{i=t}^{T}\delta_i$ is the product of regression coefficients of the latent variable to itsefl at previous timepoints. $\Omega_\Delta$ is a diagonal matix of residual covariances, all of which are the same.
+where $\delta\in\mathbb{R}$ is the regression coefficient for subsequent $\eta_1,\eta_2$ and the respective product is for multiple subsequent regressions. $\delta_{\Delta}=\prod_{i=t}^{T}\delta_i$ is the product of regression coefficients of the latent variable to itself at previous timepoints. $\Omega_\Delta$ is a diagonal matrix of residual covariances, all of which are the same.
 
 #### General criterion for indistinguishability
 
