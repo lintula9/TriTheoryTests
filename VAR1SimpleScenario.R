@@ -10,9 +10,9 @@ source("Libraries.R")
 # C, Result: Observe covariance of time1 (n = 100) and time 2 (n = 200), and calculate difference.
 
 Nruns <- 10000
-VARparams <- matrix(c(.3,.3,.3, 
-                      .3,.3,.3,
-                      .3,.3,.3), ncol = 3) 
+VARparams <- matrix(c(.4,.3,.3, 
+                      .3,.3,.05,
+                      .0,.05,.3), ncol = 3) 
 
 simstime1 <- matrix(NA , ncol = 3, nrow = Nruns ) # Placeholder matrices for simulation data.
 simstime2 <- matrix(NA , ncol = 3, nrow = Nruns )
@@ -61,5 +61,18 @@ qgraph(VARparams, directed = T, diag = T, edge.labels = T)
 matplot(Sim1, type = "l", ylab = "Within person symptom process", xlab = "Time", main = "Two samples are observed from one person.", family = "serif")
 abline( v = time1 ) # Observation 1
 abline( v = time2 ) # Observation 2
+
+ggplot() + 
+  geom_line(aes(x = 1:200, y = Sim1[,1], color = "Symptom 1")) +
+  geom_line(aes(x = 1:200, y = Sim1[,2], color = "Symptom 2")) +
+  geom_line(aes(x = 1:200, y = Sim1[,3], color = "Symptom 3")) +
+  scale_color_manual(values = c("Symptom 1" = "darkorange", 
+                                "Symptom 2" = "black", 
+                                "Symptom 3" = "blue4"),
+                     guide = guide_legend(title = "")) +
+  theme_minimal() +
+  labs(title = "Three variable Network", x = "Time", y = "Within person symptom process")
+
+}
 }
 
