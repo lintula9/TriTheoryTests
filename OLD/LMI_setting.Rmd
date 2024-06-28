@@ -1,0 +1,112 @@
+---
+title: "Notes for theory paper (give a better title)"
+author: "TR (add yourself)"
+output: pdf_document
+date: "2024-01-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Some thoughts on stationarity and LMI
+
+Let us assume on individual patient's symptom set is a vector stochastic process $\{X_t\}$ with $X_t \in \mathbb{R}^d$, where $d$ is the number of symptoms (e.g., $d = 3$ in below simulation). The process is strictly stationary when its cumulative distribution function $F$ satisfies, for all $\tau$ and all times $t_1, t_2, ..., t_n$, the property 
+
+$F(x_{t_1}, x_{t_2} ..., x_{t_n}) = F(x_{t_1+\tau}, x_{t_2+\tau} ..., x_{t_n+\tau})$.
+
+When second moments exist, this also means that a (matrix) function $\Gamma$ exists such that $Cov(X_t, X_{t+\tau}) = \Gamma(\tau)$, i.e., covariance is independent of the time point but not of *time delay*. Longitudinal measurement invariance (LMI), on the other hand, is defined by
+
+$F(x_{t}|W_t) = F(x_{t+\tau}|W_{t+\tau})$,
+
+for all $\tau$. I now show that LMI does not imply stationarity by means of a counterexample. Let $(X_{t}|W_t) \sim \mathcal{N}(W_t, \sigma)$, where $W_t \sim \mathcal{N}(t, \sigma t)$ for some constant $\sigma$. Then LMI holds for all $t>0$, but $E[X_t] \to \infty$ and $\text{Var}[X_t] \to \infty$ as $t \to \infty$, i.e., the process is non-stationary [note, the argument can be applied to dimensions jointly or separately but the process is not very meaningful due to discontinuity -- it is just a lazy person's theoretical example].
+
+I then show that stationarity does not imply LMI, also by means of a counterexample. It is sufficient to examine the interval $t \in [0, 1]$. Put $X_t = Y_t + W_t + V_t$ with $Y_t \sim \mathcal{N}(0, 1)$, $W_t \sim \mathcal{N}(0, 1-t)$ (i.e., variance is $\sqrt{1-t}$), and $V_t \sim \mathcal{N}(0, t)$, independently of each other. Then,
+
+$X_t \sim \mathcal{N}(0, 1+1-t+t) = \mathcal{N}(0, 2)$,
+
+independently of $t$. However,
+
+$(X_t|W_t = w) \sim \mathcal{N}(w, 1+t)$,
+
+which depends on $t$, meaning that stationarity holds but *LMI does not hold*. This gives us:
+
+*Corollary.* Longitudinal measurement invariance and stationarity are different theoretical concepts.
+
+## A new look at previous simulations
+
+Next, let's take a look at Sakari's previous simulation. In below, I will break LMI by tweaking Sakari's script.
+
+```{r simulation}
+library(mlVAR)
+set.seed(6534) # always ensure replicability
+np <- 2000 # adequate power
+tlag <- 3 # Let's not wash away all cross-time effects with too large a lag
+# 3 variables barely identifies a factor model so let's use 4
+VARparams <- 1.4*matrix(c(.4,.0,.3,.0,
+                      .3,.4,.0,.0,
+                      .0,.3,.4,.0, 
+                      .0,.0,.2,.4), ncol = 4, byrow = T) 
+
+simstime1 <- matrix(NA , ncol = 4, nrow = np ) # Placeholder matrices for simulation data.
+simstime2 <- simstime3 <- matrix(NA , ncol = 4, nrow = np )
+
+for ( i in 1:np ) { 
+  Sim1 <- simulateVAR( # A
+            VARparams,  
+            means = 0, 
+            lags = 1, 
+            Nt = 200, 
+            init = c( 0,0,0,0 ), 
+            residuals = 0.1)
+
+  # A lag of 100 would kill all cross-time correlations, so a bit less please
+  time1 <- sample( 50:150, 1) # B
+  time2 <- time1 + tlag # B
+
+  simstime1[ i , ] <- as.matrix(Sim1[ time1, ])
+  simstime2[ i , ] <- as.matrix(Sim1[ time2, ])
+  simstime3[ i , ] <- as.matrix(Sim1[ time1+1, ]) # Check lag 1 too
+}
+
+# This is NOT measurement invariance!!! It doesn't pertain cross-time phenomena.
+# round( cov( simstime1 ) - cov( simstime2 ), 3 )
+
+# This pertains LMI:
+library(lavaan)
+library(semTools)
+d <- data.frame(cbind(simstime1, simstime2))
+testLMI <- function(d){
+names(d) <- c(paste0(paste0("X",1:4),"_T1"), paste0(paste0("X",1:4),"_T2"))
+mod <- "F1 =~ X1_T1 + X2_T1 + X3_T1 + X4_T1
+F2 =~ X1_T2 + X2_T2 + X3_T2 + X4_T2"
+lfnam <- list(FU = c("F1", "F2"))
+syntax_config <- as.character(
+  measEq.syntax(configural.model = mod, data = d, ID.fac = "marker",
+                auto = "all", longFacNames = lfnam))
+syntax_metric <- as.character(
+  measEq.syntax(configural.model = mod, data = d, ID.fac = "marker",
+                auto = "all", longFacNames = lfnam,
+                long.equal = "loadings"))
+syntax_scalar <- as.character(
+  measEq.syntax(configural.model = mod, data = d, ID.fac = "marker",
+                auto = "all", longFacNames = lfnam,
+                long.equal = c("loadings", "intercepts")))
+syntax_strict <- as.character(
+  measEq.syntax(configural.model = mod, data = d, ID.fac = "marker",
+                auto = "all", longFacNames = lfnam,
+                long.equal = c("loadings", "intercepts", "residuals")))
+
+mod_config <- cfa(syntax_config, d, parameterization = "delta")
+mod_metric <- cfa(syntax_metric, d, parameterization = "delta")
+mod_scalar <- cfa(syntax_scalar, d, parameterization = "delta")
+mod_strict <- cfa(syntax_strict, d, parameterization = "delta")
+
+LMIstuff <- compareFit(mod_config, mod_metric, mod_scalar, mod_strict)
+return(summary(LMIstuff))
+}
+testLMI(d)
+
+# Also check lag 1?
+# testLMI(data.frame(cbind(simstime1, simstime3)))
+```
