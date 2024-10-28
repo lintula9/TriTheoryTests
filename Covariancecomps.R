@@ -4,7 +4,7 @@ require(expm) # exmp dependency, for matrix exponent computations
 require(nloptr) # nloptr depndency, for more general optimization procedures (if needed)
 require(numDeriv) # for numerical gradient solving
 
-# A numeric example for VAR(1) indistinguishable from a CF model. ----
+# Part 1.A numeric example for VAR(1) indistinguishable from a CF model. ----
 
 set.seed(1337)
 
@@ -42,16 +42,16 @@ round(A%*%A%*%A%*%Sigma,10) == round(Sigma * psi^3,10)
 # Plot A to demonstrate how misleadingly complex the Network might look like.
 
 
-# Create an adjacency matrix for non-zero entries in A to represent edges
+  # Create an adjacency matrix for non-zero entries in A to represent edges
 adj_matrix <- (A != 0) * 1
 
-# Convert the adjacency matrix to a graph
+  # Convert the adjacency matrix to a graph
 g <- graph_from_adjacency_matrix(adj_matrix, mode = "directed", weighted = TRUE)
 
-# Add weights (the values in A) as edge attributes
+  # Add weights (the values in A) as edge attributes
 E(g)$weight <- A[which(A != 0)]
 
-# Plot the graph with weights and node labels
+  # Plot the graph with weights and node labels
 plot(g, edge.label = round(E(g)$weight, 2),
      edge.arrow.size = 0.5, 
      vertex.label = c("Var1", "Var2", "Var3"),
@@ -60,7 +60,7 @@ plot(g, edge.label = round(E(g)$weight, 2),
      main = "Graphical Model Representation of Matrix A",
      edge.curved = 0.3)
 
-# Compute distance from a VAR(1) to the nearest VAR(1) indistinguishable from a dynamic CF model. ----
+# Part 2. Compute distance from a VAR(1) to the nearest VAR(1) indistinguishable from a dynamic CF model. ----
 
   # Define the estimated VAR(1) [here, above example is used, with randomness added to it]
 
@@ -90,7 +90,7 @@ res_varhat = sapply(0:T_, function(x) ccov_var(x,
   # Identification is by setting CF variance 1 at time point 1.
 
     # Set initial values, manually
-K_ = nrow(res_var[,,1])
+K_ = nrow(res_varhat[,,1])
 params = c(Lambda = rep(0.5,times = K_), 
            delta = 0.5)
 cf_var_1 = 1 # Variance for the CF at time point 1; assumed stationary.
@@ -118,7 +118,6 @@ criterion_gradient = function(x) {
   
   
   
-}
 
   # Optimize the  of the criterion function, and obtain the CF model
 
@@ -135,25 +134,32 @@ cf_model <- nloptr::nloptr(
 )
 
 
-
-
-  # Convert the optained dynamic CF model to VAR(1)
+# Convert the optained dynamic CF model to VAR(1).
 L_tilde = cf_model$solution[1 : K_]
 delta_tilde = cf_model$solution[K_ + 1]
 
-  # We construe A_tilde = C_tilde + B_tilde. First C_tilde
-
+    # We construe A_tilde = C_tilde + B_tilde. First C_tilde
 C_tilde = (delta_tilde * L_tilde %*% ( t(L_tilde)%*% L_tilde )^(-1) %*% t(L_tilde))
 
     # Then B_tilde
-
 B_1 = A_hat - C_tilde 
 B_tilde = B_1 %*% (diag(1,nrow=K_,ncol=K_) - L_tilde %*% ( t(L_tilde)%*% L_tilde )^(-1) %*% t(L_tilde))
 
-  # Create A_tilde
+    # Create A_tilde
 A_tilde = C_tilde + B_tilde
 
-  # Visualise the difference
+    # Compute frobenius norm of the distance between A_hat and A_tilde.
+sqrt(sum(diag( (A_hat - A_tilde) %*% t( A_hat - A_tilde ) )))
+      # Observe, that the distance between A_hat and C_tilde only is much larger. 
+sqrt(sum(diag( (A_hat - C_tilde) %*% t( A_hat - C_tilde ) )))
 
+  # Compute Z_tilde
+Z_tilde = (1-cf_model$solution[K_+1]) * L_tilde %*% ( t(L_tilde)%*% L_tilde )^(-1) %*% t(L_tilde)
+round(eigen(Z_tilde, only.values = T)$values, 10) # Floating point error corrected positive semi-definiteness check.
 
+  # Compute Frobenius norm of the distance between Z_hat and Z_tilde
+sqrt(sum(diag( (Z_hat - Z_tilde) %*% t( Z_hat - Z_tilde ) )))
 
+  # Ensure that the result obtained is indeed CF compatible (by inspecting that the cross-covariance is rank 1 symmetric)
+Sigma_tilde  = matrix(solve(I - fastmatrix::kronecker.prod(A_tilde)) %*% fastmatrix::vec(Z_tilde), ncol = K_, nrow = K_)
+round(eigen(Sigma_tilde)$values, 10)
