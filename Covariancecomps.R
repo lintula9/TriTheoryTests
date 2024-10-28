@@ -2,6 +2,7 @@
 require(igraph) # igraph dependency, for graph visualizations
 require(expm) # exmp dependency, for matrix exponent computations
 require(nloptr) # nloptr depndency, for more general optimization procedures (if needed)
+require(numDeriv) # for numerical gradient solving
 
 # A numeric example for VAR(1) indistinguishable from a CF model. ----
 
@@ -101,34 +102,58 @@ cf_var_1 = 1 # Variance for the CF at time point 1; assumed stationary.
 
   # Optimize the Frobenius norm of the difference, w.r.t. L, delta:
 
-criterion_function = function(p = params) {
+criterion_function = function(x) {
+  return(
+    log(
+    sum(
+      (sapply(0:T_, function(Delta) ( x[1:K_] %*% t(x[1:K_]) * x[K_+1] ^ Delta ),
+                                simplify = "array") - res_varhat)^2)
+    )) }
+
+  # Gradient, evaluated numerically.
+
+criterion_gradient = function(x) {
+  return(numDeriv::grad(criterion_function, x))
+  }
   
-  ( p[1:K_] %*% t(p[1:K_]) * p["delta"] ^ Delta ) - res_varhat
   
-  sqrt((sapply(0:T_, function(x) ccov_cf(x,
-                                   L = p[1:K_], 
-                                   d = p["delta"]),
-         simplify = "array") - res_varhat)^2) }
+  
+}
 
-  # Gradient function
+  # Optimize the  of the criterion function, and obtain the CF model
 
-
-
-  # Optimize the  of the criterion function
-
-cf_model = nloptr::nloptr(x0 = params, 
-               eval_f = criterion_function,
-               opts = list(
-                 "algorithm" = "NLOPT_LN_NELDERMEAD",  # Use Nelder-Mead for derivative-free optimization
-                 "xtol_rel" = 1e-6,                    # Relative tolerance on parameters
-                 "ftol_rel" = 1e-6,                    # Relative tolerance on function value
-                 "maxeval" = 1000,                     # Maximum number of function evaluations
-                 "print_level" = 1                     # Print optimization progress (0 for no output)
-               ))
+cf_model <- nloptr::nloptr(
+  x0 = params,
+  eval_f = criterion_function,
+  eval_grad_f = criterion_gradient,    # Set gradient function
+  opts = list(
+    "algorithm" = "NLOPT_LD_LBFGS",    # Using L-BFGS to utilize gradient information
+    "xtol_rel" = 1e-6,                 
+    "ftol_rel" = 1e-6,                 
+    "maxeval" = 1000,                  
+    "print_level" = 1  )
+)
 
 
 
 
+  # Convert the optained dynamic CF model to VAR(1)
+L_tilde = cf_model$solution[1 : K_]
+delta_tilde = cf_model$solution[K_ + 1]
+
+  # We construe A_tilde = C_tilde + B_tilde. First C_tilde
+
+C_tilde = (delta_tilde * L_tilde %*% ( t(L_tilde)%*% L_tilde )^(-1) %*% t(L_tilde))
+
+    # Then B_tilde
+
+B_1 = A_hat - C_tilde 
+B_tilde = B_1 %*% (diag(1,nrow=K_,ncol=K_) - L_tilde %*% ( t(L_tilde)%*% L_tilde )^(-1) %*% t(L_tilde))
+
+  # Create A_tilde
+A_tilde = C_tilde + B_tilde
+
+  # Visualise the difference
 
 
 
