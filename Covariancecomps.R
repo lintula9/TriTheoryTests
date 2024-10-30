@@ -73,7 +73,7 @@ plot(g, edge.label = round(E(g)$weight, 2),
 
   # Define the estimated VAR(1) [here, above example is used, with randomness added to it]
 
-A_hat = A + stats::rWishart(1, df = 5, diag(0.1, ncol = 3, nrow = 3))[,,1]
+A_hat = A + stats::rWishart(1, df = 5, diag(0.05, ncol = 3, nrow = 3))[,,1]
 Z_hat = Z + stats::rWishart(1, df = 5, diag(0.1, ncol = 3, nrow = 3))[,,1]
 
   # Stationary VAR(1) cross-covariance function
