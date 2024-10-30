@@ -1,8 +1,13 @@
 # Settings ----
+
 require(igraph) # igraph dependency, for graph visualizations
 require(expm) # exmp dependency, for matrix exponent computations
 require(nloptr) # nloptr depndency, for more general optimization procedures (if needed)
 require(numDeriv) # for numerical gradient solving
+
+
+
+
 
 # Part 1.A numeric example for VAR(1) indistinguishable from a CF model. ----
 
@@ -19,7 +24,7 @@ psi = 0.5
 
 # Compute A = C + B 
 C = psi * Sigma * as.vector(( t(Lambda) %*% Lambda )^( -1 ))
-B = matrix(c(-2,-3,0,1,0,-3,0,1,2), ncol = 3)
+B = matrix(c(-1,-1.5,0,0.5,0,-1.5,0,0.5,1), ncol = 3)
 A = C + B
 
 # Solve for Z
@@ -60,6 +65,10 @@ plot(g, edge.label = round(E(g)$weight, 2),
      main = "Graphical Model Representation of Matrix A",
      edge.curved = 0.3)
 
+
+
+
+
 # Part 2. Compute distance from a VAR(1) to the nearest VAR(1) indistinguishable from a dynamic CF model. ----
 
   # Define the estimated VAR(1) [here, above example is used, with randomness added to it]
@@ -94,10 +103,6 @@ K_ = nrow(res_varhat[,,1])
 params = c(Lambda = rep(0.5,times = K_), 
            delta = 0.5)
 cf_var_1 = 1 # Variance for the CF at time point 1; assumed stationary.
-
-
-      #### BELOW UNFINISHED
-      #### NEED TO UNDERSTAND THE GRADIENT
 
 
   # Optimize the Frobenius norm of the difference, w.r.t. L, delta:
@@ -150,7 +155,7 @@ A_tilde = C_tilde + B_tilde
 
     # Compute frobenius norm of the distance between A_hat and A_tilde.
 sqrt(sum(diag( (A_hat - A_tilde) %*% t( A_hat - A_tilde ) )))
-      # Observe, that the distance between A_hat and C_tilde only is much larger. 
+      # Observe, that the distance between A_hat and C_tilde only is larger. 
 sqrt(sum(diag( (A_hat - C_tilde) %*% t( A_hat - C_tilde ) )))
 
   # Compute Z_tilde
