@@ -312,7 +312,8 @@ round(eigen(Sigma_tilde)$values, 10)
 
 
 
-# ALTERNATIVE: Simply estimate both models form the data and then compute the distance between. Finite scenario.
+# ALTERNATIVE: Simply estimate both models form the data and then compute the distance between. 
+# Finite scenario, with A(t) coefficient linear functions of time.
 
 K_ = 5 # Set manually
 T_ = 4 # Set manually
@@ -330,6 +331,7 @@ A_array = array(A_hats, #
 Z_hats = cbind(Lambda %*% t(Lambda), # need to be set manually, current placeholder.
                Lambda %*% t(Lambda), 
                Lambda %*% t(Lambda)) # K times K times T
+
 Z_array = array(Z_hats, #
                 dim = c(K_,K_,T_)) # K times K times T (array) (UNCLEAR if T_ + 1 array)
 
@@ -356,7 +358,7 @@ for( t in 1:(T_-1) ) {
   
   # Save obtained A tilde.
   A_tildes[ , , t ] = C_tildes[ , , t ] + B_tildes[ , , t] 
-}
+  }
 
 
 
@@ -366,5 +368,67 @@ for( t in 1:(T_-1)) {
   
   raw_distances[ t ] = sum(diag((C_tildes[ , , t ] - A_array[ , , t ]) %*% t(C_tildes[ , , t ] - A_array[ , , t ])))
   projected_distances[ t ] = sum(diag((A_tildes[ , , t ] - A_array[ , , t ]) %*% t(A_tildes[ , , t ] - A_array[ , , t ])))
-}
+  }
+
+
+
+
+
+
+
+
+# Schumacher 2023, and the δ, Λ approximation.
+
+  # We pick the coefficients from Schumacher (although they are defined not as VAr, but instead of lagged logistic models(s)).
+
+exp_coefmat <- matrix(c( # This ignores the intercept.
+  9.94, 0.89, 0.94, 1.22, 1.98, 1.46, 1.06, 1.51, 1.00,
+  1.98, 7.31, 2.06, 1.54, 1.50, 1.25, 2.22, 1.60, 1.20,
+  3.17, 1.54, 2.65, 1.12, 0.81, 1.78, 1.85, 0.97, 2.29,
+  1.34, 0.67, 1.12, 7.12, 1.15, 1.27, 1.22, 0.95, 1.24,
+  2.00, 1.94, 1.05, 1.50, 3.92, 1.58, 1.76, 1.44, 1.46,
+  1.82, 1.23, 1.31, 1.27, 2.20, 4.74, 3.23, 1.35, 2.37,
+  1.07, 1.85, 1.36, 1.13, 1.58, 6.28, 9.93, 1.11, 1.13,
+  2.03, 1.31, 1.35, 1.58, 3.32, 1.20, 1.14, 2.86, 2.45,
+  1.34, 1.33, 2.07, 1.27, 2.34, 1.52, 1.79, 1.85, 4.78
+), nrow = 9, byrow = TRUE) # NOT to be confused with matrix exponential.
+
+colnames(exp_coefmat) <- c("sleep", "reduced pleasure", "psychomotor problems", "change in appetite", "mood", 
+                            "reduced self-worth", "suicidal ideation", "tiredness", "concentration problems")
+rownames(exp_coefmat) <- c("sleep(t-1)", "reduced pleasure(t-1)", "psychomotor problems(t-1)", 
+                            "change in appetite(t-1)", "mood(t-1)", "reduced self-worth(t-1)", "suicidal ideation(t-1)", 
+                            "tiredness(t-1)", "concentration problems(t-1)")
+
+  # δ, Λ approximate
+coefmat = log( exp_coefmat )
+criterion_function_deltalambda = function( x  ) {
+  dcf_approx_0 = x[1] * (x[2:length(x)] %*% t(x[2:length(x)])) * as.numeric( t(x[2:length(x)]) %*% x[2:length(x)] )^(-1)
+  dcf_approx_1 = (coefmat - dcf_approx_0) %*% ( diag(1, nrow(coefmat)) - ( (x[2:length(x)] / 
+                                                                            (as.numeric( t( x[2:length(x)] ) %*% x[2:length(x)] ))) %*% 
+                                                                            t(x[2:length(x)])
+                                                                           ) 
+    )   
+  # Return Frobenius norm, squared.                                              
+  return( sum(diag((coefmat - (dcf_approx_0 + dcf_approx_1)) %*% t((coefmat - (dcf_approx_0 + dcf_approx_1))))) )  }
+
+gradient_function_deltalambda = function( x ) {
+  numDeriv::grad( func = criterion_function_deltalambda, x = x)
+  }
+
+params = c( 1, rep( mean( coefmat ), times = ncol(coefmat) ) )
+deltalambda_approximation <- nloptr::nloptr(
+  x0 = params,
+  eval_f = criterion_function_deltalambda,
+  eval_grad_f = gradient_function_deltalambda,    # Set gradient function
+  opts = list(
+    "algorithm" = "NLOPT_LD_LBFGS",    # Using L-BFGS to utilize gradient information
+    "xtol_rel" = 1e-6,                 
+    "ftol_rel" = 1e-6,                 
+    "maxeval" = 1000,                  
+    "print_level" = 1  ) )
+
+  # The goes (should) go to 0, because the delta lambda approximation (without further constraints) spans all K x K matrices.
+  # Now, of course, if the coefficient matrix grows in linear time such that L(t) * coefmat, L(t) is scalar, then the above approximation
+  # is perfect as well.
+
 
