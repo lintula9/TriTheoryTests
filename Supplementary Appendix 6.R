@@ -1,72 +1,118 @@
-# Settings ----
+# Settings and libraries. ----
 
-require(igraph) # igraph dependency, for graph visualizations
-require(expm) # exmp dependency, for matrix exponent computations
-require(nloptr) # nloptr depndency, for more general optimization procedures (if needed)
-require(numDeriv) # for numerical gradient solving
-
+for (i in  c("qgraph", "expm", "nloptr", "numDeriv")) {
+    if( require(i, character.only = T) ) library(i, character.only = T) else {install.packages(i); library(i, character.only = T)}
+  }
 
 
+# Part 1.A numeric example for VAR(1) indistinguishable from a dynamic CF model. ----
+
+set.seed(21) # One can change the seed to obtain som other result.
+
+# Number of dimensions and time points
+K_ = 5
+T_ = 10
 
 
-# Part 1.A numeric example for VAR(1) indistinguishable from a CF model. ----
+# Pick a random sample of factor loadings from the interval (0, 2].
+Lambda = runif(K_, min = 0.0001, max = 2)
 
-set.seed(1337)
+psi_tt = 1 # Set variance of the CF, 1 for example.
+delta_ = 0.5 # Define autoregression coefficient for the subsequent C-Fs.
 
-# Define the factor loadings
-Lambda = c(1,2,3)
+  # Compute A = C + B, as in the article.
+C = delta_ * Lambda %*% t(Lambda) * as.vector(( t(Lambda) %*% Lambda )^( -1 ))
 
-# Compute within time point covariance from the factor loadings, assuming variance of C-F is 1
-Sigma = Lambda %*% t(Lambda)
+  
+B = stats::rWishart( 1, df = K_ + 1, diag(0.2, nrow = K_, ncol = K_) )[,,1] # Obtain some random matrix B
+B_tilde = B %*% ( diag(1, nrow = K_, ncol = K_ ) - (Lambda  %*% (as.vector(( t(Lambda) %*% Lambda )^( -1 )) %*% t(Lambda))) ) # Project it onto the orthogonal complement.
+A = C + B_tilde # Create A
 
-# Define covariance for the subsequent C-Fs
-psi = 0.5
-
-# Compute A = C + B 
-C = psi * Sigma * as.vector(( t(Lambda) %*% Lambda )^( -1 ))
-B = matrix(c(-1,-1.5,0,0.5,0,-1.5,0,0.5,1), ncol = 3)
-A = C + B
-
-# Solve for Z
-Z = Sigma * (1-psi^2)
-I = diag(1,ncol = 3*3,nrow = 3*3)
+# Compute innovation covariance Z
+Z = Lambda %*% t(Lambda) * (psi_tt-delta_^2)
 
 # Ascertain that the within time point covariance equals for both models:
-# VAR(1) within time point covariance
-Sigma_VAR = matrix(solve(I - fastmatrix::kronecker.prod(A)) %*% fastmatrix::vec(Z), ncol = 3, nrow = 3)
 
-round(Sigma, 10) == round(Sigma_VAR, 10) #Rounding to ensure floating point errors do not influence the result.
+if(all( abs(eigen(A)$values) < 1 ) ) { # VAR(1) within time point covariance - only works for stationary A.
+Sigma_VAR = matrix(solve(diag(1, ncol = K_^2,nrow = K_^2) - fastmatrix::kronecker.prod(A)) %*% fastmatrix::vec(Z), ncol = K_, nrow = K_)
+
+# Check the result:
+round(Lambda %*% t(Lambda) * psi_tt, 10) == round(Sigma_VAR, 10) #Rounding to ensure floating point errors do not influence the result.
+
+}
 
 # Ascertain that between time point cross-covariance equals for both models:
-#VAR(1) cross-covariance
-round(A%*%Sigma, 10) == round(Sigma * psi,10) 
-round(A%*%A%*%Sigma,10)  == round(Sigma * psi^2 ,10)
-round(A%*%A%*%A%*%Sigma,10) == round(Sigma * psi^3,10)
+Sigma_ = Lambda %*% t(Lambda) * psi_tt # This must equal Sigma_VAR above for stationary VAR, otherwise we cannot 'know' it.
+#VAR(1) cross-covariance equals the dynamic CF cross-covariance (of symptoms)
+round(A%*%Sigma_, 10) == round(Sigma_ * delta_,10) 
+round(A%*%A%*%Sigma_,10)  == round(Sigma_ * delta_^2 ,10)
+round(A%*%A%*%A%*%Sigma_,10) == round(Sigma_ * delta_^3,10)
   # And so forth ..
 
-# Plot A to demonstrate how misleadingly complex the Network might look like.
+# Plot A to demonstrate how the Network looks like.
+
+qgraph(A, 
+       title = "VAR(1), indistinguishable from a dynamic CF model.",
+       title.cex = 1.5,  
+       mar = c(4, 4, 6, 4) 
+)
+
+dev.off()
+
+# Part 1.B Brief, simple, extension to linearly time-varying ------
+
+  # Define a simple linear A_t, which is linear in time
+# Initialize the array to store results
+A_t <- array(0, dim = c( K_, K_, T_ + 1))
+
+# Fill in each slice of the array
+for (t in 0:T_) {
+  A_t[,,t + 1] <- A + ((A / 2) * t)
+}
+
+# Note that A_t has the eigenvalue delta_ + delta_ / 2 * t, for the eigenvector Lambda.
+
+A_t_eigen = lapply( 0:T_, FUN = function(t) eigen( as.matrix(A_t[,,t+1, drop = T]) ) )
+for(i in A_t_eigen) { print(i$values[1])} # The eigenvalues.
+for(i in A_t_eigen) { print(i$vectors[,1] / Lambda)} # The eigenvectors, seen as scalar multiples of Lambda 
+                                                     # (hence, Lambda is also an eigenvector.)
 
 
-  # Create an adjacency matrix for non-zero entries in A to represent edges
-adj_matrix <- (A != 0) * 1
+# Plot A_t, linear in time, indistinguishable from a dynamic CF model.
 
-  # Convert the adjacency matrix to a graph
-g <- graph_from_adjacency_matrix(adj_matrix, mode = "directed", weighted = TRUE)
+par(mfrow = c(2,2))
+max_weight <- max(sapply(1:dim(A_t)[3], function(t) max(abs((A_t[,,t]))))) / 2
+qgraph(A_t[,,2], 
+       title = "Indistinguishable VAR(1) model\nTime point 1",
+       title.cex = 1.5,  
+       mar = c(4, 4, 6, 4),
+       maximum = max_weight # Consistent scale for edges
+)
 
-  # Add weights (the values in A) as edge attributes
-E(g)$weight <- A[which(A != 0)]
+qgraph(A_t[,,4], 
+       title = "\nTime point 3",
+       title.cex = 1.5,  
+       mar = c(4, 4, 6, 4),
+       maximum = max_weight # Consistent scale for edges
+)
 
-  # Plot the graph with weights and node labels
-plot(g, edge.label = round(E(g)$weight, 2),
-     edge.arrow.size = 0.5, 
-     vertex.label = c("Var1", "Var2", "Var3"),
-     vertex.size = 30,
-     layout = layout_in_circle,
-     main = "Graphical Model Representation of Matrix A",
-     edge.curved = 0.3)
+qgraph(A_t[,,6], 
+       title = "\nTime point 5",
+       title.cex = 1.5,  
+       mar = c(4, 4, 6, 4),
+       maximum = max_weight # Consistent scale for edges
+)
 
+qgraph(A_t[,,10], 
+       title = "\nTime point 9",
+       title.cex = 1.5,  
+       mar = c(4, 4, 6, 4),
+       maximum = max_weight # Consistent scale for edges
+)
 
+par(mfrow = c(1,1))
 
+# Again, the above result 
 
 
 # Part 2. Compute distance from a VAR(1) to the nearest VAR(1) indistinguishable from a dynamic CF model. ----
