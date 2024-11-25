@@ -47,3 +47,20 @@ Cross_VARs = list()
 for( i in 1:4) {Cross_VARs[[i]] = A %^% i %*% Sigma}
 Cross_LMIs = list()
 for( i in 1:4) {Cross_LMIs[[i]] = (delta^i) * Sigma}
+
+
+
+
+# Example in publication 25.11.2024
+
+A = matrix(0.33, ncol = 3, nrow = 3)
+Z = matrix(0.2, ncol = 3, nrow = 3)
+
+A %*% matrix(solve(diag(1, ncol = 9 , nrow = 9)-kronecker.prod(A)) %*% vec(Z), ncol = 3, nrow = 3 )
+
+Lambda = eigen(A)$vectors[ , 1]
+B = matrix( c(-1L,0L,1L,
+              2L,-1L,-1L,
+              0L,0L,0L), byrow = T, nrow = 3)
+
+
