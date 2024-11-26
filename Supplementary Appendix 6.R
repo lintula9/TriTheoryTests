@@ -7,7 +7,7 @@ for (i in  c("qgraph", "expm", "nloptr", "numDeriv")) {
 
 # Part 1.A numeric example for VAR(1) indistinguishable from a dynamic CF model. ----
 
-set.seed(21) # One can change the seed to obtain som other result.
+set.seed(21) # One can change the seed to obtain some other result.
 
 # Number of dimensions and time points
 K_ = 5
@@ -78,7 +78,8 @@ for(i in A_t_eigen) { print(i$vectors[,1] / Lambda)} # The eigenvectors, seen as
                                                      # (hence, Lambda is also an eigenvector.)
 
 
-# Plot A_t, linear in time, indistinguishable from a dynamic CF model.
+# Part 1.C Figure 1 in main text: Plot A_t, 
+# linear in time, indistinguishable from a dynamic CF model.
 
 par(mfrow = c(2,2))
 max_weight <- max(sapply(1:dim(A_t)[3], function(t) max(abs((A_t[,,t]))))) / 2
@@ -117,10 +118,13 @@ qgraph(A_t[,,10],
 
 par(mfrow = c(1,1))
 
-# Again, the above result 
-
 
 # Part 2. Compute distance from a VAR(1) to the nearest VAR(1) indistinguishable from a dynamic CF model. ----
+
+
+  # Change below to something else.
+
+
 
   # Define the estimated VAR(1) [here, above example is used, with randomness added to it]
 
