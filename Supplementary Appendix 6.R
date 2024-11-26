@@ -82,32 +82,37 @@ for(i in A_t_eigen) { print(i$vectors[,1] / Lambda)} # The eigenvectors, seen as
 
 par(mfrow = c(2,2))
 max_weight <- max(sapply(1:dim(A_t)[3], function(t) max(abs((A_t[,,t]))))) / 2
-qgraph(A_t[,,2], 
-       title = "Indistinguishable VAR(1) model\nTime point 1",
-       title.cex = 1.5,  
-       mar = c(4, 4, 6, 4),
-       maximum = max_weight # Consistent scale for edges
+
+qgraph(Z, 
+       title = "Indistinguishable VAR(1) model\nInnovation or 'Contemporaneous' covariance",
+       title.cex = 1.5,
+       mar = c(4, 4, 6, 4)
 )
 
-qgraph(A_t[,,4], 
-       title = "\nTime point 3",
+qgraph(A_t[,,2], 
+       title = "\nTime point 1",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
-       maximum = max_weight # Consistent scale for edges
+       maximum = max_weight, # Consistent scale for edges
+       edge.width = 3 # Adjust this value for larger edges
 )
+
+
 
 qgraph(A_t[,,6], 
        title = "\nTime point 5",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
-       maximum = max_weight # Consistent scale for edges
+       maximum = max_weight, # Consistent scale for edges
+       edge.width = 3 # Adjust this value for larger edges
 )
 
 qgraph(A_t[,,10], 
        title = "\nTime point 9",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
-       maximum = max_weight # Consistent scale for edges
+       maximum = max_weight, # Consistent scale for edges
+       edge.width = 3 # Adjust this value for larger edges
 )
 
 par(mfrow = c(1,1))
