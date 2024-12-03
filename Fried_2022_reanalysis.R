@@ -46,13 +46,15 @@ varLabs <- c("Relax","Irritable","Worry","Nervous","Future","Anhedonia",
              "Tired","Hungry","Alone","Angry","Social_offline","Social_online","Music",
              "Procrastinate","Outdoors","C19_occupied","C19_worry","Home")
 names(Data5b)[names(Data5b) %in% vars] <- varLabs
-varLabs <- names(Data5b) # Adjustment for the code below to work.
 
 
-# Select a plausible set of varialbes, which could be explained by a one CF model:
+
+# Select a plausible set of variables, which could be explained by a one CF model:
 Data5b <- as_tibble(Data5b %>% select("Relax", "Worry", 
                             "Nervous", "Future",
                             "id", "beep", "day", "conc"))
+varLabs <- c("Relax", "Worry",  #Adjustment for below to work. 03.12.2024. Sakari Lintula
+            "Nervous", "Future")
 
 # Data frame with empty values for fitted effects (all):
 fitted_all <- expand.grid(
@@ -237,18 +239,18 @@ dev.off()
 # --------------- 3. Fit mlVAR network models: orthogonal estimation ------
 # -------------------------------------------------------------------------
 
-load(paste0(datapath, "network_orthogonal.RData"))
+# load(paste0(datapath, "network_orthogonal.RData"))
 
 # Run mlVAR (orthogonal):
-# res <- mlVAR(data_detrended,   
-#              vars=varLabs, 
-#              idvar="id",
-#              dayvar="day", 
-#              beepvar="beep", 
-#              lags = 1,
-#              temporal = "orthogonal", 
-#              contemporaneous = "orthogonal",
-#              nCores = 8)
+res <- mlVAR(data_detrended,
+             vars=varLabs,
+             idvar="id",
+             dayvar="day",
+             beepvar="beep",
+             lags = 1,
+             temporal = "orthogonal",
+             contemporaneous = "orthogonal",
+             nCores = 8)
 # save(res, file=paste0(datapath, "network_orthogonal.RData"))
 
 # Plot :
@@ -259,179 +261,49 @@ names <- c("Relax","Irritable","Worry","Nervous","Future",
 
 gr <- list('Stress'=c(1:7), 'Social'=c(8:10), 'COVID-19'=c(11:14))
 
-# Get networks:
-cont <- getNet(res, "contemporaneous", layout = "spring", nonsig = "hide", rule = "and")
-bet  <- getNet(res, "between", nonsig = "hide", rule = "and")
-temp <- getNet(res, "temporal", nonsig = "hide")
+# Get the results: Between coefficient matrix as well as between innovation covariance.
+A = res$results$Beta$mean[,,1]
+Z = res$results$Theta$cov$mean
+
+# Solve for the covariance
+library(expm); library(Matrix)
+Sigma_VAR = matrix(solve(diag(1, ncol = ncol(A)^2, nrow = nrow(A)^2) - fastmatrix::kronecker.prod(A)) %*% fastmatrix::vec(Z),
+                   ncol = ncol(A), nrow = nrow(A))
+K_VAR = function( Delta ) {
+  
+  A %^% Delta %*% Sigma_VAR
+  }
+
+eigen(Sigma_VAR) # Suggestive of there being one large component. 
+# Capture Lambda as the normalized eigenvector of the largest eigenvalue.
+
+L = eigen(Sigma_VAR)$vectors[,1] / c(sqrt(t(eigen(Sigma_VAR)$vectors[,1]) %*% eigen(Sigma_VAR)$vectors[,1]))
+eigen(A)$vectors[,1] # The first vector of A is nearly in the same direction.
+eigen(A)$vectors[,1] - (-1)*L 
+
+  # Project A onto Lambda
+A_0 =  L %*% t(L) %*% A %*% L %*% t(L)
+
+  # Project the difference onto the orthogonal complement of Lambda
+B_tilde = (A - A_0) %*% (diag(1, nrow = nrow(A), ncol = ncol(A)) - L %*% t(L))
+
+# Create the VAR(1), indistinguishable from one dimensional D-CF(1) model.
+A_tilde = A_0 + B_tilde
+Z_tilde = L %*% t(L) %*% Z %*% L %*% t(L)# Project onto Lambda, as it must be proportional to LL^T
 
 
+par(mfrow=c(2,2))
+qgraph(Z, layout = "circle")
+title("VAR(1) and indistinguishable VAR(1).",outer = T)
 
-# layout:
-L <- averageLayout(cont,bet,temp)
+qgraph(Z_tilde, layout = "circle")
+qgraph(A_tilde, layout = "circle")
+qgraph(A, layout = "circle")
+par(mfrow=c(1,1))
 
-# pdf(paste0(figs, "N_cont_orthogonal.pdf"), width=8, height=6)
-# qgraph(cont, layout = L,
-#               title="Contemporaneous", theme='colorblind', negDashed=FALSE,
-#               groups=gr, legend.cex=0.4, details=TRUE, legend=TRUE, nodeNames = names)
-# dev.off()
-# 
-# pdf(paste0(figs, "N_temp_orthogonal.pdf"), width=8, height=6)
-# qgraph(temp, layout = L,
-#        title="Temporal, Lag-1", theme='colorblind', negDashed=FALSE,
-#        groups=gr, legend.cex=0.4, details=TRUE, legend=TRUE, nodeNames = names)
-# dev.off()
-# 
-# pdf(paste0(figs, "N_temp_nodiag_orthogonal.pdf"), width=8, height=6)
-# qgraph(temp, layout = L,
-#        title="Temporal, Lag-1",  theme='colorblind', negDashed=FALSE,
-#        groups=gr, legend.cex=0.4, details=TRUE, diag = FALSE, legend=TRUE, nodeNames = names)
-# dev.off()
-# 
-# pdf(paste0(figs, "N_betw_orthogonal.pdf"), width=8, height=6)
-# qgraph(bet, layout = L,
-#        title="Between-Subjects",theme='colorblind', negDashed=FALSE,
-#        groups=gr, legend.cex=0.4, details=TRUE, legend=TRUE, nodeNames = names)
-# dev.off()
-# 
-# pdf(paste0(figs, "N_betw_cors_orthogonal.pdf"), width=8, height=6)
-# qgraph(cor(data_detrended_avg[,varLabs],use="pairwise.complete.obs"), layout = L, labels = varLabs,
-#        title="Between-Subject marginal correlations",  theme='colorblind', negDashed=FALSE,
-#        groups=gr, legend.cex=0.4, details=TRUE, legend=TRUE, nodeNames = names)
-# dev.off()
-
-
-
-# -------------------------------------------------------------------------
-# --------------- 4. Fit mlVAR network models: correlated estimation ------
-# -------------------------------------------------------------------------
-
-res2 <- readRDS(paste0(datapath,"network_correlated.RData"))
-
-# Run mlVAR (correlated):
-# res2 <- mlVAR(data_detrended,
-#              vars=varLabs,
-#              idvar="id",
-#              dayvar="day",
-#              beepvar="beep",
-#              lags = 1,
-#              temporal = "correlated",
-#              contemporaneous = "correlated",
-#              nCores = 8)
-# saveRDS(res2, file=paste0(datapath, "network_orthogonal.RData"))
-
-# Plot :
-names <- c("Relax","Irritable","Worry","Nervous","Future",
-           "Anhedonia","Tired","Alone", 
-           "Social-offline", "Social-online", "Outdoors",
-           "C19-occupied", "C19-worry", "Home") 
-
-# Get networks:
-cont2 <- getNet(res2, "contemporaneous", layout = "spring", nonsig = "hide", rule = "and")
-bet2 <- getNet(res2, "between", nonsig = "hide", rule = "and")
-temp2 <- getNet(res2, "temporal", nonsig = "hide")
-
-
-pdf(paste0(figs, "N_cont_correlated.pdf"), width=8, height=6)
-qgraph(cont2, layout = L,
-       title="Contemporaneous", theme='colorblind', negDashed=FALSE,
-       groups=gr, legend.cex=0.4, details=TRUE, legend=TRUE, nodeNames = names)
-dev.off()
-
-pdf(paste0(figs, "N_temp_correlated.pdf"), width=8, height=6)
-qgraph(temp2, layout = L,
-       title="Temporal, Lag-1", theme='colorblind', negDashed=FALSE,
-       groups=gr, legend.cex=0.4, details=TRUE, legend=TRUE, nodeNames = names)
-dev.off()
-
-pdf(paste0(figs, "N_temp_nodiag_correlated.pdf"), width=8, height=6)
-qgraph(temp2, layout = L,
-       title="Temporal, Lag-1",  theme='colorblind', negDashed=FALSE,
-       groups=gr, legend.cex=0.4, details=TRUE, diag = FALSE, legend=TRUE, nodeNames = names)
-dev.off()
-
-pdf(paste0(figs, "N_betw_correlated.pdf"), width=8, height=6)
-qgraph(bet2, layout = L,
-       title="Between-Subjects",theme='colorblind', negDashed=FALSE,
-       groups=gr, legend.cex=0.4, details=TRUE, legend=TRUE, nodeNames = names)
-dev.off()
-
-pdf(paste0(figs, "N_betw_cors_correlated.pdf"), width=8, height=6)
-qgraph(cor(data_detrended_avg[,varLabs],use="pairwise.complete.obs"), layout = L, labels = varLabs,
-       title="Between-Subject marginal correlations",  theme='colorblind', negDashed=FALSE,
-       groups=gr, legend.cex=0.4, details=TRUE, legend=TRUE, nodeNames = names)
-dev.off()
-
-
-
-# -------------------------------------------------------------------------
-# --------------- 5. Compare correlated and orthogonal estimation ---------
-# -------------------------------------------------------------------------
-
-cor(as.vector(cont),as.vector(cont2))  # 0.993
-cor(as.vector(bet),as.vector(bet2))    # 0.983
-cor(as.vector(temp),as.vector(temp2))  # 0.972
-
-# fit orthogonal model, "res"
-summary(res, show = c("fit"), round = 2)
-resAIC <- c(6496.63, 6890.75,5988.36,6233.54,5900.58,6605.80,6630.53,5297.03,6826.54,6348.90,7624.41,6294.97,5693.62,6930.59)
-resBIC <- c(6756.84,7150.96,6248.58,6493.75,6160.79,6866.01,6890.74,5557.24,7086.75,6609.11,7884.62,6555.18,5953.83,7190.80)
-range(resAIC) # 5297.03 to 7624.41
-mean(resAIC)  # 6411.589
-range(resBIC) # 5557.24 to 7884.62
-mean(resBIC)  # 6671.8
-
-# fit correlated model, "res2
-summary(res2, show = c("fit"), round = 2)
-res2AIC <- c(6684.38,7053.19,6144.22,6437.75,6037.26,6743.79,6824.25,5409.88,7005.20,6543.92,7799.85,6469.32,5836.57,7081.64)
-res2BIC <- c(7566.42,7935.23,7026.26,7319.78,6919.30,7625.83,7706.29,6291.92,7887.24,7425.95,8681.88,7351.36,6718.60,7963.68)
-range(res2AIC) # 5409.88 to 7799.85 (worse fit than orthogonal: 5297.03 to 7624.41)
-mean(res2AIC)  # 6576.516 (worse than orthogonal: 6411.589)
-range(res2BIC) # 6291.92 to 8681.88 (worse than orthogonal: 5557.24 to 7884.62)
-mean(res2BIC)  # 7458.553 (worse than orthogonal: 6671.8)
-
-mlVARcompare(res, res2)
-# Counts for best model fit over all variables
-# lags   temporal temporalModel nAIC nBIC
-# 1 correlated           VAR    0    0
-# 1 orthogonal           VAR   14   14
-
-layout(t(1:2))
-qgraph(cont, layout = L, title="Contemporaneous orthogonal", theme='colorblind', details=TRUE) 
-qgraph(cont2, layout = L, title="Contemporaneous correlated", theme='colorblind', details=TRUE) 
-qgraph(bet, layout = L, title="Between-Person orthogonal", theme='colorblind', details=TRUE) 
-qgraph(bet2, layout = L, title="Between-Person correlated", theme='colorblind', details=TRUE) 
-qgraph(temp, layout = L, title="Temporal orthogonal", theme='colorblind', details=TRUE) 
-qgraph(temp2, layout = L, title="Temporal correlated", theme='colorblind', details=TRUE) 
-dev.off()
-
-
-
-# -------------------------------------------------------------------------
-# --------------- 6. Fix final plots for paper ----------------------------
-# -------------------------------------------------------------------------
-
-# without self loops
-pdf(paste0(figs, "FIG_network_nodiag.pdf"), width=6, height=2.5)
-layout(matrix(c(1,1,2,2,2), nc=5, byrow = TRUE)) # 40% vs 60% widths
-qgraph(cont, layout = L,
-       title="Contemporaneous network", theme='colorblind', negDashed=FALSE,
-       groups=gr, legend=FALSE, nodeNames = names, labels=c(1:14),
-       vsize=12,color=viridis_pal()(5)[3:5])
-qgraph(temp, layout = L,
-       title="Temporal network", theme='colorblind', negDashed=FALSE, diag=FALSE,
-       groups=gr, legend.cex=0.4, legend=TRUE, nodeNames = names, labels=c(1:14),
-       vsize=10,color=viridis_pal()(5)[3:5], asize=6)
-dev.off()
-
-# with self loops
-pdf(paste0(figs, "FIG_network.pdf"), width=6, height=2.5)
-layout(matrix(c(1,1,2,2,2), nc=5, byrow = TRUE)) # 40% vs 60% widths
-qgraph(cont, layout = L,
-       title="Contemporaneous network", theme='colorblind', negDashed=FALSE,
-       groups=gr, legend=FALSE, nodeNames = names, labels=c(1:14),
-       vsize=12,color=viridis_pal()(5)[3:5], details=TRUE)
-qgraph(temp, layout = L,
-       title="Temporal network", theme='colorblind', negDashed=FALSE, 
-       groups=gr, legend.cex=0.4, legend=TRUE, nodeNames = names, labels=c(1:14),
-       vsize=10,color=viridis_pal()(5)[3:5], asize=6, details=TRUE)
-dev.off()
+Sigma_DCF = matrix(solve(diag(1, ncol = ncol(A)^2, nrow = nrow(A)^2) - fastmatrix::kronecker.prod(A_tilde)) %*% fastmatrix::vec(Z_tilde),
+                   ncol = ncol(A), nrow = nrow(A))
+K_VAR = function( Delta ) {
+  
+  A_tilde %^% Delta %*% Sigma_DCF
+}
