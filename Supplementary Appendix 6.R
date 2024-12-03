@@ -1,48 +1,56 @@
 # Settings and libraries. ----
 
-for (i in  c("qgraph", "expm", "nloptr", "numDeriv")) {
+for (i in  c("qgraph", "expm", "nloptr", "numDeriv", "Matrix")) {
     if( require(i, character.only = T) ) library(i, character.only = T) else {install.packages(i); library(i, character.only = T)}
   }
+
+# Note:
+# Numerical instabilities are inevitable in these computations. Package 'Matrix' alleviate the problem to some extent.
+# Rounding is still necessary to obtain correct results in many cases.
+
+
 
 
 # Part 1.A numeric example for VAR(1) indistinguishable from a dynamic CF model. ----
 
 set.seed(21) # One can change the seed to obtain some other result.
 
-# Number of dimensions and time points
+
+### Create a stationary indistinguishable VAR(1) model.
+  # Number of dimensions and time points
 K_ = 5
 T_ = 10
 
 
-# Pick a random sample of factor loadings from the interval (0, 2].
-Lambda = runif(K_, min = 0.0001, max = 2)
+  # Pick a random sample of factor loadings from the interval [0.1, 2], rounded to 3 digits for stability.
+Lambda = runif(K_, min = 0.1, max = 2)
 
 psi_tt = 1 # Set variance of the CF, 1 for example.
-delta_ = 0.5 # Define autoregression coefficient for the subsequent C-Fs.
+theta_ = 0.5 # Define autoregression coefficient for the subsequent C-Fs.
 
   # Compute A = C + B, as in the article.
-C = delta_ * Lambda %*% t(Lambda) * as.vector(( t(Lambda) %*% Lambda )^( -1 ))
+C = theta_ * Lambda %*% t(Lambda) * as.vector(( t(Lambda) %*% Lambda )^( -1 ))
 
-  
-B = stats::rWishart( 1, df = K_ + 1, diag(0.2, nrow = K_, ncol = K_) )[,,1] # Obtain some random matrix B
-B_tilde = B %*% ( diag(1, nrow = K_, ncol = K_ ) - (Lambda  %*% (as.vector(( t(Lambda) %*% Lambda )^( -1 )) %*% t(Lambda))) ) # Project it onto the orthogonal complement.
+  # Create a random B matrix to add to C, so that indistinguishably still holds.
+B = round(stats::rWishart( 1, df = K_ + 1, diag(0.2, nrow = K_, ncol = K_) )[,,1], 3) # Obtain some random matrix B
+B_tilde = B %*% ( diag(1L, nrow = K_, ncol = K_ ) - (Lambda  %*% (as.vector(( t(Lambda) %*% Lambda )^( -1 )) %*% t(Lambda))) ) # Project it onto the orthogonal complement.
 A = C + B_tilde # Create A
 
-# Compute innovation covariance Z
+  # Compute innovation covariance Z
 Z = Lambda %*% t(Lambda) * (psi_tt-delta_^2)
 
-# Ascertain that the within time point covariance equals for both models:
+  # Ascertain that the within time point covariance equals for both models:
+if(all( abs(eigen(A)$values) < 1 ) ) { 
+      # VAR(1) within time point covariance - only works for stationary A.
+      Sigma_VAR = matrix(solve(diag(1, ncol = K_^2,nrow = K_^2) - fastmatrix::kronecker.prod(A)) %*% fastmatrix::vec(Z), ncol = K_, nrow = K_)
+      
+      # Check the result:
+      round(Lambda %*% t(Lambda) * psi_tt, 10) == round(Sigma_VAR, 10) #Rounding to ensure floating point errors do not influence the result.
 
-if(all( abs(eigen(A)$values) < 1 ) ) { # VAR(1) within time point covariance - only works for stationary A.
-Sigma_VAR = matrix(solve(diag(1, ncol = K_^2,nrow = K_^2) - fastmatrix::kronecker.prod(A)) %*% fastmatrix::vec(Z), ncol = K_, nrow = K_)
-
-# Check the result:
-round(Lambda %*% t(Lambda) * psi_tt, 10) == round(Sigma_VAR, 10) #Rounding to ensure floating point errors do not influence the result.
-
-}
+      }
 
 # Ascertain that between time point cross-covariance equals for both models:
-Sigma_ = Lambda %*% t(Lambda) * psi_tt # This must equal Sigma_VAR above for stationary VAR, otherwise we cannot 'know' it.
+Sigma_ = Lambda %*% t(Lambda) * psi_tt # This must equal Sigma_VAR above for stationary VAR. If non-stationary otherwise we cannot 'know' it.
 #VAR(1) cross-covariance equals the dynamic CF cross-covariance (of symptoms)
 round(A%*%Sigma_, 10) == round(Sigma_ * delta_,10) 
 round(A%*%A%*%Sigma_,10)  == round(Sigma_ * delta_^2 ,10)
@@ -50,73 +58,128 @@ round(A%*%A%*%A%*%Sigma_,10) == round(Sigma_ * delta_^3,10)
   # And so forth ..
 
 # Plot A to demonstrate how the Network looks like.
-
 qgraph(A, 
        title = "VAR(1), indistinguishable from a dynamic CF model.",
        title.cex = 1.5,  
-       mar = c(4, 4, 6, 4) 
-)
+       mar = c(4, 4, 6, 4)
+       )
 
 dev.off()
 
-# Part 1.B Brief, simple, extension to linearly time-varying ------
 
-  # Define a simple linear A_t, which is linear in time
-# Initialize the array to store results
+
+
+
+
+
+
+# Part 1.B  Extension to linearly time-varying ------
+
+  # intialize the CF model parameters
+set.seed(21) # One can change the seed to obtain some other result.
+if(!exists(Lambda)) Lambda = runif(K_, min = 0.1, max = 2)
+psi_tt = 1 
+theta_ = 0.5 
+
+  # First, create C matrix again (named differently to separate from above.)
+C_t = theta_ * Lambda %*% t(Lambda) * as.vector(( t(Lambda) %*% Lambda )^( -1 ))
+
+  # Also ensure we have the correct Z
+Z_0 = Lambda %*% t(Lambda) * (psi_tt-delta_^2)
+
+  # Initialize an array to store results
 A_t <- array(0, dim = c( K_, K_, T_ + 1))
+
+  # Create a random square matrix, projected onto the orthogonal complement of Lambda,
+  # which will then vary linearly in time.
+time_matrix <- stats::rWishart( 1, df = K_, diag(0.3, nrow = K_, ncol = K_) )[,,1] %*%
+  ( diag(1, nrow = K_, ncol = K_ ) - (Lambda  %*% (as.vector(( t(Lambda) %*% Lambda )^( -1 )) %*% t(Lambda))) )
+time_matrix %*% Lambda # Ensure it is practically zero.
+
 
 # Fill in each slice of the array
 for (t in 0:T_) {
-  A_t[,,t + 1] <- A + ((A / 2) * t)
+  A_t[,,t + 1] <- C_t + ((time_matrix / 10 ) * t)
 }
-
-# Note that A_t has the eigenvalue delta_ + delta_ / 2 * t, for the eigenvector Lambda.
-
-A_t_eigen = lapply( 0:T_, FUN = function(t) eigen( as.matrix(A_t[,,t+1, drop = T]) ) )
-for(i in A_t_eigen) { print(i$values[1])} # The eigenvalues.
-for(i in A_t_eigen) { print(i$vectors[,1] / Lambda)} # The eigenvectors, seen as scalar multiples of Lambda 
-                                                     # (hence, Lambda is also an eigenvector.)
-
 
 # Part 1.C Figure 1 in main text: Plot A_t, 
 # linear in time, indistinguishable from a dynamic CF model.
+max_weight <- max(sapply(1:dim(A_t)[3], function(t) max(abs((A_t[,,t])))))
 
-par(mfrow = c(2,2))
-max_weight <- max(sapply(1:dim(A_t)[3], function(t) max(abs((A_t[,,t]))))) / 2
+par(mfrow = c(2, 2), oma = c(0, 0, 4, 0)) # Adjust oma for outer margin to accommodate the title
 
-qgraph(Z, 
-       title = "Indistinguishable VAR(1) model\nInnovation or 'Contemporaneous' covariance",
+labels <- expression(X[1], X[2], X[3], X[4], X[5])
+
+# Plot the 'Contemporaneous' covariance graph
+qgraph(Z_0, 
+       title = "'Contemporaneous' covariance",
        title.cex = 1.5,
-       mar = c(4, 4, 6, 4)
+       mar = c(4, 4, 6, 4),
+       layout = "circle", 
+       labels = labels # Use the expression labels
 )
 
+# Plot the Lagged effects at Time point 1
 qgraph(A_t[,,2], 
-       title = "\nTime point 1",
+       title = "Lagged effects\nTime point 1",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
        maximum = max_weight, # Consistent scale for edges
-       edge.width = 3 # Adjust this value for larger edges
+       edge.width = 3,       # Adjust this value for larger edges
+       layout = "circle",
+       labels = labels       # Use the expression labels
 )
 
-
-
+# Plot at Time point 5
 qgraph(A_t[,,6], 
        title = "\nTime point 5",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
        maximum = max_weight, # Consistent scale for edges
-       edge.width = 3 # Adjust this value for larger edges
+       edge.width = 3,       # Adjust this value for larger edges
+       layout = "circle",
+       labels = labels       # Use the expression labels
 )
 
+# Plot at Time point 9
 qgraph(A_t[,,10], 
        title = "\nTime point 9",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
        maximum = max_weight, # Consistent scale for edges
-       edge.width = 3 # Adjust this value for larger edges
+       edge.width = 3,       # Adjust this value for larger edges
+       layout = "circle",
+       labels = labels       # Use the expression labels
 )
 
+mtext("VAR(1) Network model indistinguishable from a dynamic CF model.", outer = TRUE, cex = 1.5, font = 2)
+
 par(mfrow = c(1,1))
+
+
+ ### Ascertain the covariance computations.
+  # Initialize with time point 0 covariance.
+Sigma_0 = Lambda %*% t(Lambda) * psi_tt
+
+# Initialize a list to store Sigma and Z matrices
+Sigma <- vector("list", 11)
+Sigma[[1]] <- Sigma_0 # Store Sigma_0
+
+  # Compute Sigma_k iteratively for t = 1, 2, ..., 10.
+for (t in 1:11) {
+  if (t == 1) {
+    Sigma[[t + 1]] <- A_t[,,1] %*% Sigma[[t]] %*% t(A_t[,,1]) + Z_0
+  } else {
+    # Use the appropriate transition matrix for Sigma_k (k > 1)
+    Sigma[[t + 1]] <- A_t[,,t] %*% Sigma[[t]] %*% t(A_t[,,t]) + Z_0
+  }
+}
+  # Be aware: Numerical instabilities make some eigenvalues inevitably deviate from 0, ESPECIALLY when using base R.
+for( i in Sigma) {print(round(eigen(i)$values, 5))}
+
+
+
+
 
 
 # Part 2. Compute distance from a VAR(1) to the nearest VAR(1) indistinguishable from a dynamic CF model. ----
