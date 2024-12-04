@@ -1,3 +1,4 @@
+# Author: Sakari Lintula, sakari.lintula@helsinki.fi
 # Settings and libraries. ----
 
 for (i in  c("qgraph", "expm", "nloptr", "numDeriv", "Matrix")) {
