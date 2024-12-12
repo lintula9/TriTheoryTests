@@ -9,7 +9,8 @@
 required_packages <- c(
   "lme4", "ggplot2", "dplyr", "tidyr", 
   "qgraph", "tidyselect", "mlVAR", 
-  "viridis", "summarytools", "lm.beta"
+  "viridis", "summarytools", "lm.beta",
+  "Matrix", "fastmatrix"
 )
 
 # Function to check and install missing packages
@@ -222,14 +223,6 @@ p4 <- ggplot(detrended_long, aes(x = midTime, y = mean)) +
   ggtitle("Detrended data according to fixed-effects model (fixed y-axis)",subtitle = "Effects not significant at alpha = 0.05 set to zero in fitted model")
 
 
-# Store:
-pdf(paste0(figs,"TS_detrended.pdf"),height=12,width=10)
-print(p1)
-print(p2)
-print(p3)
-print(p4)
-dev.off()
-
 # Save detrended data for students to work with
 # saveRDS(data_detrended, file=paste0(datapath, "data_students_network.RData"))
 
@@ -293,12 +286,12 @@ Z_tilde = L %*% t(L) %*% Z %*% L %*% t(L)# Project onto Lambda, as it must be pr
 
 
 par(mfrow=c(2,2))
-qgraph(Z, layout = "circle")
+qgraph(Z, layout = "circle", labels = expression(X[1], X[2], X[3], X[4]))
 title("VAR(1) and indistinguishable VAR(1).",outer = T)
 
-qgraph(Z_tilde, layout = "circle")
-qgraph(A_tilde, layout = "circle")
-qgraph(A, layout = "circle")
+qgraph(Z_tilde, layout = "circle", labels = expression(X[1], X[2], X[3], X[4]))
+qgraph(A_tilde, layout = "circle", labels = expression(X[1], X[2], X[3], X[4]))
+qgraph(A, layout = "circle", labels = expression(X[1], X[2], X[3], X[4]))
 par(mfrow=c(1,1))
 
 Sigma_DCF = matrix(solve(diag(1, ncol = ncol(A)^2, nrow = nrow(A)^2) - fastmatrix::kronecker.prod(A_tilde)) %*% fastmatrix::vec(Z_tilde),
