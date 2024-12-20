@@ -191,7 +191,7 @@ time_matrix %*% Lambda # Ensure it is practically zero.
 
 # Fill in each slice of the array
 for (t in 0:T_) {
-  A_t[,,t + 1] <- C_t + ( (B_t * 0.2)  + ((time_matrix / 20 ) * exp(t / 10)))
+  A_t[,,t + 1] <- C_t + ( (B_t * 0.2)  + ((time_matrix / 20 ) * exp((t - 5) / 5)))
 }
 
 # Plot.
@@ -211,7 +211,7 @@ qgraph(Z_0,
 )
 
 # Plot the Lagged effects at Time point 1
-qgraph(A_t[,,2], 
+qgraph(A_t[,,1], 
        title = "Lagged effects\nTime point 1",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
@@ -222,7 +222,7 @@ qgraph(A_t[,,2],
 )
 
 # Plot at Time point 5
-qgraph(A_t[,,6], 
+qgraph(A_t[,,5], 
        title = "\nTime point 5",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
@@ -233,7 +233,7 @@ qgraph(A_t[,,6],
 )
 
 # Plot at Time point 9
-qgraph(A_t[,,10], 
+qgraph(A_t[,,9], 
        title = "\nTime point 9",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
@@ -250,14 +250,14 @@ par(mfrow = c(1,1))
 
 ## Adjust slightly, and plot again. ###
 
-# Adjust the time-varying part from above, slightly.
+# Adjust the time-varying part from above, slightly, to create model 2.
 time_matrix_adj <- time_matrix
 time_matrix_adj[ 1, ] <- time_matrix[ 1, ] + runif(n = K_, 3,4) %*% (diag(1,nrow=K_,ncol=K_) - Lambda %*% solve(t(Lambda) %*% Lambda) %*% t(Lambda)) 
 
 # Adjust the time-varying A_t
 A_t_adj <- array(0, dim = c( K_, K_, T_ + 1))
 for (t in 0:T_) {
-  A_t_adj[,,t + 1] <- C_t + B_t + ((time_matrix_adj  / 10 ) * t)
+  A_t_adj[,,t + 1] <-  C_t + ( (B_t * 0.2)  + ((time_matrix_adj / 20 ) * exp((t - 5) / 5)))
 }
 
 # Plot the comparison
