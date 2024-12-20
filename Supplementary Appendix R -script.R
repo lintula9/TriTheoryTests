@@ -164,9 +164,9 @@ K_ = 5
 T_ = 10
 
   # intialize the CF model parameters
-if(!exists("Lambda")) Lambda = runif(K_, min = 0.1, max = 2)
+if(!exists("Lambda")) Lambda = runif(K_, min = 0.5, max = 1)
 psi_tt = 1 
-theta_ = 0.5 
+theta_ = 1.5 
 phi_ = 0.5
 
   # First, create C matrix again (named differently to separate from above.)
@@ -191,7 +191,7 @@ time_matrix %*% Lambda # Ensure it is practically zero.
 
 # Fill in each slice of the array
 for (t in 0:T_) {
-  A_t[,,t + 1] <- C_t + B_t + ((time_matrix / 10 ) * t)
+  A_t[,,t + 1] <- C_t + ( (B_t * 0.2)  + ((time_matrix / 20 ) * exp(t / 10)))
 }
 
 # Plot.
