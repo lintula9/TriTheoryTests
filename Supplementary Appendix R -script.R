@@ -160,11 +160,11 @@ round(K_2_VAR_adj, 10) == round(K_2_VAR, 10)
 set.seed(21)
 
 # Number of dimensions and time points
-K_ = 5
+K_ = 9
 T_ = 10
 
-  # intialize the CF model parameters
-if(!exists("Lambda")) Lambda = runif(K_, min = 0.5, max = 1)
+  # intialize the CF model parameters, this overwrites previous parameters.
+Lambda = runif(K_, min = 0.5, max = 1)
 psi_tt = 1 
 theta_ = 1.5 
 phi_ = 0.5
@@ -191,7 +191,7 @@ time_matrix %*% Lambda # Ensure it is practically zero.
 
 # Fill in each slice of the array
 for (t in 0:T_) {
-  A_t[,,t + 1] <- C_t + ( (B_t * 0.2)  + ((time_matrix / 20 ) * exp((t - 5) / 5)))
+  A_t[,,t + 1] <- C_t + ( (B_t * 0.2)  + ((time_matrix / 20 ) * exp((t - 5) / 5 )))
 }
 
 # Plot.
@@ -199,7 +199,8 @@ max_weight <- max(sapply(1:dim(A_t)[3], function(t) max(abs((A_t[,,t])))))
 
 par(mfrow = c(2, 2), oma = c(0, 0, 4, 0)) # Adjust oma for outer margin to accommodate the title
 
-labels <- expression(X[1], X[2], X[3], X[4], X[5])
+expr_list <- lapply(1:K_, function(i) bquote(X[.(i)]))
+labels <- do.call(expression, expr_list)
 
 # Plot the 'Contemporaneous' covariance graph
 qgraph(Z_0, 
@@ -252,12 +253,12 @@ par(mfrow = c(1,1))
 
 # Adjust the time-varying part from above, slightly, to create model 2.
 time_matrix_adj <- time_matrix
-time_matrix_adj[ 1, ] <- time_matrix[ 1, ] + runif(n = K_, 3,4) %*% (diag(1,nrow=K_,ncol=K_) - Lambda %*% solve(t(Lambda) %*% Lambda) %*% t(Lambda)) 
+time_matrix_adj[ 1, ] <- time_matrix[ 1, ] + runif(n = K_, 9,15) %*% (diag(1,nrow=K_,ncol=K_) - Lambda %*% solve(t(Lambda) %*% Lambda) %*% t(Lambda)) 
 
 # Adjust the time-varying A_t
 A_t_adj <- array(0, dim = c( K_, K_, T_ + 1))
 for (t in 0:T_) {
-  A_t_adj[,,t + 1] <-  C_t + ( (B_t * 0.2)  + ((time_matrix_adj / 20 ) * exp((t - 5) / 5)))
+  A_t_adj[,,t + 1] <-  C_t + ( (B_t * 0.2)  + ((time_matrix_adj / 20 ) * exp((t - 5) / 5 ) ) )
 }
 
 # Plot the comparison
@@ -265,7 +266,6 @@ max_weight <- max(sapply(1:5, function(t) max(abs((A_t_adj[,,t])))))
 
 par(mfrow = c(3, 2), oma = c(0, 0, 4, 0)) # Adjust oma for outer margin to accommodate the title
 
-labels <- expression(X[1], X[2], X[3], X[4], X[5])
 # Function to create dashed lines for the first row
 custom_lty <- function(matrix) {
   lty <- matrix(1, nrow = nrow(matrix), ncol = ncol(matrix)) # Default to solid lines
@@ -291,7 +291,7 @@ qgraph(A_t_adj[,,1],
 plot.new()
 
 
-# Plot the Lagged effects at Time point 1 (A_t_adj)
+# Plot the Lagged effects at Time point 5 (A_t_adj)
 qgraph(A_t_adj[,,6], 
        title = "Model 1, time point 5",
        title.cex = 1.5,  
@@ -315,7 +315,7 @@ qgraph(A_t[,,6],
        lty = custom_lty(A_t[,,2]) # Custom line types
 )
 
-# Plot at Time point 5 (A_t_adj)
+# Plot at Time point 9 (A_t_adj)
 qgraph(A_t_adj[,,10], 
        title = "Model 1, time point 9",
        title.cex = 1.5,  
@@ -327,7 +327,7 @@ qgraph(A_t_adj[,,10],
        lty = custom_lty(A_t_adj[,,5]) # Custom line types
 )
 
-# Plot at Time point 5 (A_t)
+# Plot at Time point 9 (A_t)
 qgraph(A_t[,,10], 
        title = "Model 2, time point 9",
        title.cex = 1.5,  
