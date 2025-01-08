@@ -254,6 +254,10 @@ names <- c("Relax","Irritable","Worry","Nervous","Future",
 
 gr <- list('Stress'=c(1:7), 'Social'=c(8:10), 'COVID-19'=c(11:14))
 
+
+
+# Obtain the closest indistinguishable model ------
+
 # Get the results: Between coefficient matrix as well as between innovation covariance.
 A = res$results$Beta$mean[,,1]
 Z = res$results$Theta$cov$mean
