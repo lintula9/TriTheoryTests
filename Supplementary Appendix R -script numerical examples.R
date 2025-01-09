@@ -6,6 +6,7 @@
 # (1) Numerical instabilities are inevitable in these computations. Package 'Matrix' alleviate the problem to some extent.
 # Rounding is still necessary to obtain correct results in many cases.
 # (2) Object names mostly follows main text.
+# Many objects are overwritten throughout the script. Ensure that you run sections, in whole, of the script.
 
 
 
