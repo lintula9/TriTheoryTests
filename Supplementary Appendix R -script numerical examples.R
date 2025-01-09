@@ -1,77 +1,115 @@
+# Supplementary Appendix: R -script, Part 1.
 # Author: Sakari Lintula, sakari.lintula@helsinki.fi
-# Settings and libraries. ----
 
-for (i in  c("qgraph", "expm", "nloptr", "numDeriv", "Matrix", "fastmatrix")) {
+# Notes:
+# This part includes all else, except for the empiric example.
+# (1) Numerical instabilities are inevitable in these computations. Package 'Matrix' alleviate the problem to some extent.
+# Rounding is still necessary to obtain correct results in many cases.
+# (2) Object names mostly follows main text.
+
+
+
+
+# Settings and libraries. -------
+
+for (i in  c("qgraph", "expm", "nloptr", "numDeriv", "Matrix", "fastmatrix", "MASS")) {
     if( require(i, character.only = T) ) library(i, character.only = T) else {install.packages(i); library(i, character.only = T)}
   }
 
-# Notes:
-# (1) Numerical instabilities are inevitable in these computations. Package 'Matrix' alleviate the problem to some extent.
-# Rounding is still necessary to obtain correct results in many cases.
-# (2) The object labeling mostly follows main text.
 
 
-# Main text, results section 4 -----------
+# Analytic results, Result 1 & 2. ####
+## Main text, results Result 1 -section -----------
+
+  # Computations for the 'unadjusted' example:
 Lambda = c(1,2,3)
 psi = 1
 phi = 0.5
 
-Sigma = Lambda %*% t(Lambda)
+Sigma_CF = Lambda %*% t(Lambda)
 A = phi *  Lambda %*% solve( t(Lambda) %*% Lambda ) %*% t(Lambda)
 Z = (psi - phi^2) * Sigma
 
-matrix(solve(diag(1, nrow = 9, ncol = 9) - kronecker.prod(A)) %*% vec(Z), ncol = 3)
+Sigma_VAR = matrix(solve(diag(1, nrow = 9, ncol = 9) - kronecker.prod(A)) %*% vec(Z), ncol = 3)
 Lambda %*% t(Lambda)
 
+  #Check for indistinguishability:
+all( round(Sigma_CF, 10) == round(Sigma_VAR, 10) ) # Covariance.
+all( round(phi*Sigma_CF, 10) == round(A %*% Sigma_VAR, 10) ) # Cross-covariance for Delta t = 1.
+all( round(phi^2*Sigma_CF, 10) == round(A %*% A %*% Sigma_VAR, 10) ) # Cross-covariance for Delta t = 2.
+    # ... and so forth.
 
-# Extension of results section 4 example: More general R script ------
+  # Computations for the 'adjusted' example:
 
-set.seed(21) # One can change the seed to obtain some other result.
+A_adj = A + matrix( c(0,3,-2,
+                      -2,1,0,
+                      1,-0.5,0), 
+                    ncol = 3, nrow = 3, byrow = T)
 
+  #Check for indistinguishability:
+all( round(Sigma_CF, 10) == round(Sigma_VAR, 10) ) # Covariance.
+all( round(phi*Sigma_CF, 10) == round(A_adj %*% Sigma_VAR, 10) ) # Cross-covariance for Delta t = 1.
+all( round(phi^2*Sigma_CF, 10) == round(A_adj %*% A_adj %*% Sigma_VAR, 10) ) # Cross-covariance for Delta t = 2.
+    # ... and so forth.
+
+
+
+## Extension of results section 4 example: More general R script using randomly sampled parameters for the dynamic CF model. ------
+
+set.seed(21) # For replicability.
 
 ### Create a stationary indistinguishable VAR(1) model.
-# Number of dimensions and time points
+  # Number of dimensions and time points
 K_ = 5
 T_ = 10
 
-
-# Pick a random sample of factor loadings from the interval [0.1, 2], rounded to 3 digits for stability.
+  # Pick a random sample of factor loadings from the interval [0.1, 2], for example.
 Lambda = runif(K_, min = 0.1, max = 2)
 
-psi_tt = 1 # Set variance of the CF, 1 for example.
-phi_ = 0.5 # Define autoregression coefficient for the subsequent C-Fs.
+psi_tt = 1 # Set variance of the CF - 1 for example.
+phi_ = 0.5 # Define autoregression coefficient for the subsequent C-Fs - 0.5 for example.
 
+  # Compute A_tilde = C_tilde + B_tilde, using the formulas provided in the article.
+C_tilde = phi_ * Lambda %*% t(Lambda) * as.vector(( t(Lambda) %*% Lambda )^( -1 ))
 
-# Compute A = C + B, as in the article.
-C = phi_ * Lambda %*% t(Lambda) * as.vector(( t(Lambda) %*% Lambda )^( -1 ))
-
-# Create a random B matrix to add to C, so that indistinguishably still holds.
-B = round(stats::rWishart( 1, df = K_ + 1, diag(0.2, nrow = K_, ncol = K_) )[,,1], 3) # Obtain some random matrix B
+  # Create a random B matrix to add to C, so that indistinguishably still holds.
+B = stats::rWishart( 1, df = K_ + 1, diag(0.2, nrow = K_, ncol = K_) )[,,1] # Obtain some random matrix B
 B_tilde = B %*% ( diag(1L, nrow = K_, ncol = K_ ) - (Lambda  %*% (as.vector(( t(Lambda) %*% Lambda )^( -1 )) %*% t(Lambda))) ) # Project it onto the orthogonal complement.
-A = C + B_tilde # Create A
 
-# Compute innovation covariance Z
-Z = Lambda %*% t(Lambda) * (psi_tt-phi_^2)
-
-# Ascertain that the within time point covariance equals for both models:
-if(all( abs(eigen(A)$values) < 1 ) ) { 
-  # VAR(1) within time point covariance - only works for stationary A.
-  Sigma_VAR = matrix(solve(diag(1, ncol = K_^2,nrow = K_^2) - fastmatrix::kronecker.prod(A)) %*% fastmatrix::vec(Z), ncol = K_, nrow = K_)
+  # For stationary of A, we need to ensure that B_tilde has eigenvalues with absolute value less than one.
+if(any( abs(eigen(B_tilde)$values) > 1)) {
   
-  # Check the result:
-  round(Lambda %*% t(Lambda) * psi_tt, 10) == round(Sigma_VAR, 10) #Rounding to ensure floating point errors do not influence the result.
+  while(any( abs(eigen(B_tilde)$values) > 1)) {
+    B_tilde <- B_tilde / 1.1
+
+  }
   
 }
 
-# Ascertain that between time point cross-covariance equals for both models:
-Sigma_ = Lambda %*% t(Lambda) * psi_tt # This must equal Sigma_VAR above for stationary VAR. If non-stationary otherwise we cannot 'know' it.
-#VAR(1) cross-covariance equals the dynamic CF cross-covariance (of symptoms)
-round(A%*%Sigma_, 10) == round(Sigma_ * phi_,10) 
-round(A%*%A%*%Sigma_,10)  == round(Sigma_ * phi_^2 ,10)
-round(A%*%A%*%A%*%Sigma_,10) == round(Sigma_ * phi_^3,10)
-# And so forth ..
 
-# Plot A to demonstrate how the Network looks like.
+A = C_tilde + B_tilde # Create A
+
+# Compute innovation covariance Z
+Z = Lambda %*% t(Lambda) * psi_tt*(1-phi_^2)
+
+### Ascertain that the within time point covariance equals for both models:
+
+Sigma_VAR = matrix(solve(diag(1, ncol = K_^2,nrow = K_^2) - fastmatrix::kronecker.prod(A)) %*% fastmatrix::vec(Z), ncol = K_, nrow = K_)
+Sigma_CF = Lambda %*% t(Lambda) * psi_tt
+
+  # Check the result:
+all(round(Sigma_CF, 10) == round(Sigma_VAR, 10)) #Rounding to ensure floating point errors do not influence the result.
+
+
+  # Ascertain that between time point cross-covariance equals for both models:
+Sigma_CF = Lambda %*% t(Lambda) * psi_tt # This must equal Sigma_VAR above for stationary VAR. 
+  #VAR(1) cross-covariance equals the dynamic CF cross-covariance (of symptoms)
+all(round(A%*%Sigma_VAR, 10) == round(Sigma_CF * phi_,10) )
+all(round(A%*%A%*%Sigma_VAR,10)  == round(Sigma_CF * phi_^2 ,10))
+all(round(A%*%A%*%A%*%Sigma_VAR,10) == round(Sigma_CF * phi_^3,10))
+    # And so forth ..
+
+  # Plot A to demonstrate how the Network looks like.
 qgraph(A, 
        title = "VAR(1), indistinguishable from a dynamic CF model.",
        title.cex = 1.5,  
@@ -83,39 +121,35 @@ dev.off()
 
 
 
-# Main text, Analytic results -section 5, multidimensional dynamic factor model to VAR(1) --------------
-
-# Result 5.
-library(fastmatrix); library(Matrix); library(MASS)
+# Main text, Analytic results -section, Result 2: multidimensional dynamic factor model to VAR(1) --------------
+set.seed(21)
 
 # Stationary 2 dimensional D-CF(1) model onto VAR(1).
+  # Define the parameters.
 
-# Define the parameters.
+L = matrix(runif(6,min = 0.2, max = 1), nrow = K_) # Time invariant CF loadings randomly from uniform ( 0.2, 1).
 
-L = matrix(runif(6,min = 0.2, max = 1), nrow = 3) # Time invariant CF loadings randomly from uniform ( 0.2, 1).
+p_ = 2 # number of CFs.
+A_eta = matrix(c(0.5,0.2,0.2,0.5), ncol = p_) # CF autoregression.
+A_Z = matrix(c(0.2 , 0.0 ,0.0 , 0.2), ncol = p_) # CF innovation covariance
+Sigma_eta = matrix( solve(diag(1, ncol = p_*p_, nrow = p_*p_) - kronecker.prod(A_eta) ) %*% vec(A_Z),
+                    ncol = p_, nrow = p_)
 
-A_eta = matrix(c(0.5,0.2,0.2,0.5), ncol = 2) # CF autoregression.
-A_Z = matrix(c(0.2 , 0.0 ,0.0 , 0.2), ncol = 2) # CF innovation covariance
-Sigma_eta = matrix( solve(diag(1, ncol = 2*2, nrow = 2*2) - kronecker.prod(A_eta) ) %*% vec(A_Z),
-                    ncol = 2, nrow = 2)
-
-# Apply the map.
-A = L %*% A_eta %*% ginv(L) # Remember to ensure we have produced a stationary VAR(1).
+  # Apply the map.
+A = L %*% A_eta %*% ginv(L) # Remember to ensure we have produced a stationary VAR(1). This required the CF latent autoregression to be stationary.
 Z = L %*% Sigma_eta %*% t(L) - L %*% A_eta %*% Sigma_eta %*% t(A_eta) %*% t(L) 
 
-# Compute the (cross-)covariances.
-
-Sigma_VAR = matrix( solve(diag(1, 3*3, 3*3) - kronecker.prod(A)) %*% vec(Z),
-                    ncol = 3, nrow = 3)
+  # Compute the (cross-)covariances.
+Sigma_VAR = matrix( solve(diag(1, K_^2, K_^2) - kronecker.prod(A)) %*% vec(Z),
+                    ncol = K_, nrow = K_)
 
 Sigma_DCF = matrix(matrix( L %*% Sigma_eta %*% t(L) ),
-                   ncol = 3, nrow = 3)
+                   ncol = K_, nrow = K_)
 
-# Check compatibility.
-
+  # Check compatibility.
 round(Sigma_VAR, 10) == round(Sigma_DCF, 10)
 
-# Compute cross-covariance up to Deltat = 2.
+  # Compute cross-covariance up to Delta t = 2.
 
 K_1_VAR = A %*% Sigma_VAR
 K_2_VAR = A %*% A %*% Sigma_VAR
@@ -125,29 +159,26 @@ K_2_DCF = L %*% ( A_eta %*% A_eta %*% Sigma_eta ) %*% t(L)
 round(K_1_VAR, 10) == round(K_1_DCF, 10)
 round(K_2_VAR, 10) == round(K_2_DCF, 10)
 
-#... and so forth.
+    #... and so forth.
 
-# Add in B(t), orthogonal to L.
+  # Add in B(t), orthogonal to L.
 
-B_0 = rWishart(1, df = 4, Sigma = diag(0.2, nrow = 3))[,,1] # Initiate a matrix B_0 randomly.
-B = B_0 %*% ( diag(1, nrow = 3, ncol = 3) - L %*% solve(t(L) %*% L) %*% t(L) )
+B_0 = rWishart(1, df = K_+1, Sigma = diag(0.2, nrow = K_))[,,1] # Initiate a matrix B_0 randomly.
+B = B_0 %*% ( diag(1, nrow = K_, ncol = K_) - L %*% solve(t(L) %*% L) %*% t(L) )
 
 round(B %*% L, 10)
 
 A_adj = A + B
 
-Sigma_VAR_adj = matrix( solve(diag(1, nrow = 3*3, ncol = 3*3) - kronecker.prod(A_adj)) %*% vec(Z),
-                        ncol = 3, nrow = 3)
+Sigma_VAR_adj = matrix( solve(diag(1, nrow = K_^2, ncol = K_^2) - kronecker.prod(A_adj)) %*% vec(Z),
+                        ncol = K_, nrow = K_)
 K_1_VAR_adj = A_adj %*% Sigma_VAR_adj
 K_2_VAR_adj = A_adj %*% A_adj %*% Sigma_VAR_adj
 
-round(K_1_VAR_adj, 10) == round(K_1_VAR, 10)
-round(K_2_VAR_adj, 10) == round(K_2_VAR, 10)
+all(round(K_1_VAR_adj, 10) == round(K_1_VAR, 10))
+all(round(K_2_VAR_adj, 10) == round(K_2_VAR, 10))
 
-#... and so forth.
-
-
-
+  #... and so forth.
 
 
 
