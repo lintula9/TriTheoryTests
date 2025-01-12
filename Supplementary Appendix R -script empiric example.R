@@ -304,3 +304,4 @@ K_VAR = function( Delta ) {
   
   A_tilde %^% Delta %*% Sigma_DCF
 }
+
