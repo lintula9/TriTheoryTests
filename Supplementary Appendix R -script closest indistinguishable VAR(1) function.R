@@ -44,8 +44,9 @@ civ_find <- function( A, Z, n.iter = 1000L ) {
     
   }
   
-  A_result = psi * Lambda$matmul(Lambda$transpose(1,2)) * 
-    Lambda$square()$sum()$reciprocal()
+  A_result = psi * Lambda$matmul(Lambda$transpose(1,2)) * Lambda$square()$sum()$reciprocal() 
+  A_result = A_result +  (A - A_result)$matmul((torch_diag(rep(1, times = ncol(A))) - Lambda$matmul(Lambda$transpose(1,2)) * 
+                                                  Lambda$square()$sum()$reciprocal())) 
   Z_result = (1 - psi$square())*Lambda$matmul(Lambda$transpose(1,2))
   
   return(list("Loadings" = Lambda, "psi" = psi,
@@ -91,7 +92,10 @@ civ_find2 <- function(A, Z, n.iter = 500) {
   Lambda_opt <- optimized_params[1:K]
   psi_opt <- optimized_params[K + 1]
   
-  A_result <- psi_opt * Lambda_opt %*% t(Lambda_opt) * (sum(Lambda_opt^2))^-1
+  C_result <- psi_opt * Lambda_opt %*% t(Lambda_opt) * (sum(Lambda_opt^2))^-1 
+  B_result <- (A - C_result) %*% (diag(1,ncol = ncol(A),nrow = nrow(A)) - 
+                                               Lambda_opt %*% t(Lambda_opt) * sum(Lambda_opt^2)^-1)
+  A_result <- C_result + B_result
   Z_result <- (1 - psi_opt^2) * Lambda_opt %*% t(Lambda_opt)
   
   # Return results
@@ -99,6 +103,8 @@ civ_find2 <- function(A, Z, n.iter = 500) {
     "Loadings" = Lambda_opt, 
     "psi" = psi_opt,
     "A_result" = A_result,
+    "B" = B_result,
+    "C" = C_result,
     "Z_result" = Z_result,
     "Optim_Result" = optim_result
   ))
