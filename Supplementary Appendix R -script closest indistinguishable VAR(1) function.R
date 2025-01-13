@@ -9,7 +9,7 @@ for( i in dependencies ) {
   library(i, character.only = T)
   }
 
-# Function itself:
+# Option 1, based on Torch (does not work?)
 civ_find <- function( A, Z, n.iter = 1000L ) {
   
   K <- ncol(A)
@@ -58,7 +58,7 @@ civ_find <- function( A, Z, n.iter = 1000L ) {
 
 
 
-# Alternative, simpler.
+# Option 2, simpler.
 
 civ_find2 <- function(A, Z, n.iter = 500) {
   
@@ -87,12 +87,10 @@ civ_find2 <- function(A, Z, n.iter = 500) {
         method = "BFGS",
         A = A, Z = Z) 
   
-  # Extract optimized parameters
   optimized_params <- optim_result$par
   Lambda_opt <- optimized_params[1:K]
   psi_opt <- optimized_params[K + 1]
   
-  # Compute A_result and Z_result based on optimized values
   A_result <- psi_opt * Lambda_opt %*% t(Lambda_opt) * (sum(Lambda_opt^2))^-1
   Z_result <- (1 - psi_opt^2) * Lambda_opt %*% t(Lambda_opt)
   
@@ -114,13 +112,16 @@ if(F) {
   A = matrix(c(0.5,0.2,0.3,
                0.1,0.1,0.1,
                0.2,0.3,0.2), ncol = 3)
+  
   Z = matrix(c(1.0,0.6,0.0,
                0.6,1.0,0.0,
                0.0,0.0,0.2), ncol = 3)
   
-  civ_find2(A, Z)
+  test_res2 <- civ_find2(A, Z)
+  A - test_res2$A_result
   
   civ_find(A, Z)
   
-  
-}
+  }
+
+# Evaluate the amount of misfit somehow...
