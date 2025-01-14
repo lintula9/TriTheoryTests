@@ -10,7 +10,7 @@ for( i in dependencies ) {
   }
 
 # Option 1, based on Torch (does not work?)
-civ_find <- function( A, Z, n.iter = 1000L ) {
+civ_find <- function( A, Z, n.iter = 1000L, tol = 1e-6 ) {
   
   K <- ncol(A)
   A <- torch_tensor(A)
@@ -24,19 +24,30 @@ civ_find <- function( A, Z, n.iter = 1000L ) {
       Lambda$square()$sum()$reciprocal()
     A_tilde = psi * P_Lambda
     Z_tilde = (1 - psi$square())*Lambda$matmul(Lambda$transpose(1,2))
-    M = A$matmul(P_Lambda) - psi * P_Lambda + Z - (1-psi$square()) * Lambda$matmul(Lambda$transpose(1,2))
-    return( M$pow(2)$sum() )}
+    Objective_1 = A$matmul(P_Lambda) - psi * P_Lambda 
+    Objective_2 = torch_tril(Z - (1-psi$square()) * Lambda$matmul(Lambda$transpose(1,2)))
+    return( Objective_1$pow(2)$sum() + Objective_2$pow(2)$sum()  )}
   
   optimizer <- optim_adam(params = list(Lambda, psi), lr = 1e-2)
   
   num_iterations <- n.iter
   
+ 
+  prev_loss <- Inf
   for (i in seq_len(num_iterations)) {
     
     optimizer$zero_grad()  
     loss <- loss_function(Lambda, psi, A, Z)
     loss$backward()
     optimizer$step()
+    
+    # Check for convergence
+    loss_value <- loss$item()
+    if (abs(prev_loss - loss_value) < tol) {
+      cat(sprintf("Converged at iteration %d | loss = %.4f\n", i, loss_value))
+      break
+    }
+    prev_loss <- loss_value
     
     if (i %% 50 == 0) {
       cat(sprintf("Iter %d | loss = %.4f\n", i, loss$item()))
@@ -49,9 +60,13 @@ civ_find <- function( A, Z, n.iter = 1000L ) {
                                                   Lambda$square()$sum()$reciprocal())) 
   Z_result = (1 - psi$square())*Lambda$matmul(Lambda$transpose(1,2))
   
+  gc(verbose = F)
+  
   return(list("Loadings" = Lambda, "psi" = psi,
               "A_result" = A_result,
-              "Z_result" = Z_result) )
+              "Z_result" = Z_result,
+              "Optimizer" = optimizer)
+         )
   
     }
 
@@ -59,21 +74,34 @@ civ_find <- function( A, Z, n.iter = 1000L ) {
 
 
 
-# Option 2, simpler.
+# Option 2, simpler, seems faster and more reliable.
 
-civ_find2 <- function(A, Z, n.iter = 500) {
+civ_find2 <- function(A, Z, n.iter = 2000, tol = 1e-6, W = NULL) {
   
   K <- ncol(A)
   # Initial values are taken based on A.
-  Lambda <- eigen(A)$vectors[,1]
-  psi    <- eigen(A)$values[1]
+  Lambda <- Re(eigen(A)$vectors[,1])
+  psi    <- Re(eigen(A)$values[1])
   
   loss_function <- function(pars, A = A, Z = Z) {
     
-    P_Lambda = pars[1:K] %*% t(pars[1:K]) * (sum(pars[1:K]^2))^-1
-    M = A %*% P_Lambda - pars[K+1] * P_Lambda + Z - (1-pars[K+1]^2) * pars[1:K] %*% t(pars[1:K])
+    # Loss written differently than in above:
     
-    return( sum(M^2) )
+    z <- vech(Z)
+    s <- c(vec(A),z)
+    
+    tilde_z = vech( (1-pars[K+1]^2) * (pars[1:K] %*% t(pars[1:K])) )
+    
+    C = pars[K+1]*pars[1:K] %*% t(pars[1:K]) * sum(pars[1:K]^2)^-1
+    B = (A - C) %*% (diag(1, nrow = K, ncol = K) - pars[1:K] %*% t(pars[1:K]) * sum(pars[1:K]^2)^-1)
+    tilde_s = c(vec( C + B ), tilde_z)
+    
+    if(is.null(W)) W = diag(1, nrow = length(s), ncol = length(s))
+    
+    M = t(s-tilde_s) %*% W %*% (s-tilde_s)
+    
+    
+    return( as.numeric(M) )
   }
   
   gradient_function <- function(pars, A = A, Z = Z) {
@@ -86,6 +114,7 @@ civ_find2 <- function(A, Z, n.iter = 500) {
         fn = loss_function, 
         gr = gradient_function, 
         method = "BFGS",
+        control = list(abstol = tol, maxit = n.iter),
         A = A, Z = Z) 
   
   optimized_params <- optim_result$par
@@ -97,6 +126,8 @@ civ_find2 <- function(A, Z, n.iter = 500) {
                                                Lambda_opt %*% t(Lambda_opt) * sum(Lambda_opt^2)^-1)
   A_result <- C_result + B_result
   Z_result <- (1 - psi_opt^2) * Lambda_opt %*% t(Lambda_opt)
+  
+  gc(verbose = F)
   
   # Return results
   return(list(

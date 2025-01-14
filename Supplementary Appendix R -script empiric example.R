@@ -7,7 +7,7 @@
 # --------------- 1. Loading packages & Data ------------------------------
 # List of required packages
 required_packages <- c(
-  "Matrix", "fastmatrix", "BVAR", "expm", "qgraph"
+  "Matrix", "fastmatrix", "BVAR", "expm", "qgraph", "tidyverse"
 )
 
 # Function to check and install missing packages
@@ -74,15 +74,21 @@ res_bayes_all <- bvar(data = Data5b  %>%
 # --------------------- 3. Obtain the closest indistinguishable model ------
 
 # Get the results: Between coefficient matrix as well as between innovation covariance.
-A = coef(res_bayes_N1, "mean")[2:4,]
-Z = vcov(res_bayes_N1, "mean")
+A = coef(res_bayes_N1, type = "mean")[2:4,]
+Z = vcov(res_bayes_N1, type = "mean")
 
 
 # Find the closest indistinguishable VAR. Note, that there are many.
-dcf_var <- civ_find2(A,Z)
+#Method 1
+dcf_var <- civ_find(A,Z, tol = 1e-10, n.iter = 3000)
 dcf_var$A_result - A
 dcf_var$Z_result - Z
 dcf_var$Loadings
+#Method 2
+dcf_var2 <- civ_find2(A,Z, tol = 1e-10, n.iter = 3000)
+dcf_var2$A_result - A
+dcf_var2$Z_result - Z
+dcf_var2$Loadings
 
 # Plot the result
 
@@ -130,6 +136,21 @@ mtext("VAR(1) Network model indistinguishable from a dynamic CF model.", outer =
 
 par(mfrow = c(1,1))
 
+
+# Simplest method of inspecting eigenvectors of A and Z:
+
+which.min(eigen(Z)$vectors - eigen(A)$vectors ) 
+
+
+
+
+
+
+
+
+
+
+# Scratch:
 # Solve for the covariance
 library(expm); library(Matrix)
 Sigma_VAR = matrix(solve(diag(1, ncol = ncol(A)^2, nrow = nrow(A)^2) - fastmatrix::kronecker.prod(A)) %*% fastmatrix::vec(Z),
