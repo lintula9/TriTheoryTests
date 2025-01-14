@@ -137,7 +137,17 @@ for( i in 1:nrow(residual_sd_draws)) {
   
 }
 
+
+
 # This is for the below sections transfer later!!!!!!!
+
+# Cross-covariance function
+var_ccov <- function(A,Z,Delta) {
+    
+  return( (A %^% Delta) %*% matrix(Matrix::solve(diag(1,ncol=ncol(A)^2,nrow=nrow(A)^2) - Matrix::kronecker(A,A)) %*% 
+    fastmatrix::vec(Z), ncol = ncol(A), nrow = nrow(A)))
+  }
+
 pb <- txtProgressBar(min = 0, max = nrow(draws), style = 3)  # Progress bar
 mad_draws <- c()
 mse_draws <- c()
@@ -156,6 +166,10 @@ for( i in 1:nrow(draws)) {
   mad_draws[ i ] <- mean(abs(c(c(A_ - A),c(Z_ - Z))))
   mse_draws[i] <- mean((c(A_ - A)^2 + c(Z_ - Z)^2))
   rmse_draws[i] <- sqrt(mean((c(A_ - A)^2 + c(Z_ - Z)^2)))
+  
+  # Compute RMSE of the differences in predicted covariance, up to arbitrary T.
+  
+  sqrt(mean(sapply(0:5, function(Delta) ((var_ccov(A,Z,Delta = Delta) - var_ccov(A,Z,Delta = Delta))^2  )))
   
   }
 # Close progress bar
