@@ -7,7 +7,7 @@
 # --------------- 1. Loading packages & Data ------------------------------
 # List of required packages
 required_packages <- c(
-  "Matrix", "fastmatrix", "BVAR", "expm", "qgraph", "tidyverse"
+  "Matrix", "fastmatrix", "BVAR", "brms", "expm", "qgraph", "tidyverse"
 )
 
 # Function to check and install missing packages
@@ -52,30 +52,117 @@ Data5b <- as_tibble(Data5b %>% select("Relax", "Worry",
 varLabs <- c("Relax", "Worry",  #Adjustment for below to work. 03.12.2024. Sakari Lintula
             "Nervous")
 
+# Lagged variables
+Data5b <- Data5b %>% 
+  group_by(id) %>%
+  mutate(Relax_lag = lag(Relax),
+         Worry_lag = lag(Worry),
+         Nervous_lag = lag(Nervous)) %>%
+  ungroup()
+
 
 # Obtain the estimates:
-# N = 1 estimation is done using ID 57, as it had a long timeseries.
-res_bayes_N1 <- bvar(data = Data5b  %>%
-                    filter(id == 57) %>% 
-                    select(Relax, Worry, Nervous) %>% 
-                    na.omit(),
-               lags = 1L
-               )
 
-# Whole data, for comparison, but it is clustered hence not interpretable.
-res_bayes_all <- bvar(data = Data5b  %>%
-                       select(Relax, Worry, Nervous) %>% 
-                       na.omit(),
-                     lags = 1L
+# using brms
+# Formula for VAR(1) using `brms`
+formula <- bf(Relax ~ Relax_lag + Worry_lag + Nervous_lag + (1 | id)) +
+  bf(Worry ~ Relax_lag + Worry_lag + Nervous_lag + (1 | id)) +
+  bf(Nervous ~ Relax_lag + Worry_lag + Nervous_lag + (1 | id)) +
+  set_rescor(TRUE)  # Enable estimation of the residual covariance matrix
+
+# Fitting VAR(1) for the whole dataset (clustered data)
+res_bayes_all <- brm(
+  formula = formula,
+  data = Data5b %>%
+    na.omit(),
+  family = gaussian(),
+  chains = 4,
+  iter = 2000,
+  cores = 4,
+  control = list(adapt_delta = 0.95)
 )
 
+# Extract residual covariance matrix for individual or whole dataset
+# Summary of the model to review residual correlations
+summary(res_bayes_all)
+
+# retrieve A
+A <- matrix(summary(res_bayes_all)$fixed$Estimate[4:12], ncol = 3, nrow = 3)
+
+# retrieve Z
+Z_cor <- summary(res_bayes_all)$rescor_pars$Estimate
+Z <- matrix(0,ncol = 3, nrow = 3)
+diag(Z) <- 1
+Z[lower.tri(Z, diag = F)] <- Z_cor
+Z[upper.tri(Z, diag = F)] <- Z_cor
+
+Z <- diag(summary(res_bayes_all)$spec_pars$Estimate) %*%
+  Z %*% 
+  diag(summary(res_bayes_all)$spec_pars$Estimate)
+
+
+# Obtain the posterior draws for A matrices
+
+draws <- as_draws_df(res_bayes_all)
+A_draws <- draws %>% select(matches("^b_.*_lag$"))
+A_array <- array(0, dim = c(nrow(A), ncol(A), nrow(A_draws) ))
+for( i in 1:nrow(A_draws)) {
+  A_array[ , , i ] <- matrix(as.numeric(A_draws[ i , ], ncol = 3, nrow = 3))
+  }
+
+# Extract posterior draws for the Z matrix
+# Convert posterior samples to a data frame
+
+  # Extract residual standard deviations and correlations using regex
+residual_sd_draws <- draws %>% select(matches("^sigma"))
+residual_cor_draws <- draws %>% select(matches("^rescor"))
+  
+  # Compute posterior draws of the covariance matrix
+Z_array <- array(0, dim = c(nrow(Z), ncol(Z), nrow(residual_sd_draws) ))
+for( i in 1:nrow(residual_sd_draws)) {
+  
+  #Transform to covariance
+  Z_cor_temp <- as.numeric(residual_cor_draws[ i , ])
+  Z_temp <- matrix(0,ncol = 3, nrow = 3)
+  diag(Z_temp) <- 1
+  Z_temp[lower.tri(Z_temp, diag = F)] <- Z_cor_temp
+  Z_temp[upper.tri(Z_temp, diag = F)] <- t(Z_temp)[upper.tri(Z_temp)]
+  
+  Z_temp <- diag(as.numeric(residual_sd_draws[  i , ])) %*%
+    Z_temp %*% 
+    diag(as.numeric(residual_sd_draws[  i , ]))
+  
+  #place.
+  Z_array[ ,, i] <- Z_temp
+  
+}
+
+# This is for the below sections transfer later!!!!!!!
+pb <- txtProgressBar(min = 0, max = nrow(draws), style = 3)  # Progress bar
+mad_draws <- c()
+mse_draws <- c()
+rmse_draws <- c()
+for( i in 1:nrow(draws)) {
+  setTxtProgressBar(pb, i)
+  
+  #Perform computations
+  A <- A_array[ ,, i]
+  Z <- Z_array[,, i]
+  results <- civ_find2(A, Z)
+  A_ <- results$A_result
+  Z_ <- results$Z_result
+  
+  # Compute some summaries of the differneces
+  mad_draws[ i ] <- mean(abs(c(c(A_ - A),c(Z_ - Z))))
+  mse_draws[i] <- mean((c(A_ - A)^2 + c(Z_ - Z)^2))
+  rmse_draws[i] <- sqrt(mean((c(A_ - A)^2 + c(Z_ - Z)^2)))
+  
+  }
+# Close progress bar
+close(pb)
 
 
 # --------------------- 3. Obtain the closest indistinguishable model ------
-
-# Get the results: Between coefficient matrix as well as between innovation covariance.
-A = coef(res_bayes_N1, type = "mean")[2:4,]
-Z = vcov(res_bayes_N1, type = "mean")
 
 
 # Find the closest indistinguishable VAR. Note, that there are many.
@@ -93,53 +180,58 @@ dcf_var2$Loadings
 # Plot the result
 
 # Plot.
-max_weight <- max(A)
+max_weight_Z <- max(c(dcf_var2$Z_result,Z))
+max_weight_A <- max(c(A,dcf_var2$A_result))
+
 
 par(mfrow = c(2, 2), oma = c(0, 0, 4, 0)) # Adjust oma for outer margin to accommodate the title
 labels = varLabs
 qgraph(Z, 
-       title = "'Contemporaneous' covariance",
+       title = "Contemporaneous covariance\nEstimated VAR",
        title.cex = 1.5,
        mar = c(4, 4, 6, 4),
        layout = "circle", 
+       edge.width = 2,
+       maximum = max_weight_Z,
        labels = labels # Use the expression labels
 )
 qgraph(A, 
-       title = "Lagged effects\nTime point 1",
+       title = "Lagged effects\n",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
-       maximum = max_weight, # Consistent scale for edges
+       maximum = max_weight_A, # Consistent scale for edges
        edge.width = 3,       # Adjust this value for larger edges
        layout = "circle",
        labels = labels       # Use the expression labels
 )
-qgraph(dcf_var$A_result, 
-       title = "\nTime point 5",
+qgraph(dcf_var2$Z_result, 
+       title = "\nIndistinguishable VAR",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
-       maximum = max_weight, # Consistent scale for edges
-       edge.width = 3,       # Adjust this value for larger edges
+       maximum = max_weight_Z, # Consistent scale for edges
+       edge.width = 2,       # Adjust this value for larger edges
        layout = "circle",
        labels = labels       # Use the expression labels
 )
-qgraph(dcf_var$Z_result, 
-       title = "\nTime point 9",
+
+qgraph(dcf_var2$A_result, 
+       title = "",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4),
-       maximum = max_weight, # Consistent scale for edges
+       maximum = max_weight_A, # Consistent scale for edges
        edge.width = 3,       # Adjust this value for larger edges
        layout = "circle",
        labels = labels       # Use the expression labels
 )
 
-mtext("VAR(1) Network model indistinguishable from a dynamic CF model.", outer = TRUE, cex = 1.5, font = 2)
+mtext("Estimated and an indistinguishabel VAR(1) Network models.", outer = TRUE, cex = 1.5, font = 2)
 
 par(mfrow = c(1,1))
 
 
 # Simplest method of inspecting eigenvectors of A and Z:
 
-which.min(eigen(Z)$vectors - eigen(A)$vectors ) 
+which.min( eigen(Z)$vectors - eigen(A)$vectors ) 
 
 
 
