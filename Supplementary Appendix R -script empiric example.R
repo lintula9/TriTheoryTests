@@ -30,9 +30,6 @@ install_if_missing(required_packages)
 load(file.path(getwd(), "/Fried_2022 data/clean_network.RData")); gc()
 Data5b <- Data2
 
-# Alpha to detrend:
-alpha <- 0.05
-
 # Variables to investigate:
 vars <- c("Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8","Q9",
           "Q10","Q11","Q12","Q13","Q14","Q15","Q16","Q17","Q18")
@@ -81,6 +78,10 @@ res_bayes_all <- brm(
   cores = 4,
   control = list(adapt_delta = 0.95)
 )
+
+if(F) {
+  saveRDS(res_bayes_all, file = "BayesMLVAR.RDS")
+}
 
 # Extract residual covariance matrix for individual or whole dataset
 # Summary of the model to review residual correlations
@@ -168,8 +169,7 @@ for( i in 1:nrow(draws)) {
   rmse_draws[i] <- sqrt(mean((c(A_ - A)^2 + c(Z_ - Z)^2)))
   
   # Compute RMSE of the differences in predicted covariance, up to arbitrary T.
-  
-  sqrt(mean(sapply(0:5, function(Delta) ((var_ccov(A,Z,Delta = Delta) - var_ccov(A,Z,Delta = Delta))^2  )))
+  sqrt(mean(sapply(0:5, function(Delta) ((var_ccov(A,Z,Delta = Delta) - var_ccov(A,Z,Delta = Delta))^2  ))))
   
   }
 # Close progress bar
