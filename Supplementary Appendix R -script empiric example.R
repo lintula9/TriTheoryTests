@@ -20,7 +20,6 @@ install_if_missing <- function(packages) {
   }
 }
 
-# Install and load packages
 install_if_missing(required_packages)
 
 # --------------- 2. Estimation -----------------------------
