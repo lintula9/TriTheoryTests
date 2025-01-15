@@ -7,7 +7,7 @@
 # --------------- 1. Loading packages & Data ------------------------------
 # List of required packages
 required_packages <- c(
-  "Matrix", "fastmatrix", "BVAR", "brms", "expm", "qgraph", "tidyverse"
+  "Matrix", "fastmatrix", "BVAR", "brms", "expm", "qgraph", "tidyverse", "ggplot2"
 )
 
 # Function to check and install missing packages
@@ -40,23 +40,24 @@ varLabs <- c("Relax","Irritable","Worry","Nervous","Future","Anhedonia",
              "Procrastinate","Outdoors","C19_occupied","C19_worry","Home")
 names(Data5b)[names(Data5b) %in% vars] <- varLabs
 
-
+varLabs <- c("Relax", "Worry",  
+             "Nervous")
+varLabs2 <- c("Relax", "Worry",  
+              "Nervous", "Tired", "Hungry",
+              "Alone", "Angry")
 
 # Select a plausible set of variables, which could be explained by a one CF model:
-Data5b <- as_tibble(Data5b %>% select("Relax", "Worry", 
-                            "Nervous", 
+Data5b <- as_tibble(Data5b %>% select(all_of(varLabs2),
                             "id", "beep", "day", "conc"))
-varLabs <- c("Relax", "Worry",  #Adjustment for below to work. 03.12.2024. Sakari Lintula
-            "Nervous")
+
 
 # Lagged variables
-Data5b <- Data5b %>% 
+Data5b <- Data5b %>%
   group_by(id) %>%
-  mutate(Relax_lag = lag(Relax),
-         Worry_lag = lag(Worry),
-         Nervous_lag = lag(Nervous)) %>%
+  mutate(across(all_of(varLabs2), 
+                ~ lag(.x), 
+                .names = "{.col}_lag")) %>%
   ungroup()
-
 
 # Obtain the estimates:
 
@@ -81,6 +82,7 @@ res_bayes_all <- brm(
 
 if(F) {
   saveRDS(res_bayes_all, file = "BayesMLVAR.RDS")
+  res_bayes_all <- readRDS("BayesMLVAR.RDS")
 }
 
 # Extract residual covariance matrix for individual or whole dataset
@@ -138,9 +140,7 @@ for( i in 1:nrow(residual_sd_draws)) {
   
 }
 
-
-
-# This is for the below sections transfer later!!!!!!!
+# Obtain the closest indistinguishable model, and inference based on the draws from the posterior. -----
 
 # Cross-covariance function
 var_ccov <- function(A,Z,Delta) {
@@ -153,31 +153,50 @@ pb <- txtProgressBar(min = 0, max = nrow(draws), style = 3)  # Progress bar
 mad_draws <- c()
 mse_draws <- c()
 rmse_draws <- c()
-for( i in 1:nrow(draws)) {
+rmsea_stat <- c()
+N_ <- nrow(Data5b %>%
+             na.omit())
+for( i in seq(1,N_,by = 10)) {
   setTxtProgressBar(pb, i)
-  
   #Perform computations
   A <- A_array[ ,, i]
-  Z <- Z_array[,, i]
+  Z <- Z_array[ ,, i]
   results <- civ_find2(A, Z)
   A_ <- results$A_result
   Z_ <- results$Z_result
-  
-  # Compute some summaries of the differneces
+  # Compute some summaries of the differences
   mad_draws[ i ] <- mean(abs(c(c(A_ - A),c(Z_ - Z))))
   mse_draws[i] <- mean((c(A_ - A)^2 + c(Z_ - Z)^2))
   rmse_draws[i] <- sqrt(mean((c(A_ - A)^2 + c(Z_ - Z)^2)))
-  
-  # Compute RMSE of the differences in predicted covariance, up to arbitrary T.
-  sqrt(mean(sapply(0:5, function(Delta) ((var_ccov(A,Z,Delta = Delta) - var_ccov(A,Z,Delta = Delta))^2  ))))
-  
-  }
+  # Compute a statistic for RMSE(A), up to arbitrary T = 5.
+  T_ = 5
+  rmsea_stat[i] <- sum(sapply(  0:T_, 
+                             function(k) sum( ( var_ccov(A,Z,Delta=k) - var_ccov(A_,Z_,Delta=k) )^2 )))
+}
+
 # Close progress bar
 close(pb)
 
+# Compute RMSEA with 95%CI. This is heuristic, since the covariance in this case is arbitrarily large and
+# as such there is no way to really compute df_...
+df_ <- (nrow(A)*(nrow(A)+1))/2 - (length(varLabs) + 1) # factor loadings count plus CF autoregression.
+sqrt(max(c(mean(rmsea_stat, na.rm = T) - df_, 0)) / (df_*(N_-1)))
+mean(RMSEA, na.rm = T); quantile(RMSEA, c(0.05, 0.95))
 
-# --------------------- 3. Obtain the closest indistinguishable model ------
+psych::describe(cbind(mad_draws, mse_draws, rmse_draws))
 
+# MAD, MSE densities
+ggplot() +
+  geom_density(aes(x = mad_draws))
+ggplot() +
+  geom_density(aes(x = mse_draws))
+ggplot() +
+  geom_density(aes(x = rmsea_stat))
+
+
+
+
+# --------------------- 3. Plotting ------
 
 # Find the closest indistinguishable VAR. Note, that there are many.
 #Method 1
@@ -251,52 +270,146 @@ which.min( eigen(Z)$vectors - eigen(A)$vectors )
 
 
 
+# 4. Second analysis, repeat of first with more variables. --------------------
 
 
+# Obtain the estimates:
+# Formula for VAR(1) using `brms`
+formulas <- lapply(varLabs2, function(var) {
+  bf(as.formula(
+    paste0(var, " ~ ", 
+           paste(paste0(varLabs2, "_lag"), collapse = " + "), 
+           " + (1 | id)"))
+  )
+})
+# Combine the individual formulas and set residual correlation
+formula <- Reduce(`+`, formulas) + set_rescor(TRUE)
 
+# Fitting VAR(1) for the whole dataset (clustered data)
+res_bayes_second <- brm(
+  formula = formula,
+  data = Data5b %>%
+    na.omit(),
+  family = gaussian(),
+  chains = 4,
+  iter = 2000,
+  cores = 4,
+  control = list(adapt_delta = 0.95)
+)
 
-
-# Scratch:
-# Solve for the covariance
-library(expm); library(Matrix)
-Sigma_VAR = matrix(solve(diag(1, ncol = ncol(A)^2, nrow = nrow(A)^2) - fastmatrix::kronecker.prod(A)) %*% fastmatrix::vec(Z),
-                   ncol = ncol(A), nrow = nrow(A))
-K_VAR = function( Delta ) {
-  
-  A %^% Delta %*% Sigma_VAR
-  }
-
-eigen(Sigma_VAR) # Suggestive of there being one large component. 
-# Capture Lambda as the normalized eigenvector of the largest eigenvalue.
-
-L = eigen(Sigma_VAR)$vectors[,1] / c(sqrt(t(eigen(Sigma_VAR)$vectors[,1]) %*% eigen(Sigma_VAR)$vectors[,1]))
-eigen(A)$vectors[,1] # The first vector of A is nearly in the same direction.
-eigen(A)$vectors[,1] - (-1)*L 
-
-  # Project A onto Lambda
-A_0 =  L %*% t(L) %*% A %*% L %*% t(L)
-
-  # Project the difference onto the orthogonal complement of Lambda
-B_tilde = (A - A_0) %*% (diag(1, nrow = nrow(A), ncol = ncol(A)) - L %*% t(L))
-
-# Create the VAR(1), indistinguishable from one dimensional D-CF(1) model.
-A_tilde = A_0 + B_tilde
-Z_tilde = L %*% t(L) %*% Z %*% L %*% t(L)# Project onto Lambda, as it must be proportional to LL^T
-
-
-par(mfrow=c(2,2))
-qgraph(Z, layout = "circle", labels = expression(X[1], X[2], X[3], X[4]))
-title("VAR(1) and indistinguishable VAR(1).",outer = T)
-
-qgraph(Z_tilde, layout = "circle", labels = expression(X[1], X[2], X[3], X[4]))
-qgraph(A_tilde, layout = "circle", labels = expression(X[1], X[2], X[3], X[4]))
-qgraph(A, layout = "circle", labels = expression(X[1], X[2], X[3], X[4]))
-par(mfrow=c(1,1))
-
-Sigma_DCF = matrix(solve(diag(1, ncol = ncol(A)^2, nrow = nrow(A)^2) - fastmatrix::kronecker.prod(A_tilde)) %*% fastmatrix::vec(Z_tilde),
-                   ncol = ncol(A), nrow = nrow(A))
-K_VAR = function( Delta ) {
-  
-  A_tilde %^% Delta %*% Sigma_DCF
+if(F) {
+  saveRDS(res_bayes_second, file = "BayesMLVAR_second.RDS")
+  res_bayes_second <- readRDS("BayesMLVAR_second.RDS")
 }
+
+# Extract residual covariance matrix for individual or whole dataset
+# Summary of the model to review residual correlations
+summary(res_bayes_all)
+
+# retrieve A
+A <- matrix(summary(res_bayes_all)$fixed$Estimate[4:12], ncol = 3, nrow = 3)
+
+# retrieve Z
+Z_cor <- summary(res_bayes_all)$rescor_pars$Estimate
+Z <- matrix(0,ncol = 3, nrow = 3)
+diag(Z) <- 1
+Z[lower.tri(Z, diag = F)] <- Z_cor
+Z[upper.tri(Z, diag = F)] <- Z_cor
+
+Z <- diag(summary(res_bayes_all)$spec_pars$Estimate) %*%
+  Z %*% 
+  diag(summary(res_bayes_all)$spec_pars$Estimate)
+
+
+# Obtain the posterior draws for A matrices
+
+draws <- as_draws_df(res_bayes_all)
+A_draws <- draws %>% select(matches("^b_.*_lag$"))
+A_array <- array(0, dim = c(nrow(A), ncol(A), nrow(A_draws) ))
+for( i in 1:nrow(A_draws)) {
+  A_array[ , , i ] <- matrix(as.numeric(A_draws[ i , ], ncol = 3, nrow = 3))
+}
+
+# Extract posterior draws for the Z matrix
+# Convert posterior samples to a data frame
+
+# Extract residual standard deviations and correlations using regex
+residual_sd_draws <- draws %>% select(matches("^sigma"))
+residual_cor_draws <- draws %>% select(matches("^rescor"))
+
+# Compute posterior draws of the covariance matrix
+Z_array <- array(0, dim = c(nrow(Z), ncol(Z), nrow(residual_sd_draws) ))
+for( i in 1:nrow(residual_sd_draws)) {
+  
+  #Transform to covariance
+  Z_cor_temp <- as.numeric(residual_cor_draws[ i , ])
+  Z_temp <- matrix(0,ncol = 3, nrow = 3)
+  diag(Z_temp) <- 1
+  Z_temp[lower.tri(Z_temp, diag = F)] <- Z_cor_temp
+  Z_temp[upper.tri(Z_temp, diag = F)] <- t(Z_temp)[upper.tri(Z_temp)]
+  
+  Z_temp <- diag(as.numeric(residual_sd_draws[  i , ])) %*%
+    Z_temp %*% 
+    diag(as.numeric(residual_sd_draws[  i , ]))
+  
+  #place.
+  Z_array[ ,, i] <- Z_temp
+  
+}
+
+# Obtain the closest indistinguishable model, and inference based on the draws from the posterior. -----
+
+# Cross-covariance function
+var_ccov <- function(A,Z,Delta) {
+  
+  return( (A %^% Delta) %*% matrix(Matrix::solve(diag(1,ncol=ncol(A)^2,nrow=nrow(A)^2) - Matrix::kronecker(A,A)) %*% 
+                                     fastmatrix::vec(Z), ncol = ncol(A), nrow = nrow(A)))
+}
+
+pb <- txtProgressBar(min = 0, max = nrow(draws), style = 3)  # Progress bar
+mad_draws <- c()
+mse_draws <- c()
+rmse_draws <- c()
+rmsea_stat <- c()
+N_ <- nrow(Data5b %>%
+             na.omit())
+for( i in seq(1,N_,by = 10)) {
+  setTxtProgressBar(pb, i)
+  #Perform computations
+  A <- A_array[ ,, i]
+  Z <- Z_array[ ,, i]
+  results <- civ_find2(A, Z)
+  A_ <- results$A_result
+  Z_ <- results$Z_result
+  # Compute some summaries of the differences
+  mad_draws[ i ] <- mean(abs(c(c(A_ - A),c(Z_ - Z))))
+  mse_draws[i] <- mean((c(A_ - A)^2 + c(Z_ - Z)^2))
+  rmse_draws[i] <- sqrt(mean((c(A_ - A)^2 + c(Z_ - Z)^2)))
+  # Compute a statistic for RMSE(A), up to arbitrary T = 5.
+  T_ = 5
+  rmsea_stat[i] <- sum(sapply(  0:T_, 
+                                function(k) sum( ( var_ccov(A,Z,Delta=k) - var_ccov(A_,Z_,Delta=k) )^2 )))
+}
+
+# Close progress bar
+close(pb)
+
+# Compute RMSEA with 95%CI. This is heuristic, since the covariance in this case is arbitrarily large and
+# as such there is no way to really compute df_...
+df_ <- (nrow(A)*(nrow(A)+1))/2 - (length(varLabs) + 1) # factor loadings count plus CF autoregression.
+sqrt(max(c(mean(rmsea_stat, na.rm = T) - df_, 0)) / (df_*(N_-1)))
+mean(RMSEA, na.rm = T); quantile(RMSEA, c(0.05, 0.95))
+
+psych::describe(cbind(mad_draws, mse_draws, rmse_draws))
+
+# MAD, MSE densities
+ggplot() +
+  geom_density(aes(x = mad_draws))
+ggplot() +
+  geom_density(aes(x = mse_draws))
+ggplot() +
+  geom_density(aes(x = rmsea_stat))
+
+
+
 
