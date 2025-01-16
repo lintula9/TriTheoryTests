@@ -2,17 +2,35 @@
 # Running (sourcing) the whole script provides the function for the computation.
 
 # Dependencies:
-dependencies <- c("torch", "Matrix", "numDeriv")
+dependencies <- c("torch", "Matrix", "numDeriv", "expm")
 for( i in dependencies ) {
   
   if( !require(i, character.only = T) ) install.packages( i )
   library(i, character.only = T)
 }
 # Helper:
-var_ccov <- function(A,Z,Delta) {
+var_ccov <- function(A,Z,Delta, crosscov = T) {
   
-  return( (A %^% Delta) %*% matrix(Matrix::solve(diag(1,ncol=ncol(A)^2,nrow=nrow(A)^2) - Matrix::kronecker(A,A)) %*% 
+  if(crosscov) return( (A %^% Delta) %*% matrix(Matrix::solve(diag(1,ncol=ncol(A)^2,nrow=nrow(A)^2) - Matrix::kronecker(A,A)) %*% 
                                      fastmatrix::vec(Z), ncol = ncol(A), nrow = nrow(A)))
+  if(!crosscov) {
+    p <- ncol(A)
+    resultcov <- matrix(0, ncol = Delta * p, nrow = Delta * p)
+    for( i in 0:Delta) {
+      #Compute the first column of the full covariance matrix.
+      cov_temp <- (A %^% i) %*% matrix(Matrix::solve(diag(1,ncol=ncol(A)^2,nrow=nrow(A)^2) - Matrix::kronecker(A,A)) %*% 
+                                 fastmatrix::vec(Z), ncol = ncol(A), nrow = nrow(A))
+      resultcov[1:p, 1:p  ] <- cov_temp
+      resultcov[(i * p + 1):((i + 1) * p), 1:p  ] <- cov_temp
+      
+    }
+    #Create the whole covariance matrix into resultcov.
+    for( i in 0:Delta) {
+      resultcov[(Delta * p + 1):((Delta + 1) * p), (Delta * p + 1):((Delta + 1) * p)  ] <- resultcov[1:p,1:p]
+      resultcov[(Delta * p + 1):((Delta + 1) * p), (p + 1):((Delta + 1) * p)  ] <- resultcov[1:p,1:p]
+      
+    }
+  }
 }
 
 # Covariance squared difference
@@ -239,9 +257,6 @@ civ_find4 <- function(A, Z, n.iter = 2000, tol = 1e-6, W = NULL, T_ = 10, nodiag
     
     Z_ =  (1-pars[K+1]^2) * (pars[1:K] %*% t(pars[1:K])) 
     A_ = pars[K+1]*pars[1:K] %*% t(pars[1:K]) * sum(pars[1:K]^2)^-1
-    
-    # Sum the non-diagonal entries
-    nodiag <- lower.tri(A) + upper.tri(A)
     M = se_stat(A = A,Z = Z,A_ = A_,Z_ = Z_,T_ = T_, nodiag = nodiag)
     return( M )
   }
@@ -286,13 +301,11 @@ civ_find4 <- function(A, Z, n.iter = 2000, tol = 1e-6, W = NULL, T_ = 10, nodiag
 if(F){
   
   civ_find3(A, Z) # Result is likely to be pretty close to civ_find2.
-  testres_temp <- civ_find4(A, Z) # Result is likely very different.
+  testres_temp <- civ_find4(A, Z, nodiag = T) # Result is likely very different.
   
   se_stat(A,Z,testres_temp$A_result,testres_temp$Z_result,nodiag = T)
   
 }
-
-
 
 
 

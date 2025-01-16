@@ -7,7 +7,8 @@
 # --------------- 1. Loading packages & Data ------------------------------
 # List of required packages
 required_packages <- c(
-  "Matrix", "fastmatrix", "BVAR", "brms", "expm", "qgraph", "tidyverse", "ggplot2"
+  "Matrix", "fastmatrix", "BVAR", "brms", "expm", 
+  "qgraph", "tidyverse", "ggplot2", "blavaan", "lavaan"
 )
 
 # Function to check and install missing packages
@@ -44,10 +45,6 @@ varLabs <- c("Relax", "Worry",
 varLabs2 <- c("Relax", "Worry",  
               "Nervous", "Tired", "Hungry",
               "Alone", "Angry")
-
-# Select a plausible set of variables, which could be explained by a one CF model:
-Data5b <- as_tibble(Data5b %>% select(all_of(varLabs2),
-                            "id", "beep", "day", "conc"))
 
 
 # Lagged variables
@@ -188,8 +185,7 @@ if(F) {
 # as such there is no way to really compute df_...
 N_ = nrow(Data5b)
 df_ <- length(A) + sum(upper.tri(Z,diag = T)) - (length(varLabs) + 1) # factor loadings count plus CF autoregression.
-RMSEA <- sqrt( max( c( ( rmsea_stat - df_ ) / ( df_*(N_-1) ) , 0), na.rm = T) )
-RMSEA <- sqrt( max( c( ( rmsea_stat  ) / ( df_ ) , 0), na.rm = T) )
+RMSEA <- sqrt( ( rmsea_stat ) / ( df_ )  - 1/(N_-1)  )
 
 psych::describe(cbind(mad_draws, mse_draws, RMSEA))
 
@@ -403,7 +399,6 @@ for( i in seq(1,N_,by = 10)) {
     sum( (fastmatrix::vech( var_ccov(A,Z,Delta=0) - var_ccov(A_,Z_,Delta=0) ))^2 ) # Only use the non-redundant elements of the within time point covariance.
 }
 
-
 if(F) {
   saveRDS(mad_draws_second, "mad_draws_second.RDS")
   saveRDS(mse_draws_second, "mse_draws_second.RDS")
@@ -416,7 +411,6 @@ if(F) {
   rmsea_stat_second <- readRDS("rmsea_stat_second.RDS")
   
   }
-
 
 # Close progress bar
 close(pb)
@@ -439,6 +433,83 @@ ggplot() +
 ggplot() +
   geom_density(aes(x = RMSEA_second))
 
+# Bayesian Lavaan estimation procedures - so that we can obtain WAIC, DIC, for model comparisons maybe. ------
+# Unconstrained model:
+model_lavaan <- "
+  level:1
+    Relax   ~ a1*Relax_lag + a2*Worry_lag + a3*Nervous_lag
+    Worry   ~ b1*Relax_lag + b2*Worry_lag + b3*Nervous_lag
+    Nervous ~ c1*Relax_lag + c2*Worry_lag + c3*Nervous_lag
+
+    # Within-level residual covariances if desired:
+    Relax   ~~  w1*Worry
+    Relax   ~~  w2*Nervous
+    Worry   ~~  w3*Nervous
+
+  level: 2
+    # Freed means for the random intercepts:
+    Relax   ~ 1
+    Worry   ~ 1
+    Nervous ~ 1
+
+    # Covariances among random intercepts:
+    Relax   ~~ Worry
+    Relax   ~~ Nervous
+    Worry   ~~ Nervous
+"
+
+# Then fit using bsem() or bcfa() or blavaan(), e.g.:
+
+fit_lavaan <- sem(
+  model          = model_lavaan,
+  data           = Data5b,
+  cluster        = "id",      # multi-level SEM
+  estimator      = "MLR" 
+  )
+summary(fit_lavaan)
+
+# D-CF(1) indistinguishable, constrained, model:
+# NOTE: we could allow there to be autoregression of symptoms, i.e., due to measurement error.
+model_lavaan_dcf <- "
+  level:1
+  
+  CF_2 =~ l1*Relax + l2*Worry + l3*Nervous
+  CF_1 =~ l1*Relax_lag + l2*Worry_lag + l3*Nervous_lag
+  CF_2 ~ psi*CF_1
+  
+  CF_1 ~~ 1*CF_1
+  CF_2 ~~ CF_2
+
+  level: 2
+  # Freed means for the random intercepts:
+  Relax   ~ 1
+  Worry   ~ 1
+  Nervous ~ 1
+
+  # Covariances among random intercepts:
+  Relax   ~~ Worry
+  Relax   ~~ Nervous
+  Worry   ~~ Nervous
+  "
+
+# Then fit using bsem() or bcfa() or blavaan(), e.g.:
+
+fit_lavaan_dcf <- sem(
+  model          = model_lavaan_dcf,
+  data           = Data5b,
+  cluster        = "id",      # multi-level SEM
+  estimator      = "MLR"
+  )
+summary(fit_lavaan_dcf)
+
+## compare models. -----
+
+# The var has perfect fit, because the innovation covariance is 'allowed'. This perfectly explains the covariance of symptoms and lagged symptoms...
+# Fair?
+
+# Obtain fit indices of the dcf model
+lavaan::anova(fit_lavaan_dcf, fit_lavaan)
+lavaan::fitmeasures(fit_lavaan_dcf, fit.measures = c("rmsea.scaled", "cfi.scaled")) # Good fit?
 
 
 
