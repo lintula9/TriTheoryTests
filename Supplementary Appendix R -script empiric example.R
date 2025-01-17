@@ -7,8 +7,11 @@
 # --------------- 1. Loading packages & Data ------------------------------
 # List of required packages
 required_packages <- c(
-  "Matrix", "fastmatrix", "BVAR", "brms", "expm", 
-  "qgraph", "tidyverse", "ggplot2", "blavaan", "lavaan"
+  "Matrix", "fastmatrix", "BVAR", 
+  "brms", "expm", "rstan",
+  "qgraph", "tidyverse", 
+  "ggplot2", "blavaan", "lavaan",
+  "rstantools"
 )
 
 # Function to check and install missing packages
@@ -24,7 +27,6 @@ install_if_missing <- function(packages) {
 install_if_missing(required_packages)
 
 # --------------- 2. Estimation -----------------------------
-
 
 # load 
 load(file.path(getwd(), "/Fried_2022 data/clean_network.RData")); gc()
@@ -59,22 +61,21 @@ Data5b <- Data5b %>%
 # STAN Bayesian multilevel analysis. -----------------
 
   # Data:
-subjects <- unique(Data5b$subject)
+subjects <- unique(Data5b$id)
 S <- length(subjects)
 N <- nrow(Data5b)
 K <- length(varLabs)  
-subject <- Data5b$subject
+subject <- Data5b$id
 X <- matrix(nrow = N, ncol = K)
 X[,1] <- Data5b$Relax
 X[,2] <- Data5b$Worry
 X[,3] <- Data5b$Nervous
-X[,1] <- ifelse(is.na(df$Relax), 0, df$Relax)   
-X[,2] <- ifelse(is.na(df$Worry), 0, df$Worry)
-X[,3] <- ifelse(is.na(df$Nervous), 0, df$Nervous)
+X[is.na(X)] <- 0
 start <- integer(S)
 end <- integer(S)
 for (s in seq_along(subjects)) {
-  subj_indices <- which(df$subject == subjects[s])
+  subj_indices <- c()
+  subj_indices <- which(Data5b$id == subjects[s])
   start[s] <- min(subj_indices)
   end[s] <- max(subj_indices)
 }
@@ -82,6 +83,12 @@ missing_mask <- matrix(0, nrow = N, ncol = K)
 missing_mask[, 1] <- as.integer(is.na(Data5b$Relax))
 missing_mask[, 2] <- as.integer(is.na(Data5b$Worry))
 missing_mask[, 3] <- as.integer(is.na(Data5b$Nervous))
+M = sum(missing_mask == 1)
+missing_positions <- which(X == 0, arr.ind = TRUE)
+sorted_positions <- missing_positions[order(missing_positions[, 1]), ]
+missing_idx <- sorted_positions[,1,drop=T]
+missing_var <- sorted_positions[,2,drop=T]
+
 # Prepare data list for Stan
 stan_data <- list(
   S = S,
@@ -91,13 +98,20 @@ stan_data <- list(
   X = X,
   missing_mask = missing_mask,
   start = start,
-  end = end
+  end = end,
+  M = M,
+  missing_idx = missing_idx,
+  missing_var = missing_var
 )
 
-
-
-
-
+# Run the model
+stan_model <- stan_model(file = "BayesianMLVAR.stan")
+fit <- sampling(stan_model, data = stan_data, 
+                iter = 4000, chains = 4, cores = 4 )
+saveRDS(fit, "BayesVAR_FIT.RDS")
+# Diagnostics
+print(fit)
+traceplot(fit)
 
 
 
