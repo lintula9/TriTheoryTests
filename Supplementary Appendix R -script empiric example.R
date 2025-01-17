@@ -56,6 +56,61 @@ Data5b <- Data5b %>%
   ungroup()
 
 
+# STAN Bayesian multilevel analysis. -----------------
+
+  # Data:
+subjects <- unique(Data5b$subject)
+S <- length(subjects)
+N <- nrow(Data5b)
+K <- length(varLabs)  
+subject <- Data5b$subject
+X <- matrix(nrow = N, ncol = K)
+X[,1] <- Data5b$Relax
+X[,2] <- Data5b$Worry
+X[,3] <- Data5b$Nervous
+X[,1] <- ifelse(is.na(df$Relax), 0, df$Relax)   
+X[,2] <- ifelse(is.na(df$Worry), 0, df$Worry)
+X[,3] <- ifelse(is.na(df$Nervous), 0, df$Nervous)
+start <- integer(S)
+end <- integer(S)
+for (s in seq_along(subjects)) {
+  subj_indices <- which(df$subject == subjects[s])
+  start[s] <- min(subj_indices)
+  end[s] <- max(subj_indices)
+}
+missing_mask <- matrix(0, nrow = N, ncol = K)
+missing_mask[, 1] <- as.integer(is.na(Data5b$Relax))
+missing_mask[, 2] <- as.integer(is.na(Data5b$Worry))
+missing_mask[, 3] <- as.integer(is.na(Data5b$Nervous))
+# Prepare data list for Stan
+stan_data <- list(
+  S = S,
+  K = K,
+  N = N,
+  subject = subject,
+  X = X,
+  missing_mask = missing_mask,
+  start = start,
+  end = end
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Bayesian Lavaan estimation procedures - so that we can obtain WAIC, DIC, for model comparisons maybe. ------
 ## Network VAR(1) model: -----
 model_lavaan <- "
