@@ -70,7 +70,7 @@ X <- matrix(nrow = N, ncol = K)
 X[,1] <- Data5b$Relax
 X[,2] <- Data5b$Worry
 X[,3] <- Data5b$Nervous
-X[is.na(X)] <- 0
+X[is.na(X)] <- 1
 start <- integer(S)
 end <- integer(S)
 for (s in seq_along(subjects)) {
