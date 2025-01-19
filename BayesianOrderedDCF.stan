@@ -27,7 +27,7 @@ parameters {
   // vector<lower=0>[K] sigma;         // Standard deviations
   
   // 3. Random intercepts for each subject
-  matrix[S, K] subject_intercept;  // subject-specific intercept deviations
+  vector[S] subject_intercept;  // subject-specific intercept deviations
   
   // 4. Hyperparameters for the random intercepts
   vector<lower=0>[K] tau_subj;     // Standard deviation for subject intercepts
@@ -47,42 +47,39 @@ parameters {
   
   
 transformed parameters {
+   // 1. To solve the sign indeterminancy of factor loadings, we construct them separately here.
+  vector[K] Lambda;
+  Lambda[1] = Lambda_first;
+  for (k in 2:K){
+    Lambda[k] = Lambda_rest[k-1];}
   
-  // 1. Create the covariance matrix.
+  // 2. As we have lambda, we can create the covariance matrix.
   matrix[K, K] Omega;
   Omega = (1-psi^2) * Lambda * Lambda';
 
   // 2. Handle missing data by constructing a complete data matrix X_full.
   // NOT NEEDED in ordered case. We only use the X*, which is missing anyhow.
   
-  // 3. To solve the sign indeterminancy of factor loadings, we construct them separately here.
-  vector[K] Lambda;
-  Lambda[1] = Lambda_first;
-  for (k in 2:K)
-    Lambda[k] = Lambda_rest[k-1];
+
 }
 model {
-  
   // 1. Priors for parameters
   c ~ normal(0, 1);                           // Prior for global intercept
   psi ~ normal(0, 0.5);                 // Prior for DCF autoregression coefficient.
   Lambda_first ~ normal(0,0.5);              // Prior for correlation matrix
   Lambda_rest ~ normal(0,0.5);              // Prior for correlation matrix
-  // sigma ~ exponential(1);                      // Prior for residual standard deviations. Not needed as Lambda, psi determine Omega.
+  // sigma ~ exponential(1);  NOT NEEDED for DCF // Prior for residual standard deviations. Not needed as Lambda, psi determine Omega.
   tau_subj ~ exponential(1);                   // Prior for subject intercept SDs
-  
   // 2. Subject-specific intercepts
   for (s in 1:S) {
     subject_intercept[s] ~ normal(0, tau_subj);
   }
-
-  // 3. Model the missing values: NOT NEEDED since X* is missing anyhow!
+  // 3. Model the missing values: NOT NEEDED for DCF since X* is missing anyhow!
   // 3. UNIQUE to ordered: Declare priors for the cutoffs.
   for (k in 1:K) {
     for(tau in 1:cutpoint_count)
     cutpoints[k] ~ normal(cutpoint_prior_locations[tau], 5);
     }
-
   // 4. VAR(1) model loop over subjects and time points
   for (s in 1:S) {
     // Loop over time for each subject
@@ -90,15 +87,15 @@ model {
       // UNIQUE TO ORDERED: X_full is modeled as a multivariate normal, with 
       // autoregressive structure.
             if(t==start[s]){
-          eta[t] ~ multi_normal(c + subject_intercept[s]', Omega);
+          eta[t] ~ normal(c + subject_intercept[s], 1);
     } else {
-          eta[t] ~ multi_normal(c + subject_intercept[s]' + psi*eta[t - 1], Omega);
+          eta[t] ~ normal(c + subject_intercept[s] + psi*eta[t - 1], 1);
     }
       for (k in 1:K){
         // Skip missing values - though they are modeled in the latent eta.
       if(missing_mask[t,k] == 0){
       // Note, that we use now for the log likelihood.
-        target += ordered_probit_lpmf( X[t,k] | eta[t], cutpoints[k]);
+        target += ordered_probit_lpmf( X[t,k] | Lambda[k]*eta[t], cutpoints[k]);
         }
         }
     }
@@ -119,4 +116,9 @@ generated quantities {
       }
     }
   }
+  
+  matrix[K,K] A; // Map to A matrix (VAR(1) model presentation)
+  A = psi * Lambda * Lambda'; // We can input here some estimated A matrix to compute the closest A.
+  matrix[K,K] Z; // Map to Z matrix (VAR(1) model presentation)
+  Z = (1-psi^2) * Lambda * Lambda';
 }
