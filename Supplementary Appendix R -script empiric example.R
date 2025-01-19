@@ -11,7 +11,7 @@ required_packages <- c(
   "brms", "expm", "rstan",
   "qgraph", "tidyverse", 
   "ggplot2", "blavaan", "lavaan",
-  "rstantools"
+  "rstantools", "loo"
 )
 
 # Function to check and install missing packages
@@ -88,6 +88,8 @@ missing_positions <- which(X == 0, arr.ind = TRUE)
 sorted_positions <- missing_positions[order(missing_positions[, 1]), ]
 missing_idx <- sorted_positions[,1,drop=T]
 missing_var <- sorted_positions[,2,drop=T]
+cutpoint_prior_locations <- c(-1,-1L/3L, 1L/3L, 1)
+cutpoint_count <- length(cutpoint_prior_locations)
 
 # Prepare data list for Stan
 stan_data <- list(
@@ -101,21 +103,43 @@ stan_data <- list(
   end = end,
   M = M,
   missing_idx = missing_idx,
-  missing_var = missing_var
+  missing_var = missing_var,
+  cutpoint_prior_locations = cutpoint_prior_locations,
+  cutpoint_count = cutpoint_count
 )
 
-# Run the model
-stan_model <- stan_model(file = "BayesianMLVAR.stan")
+# Run the Network model
+stan_model <- stan_model(file = "BayesianOrderedVAR.stan")
 fit <- sampling(stan_model, data = stan_data, 
                 iter = 4000, chains = 4, cores = 4 )
-saveRDS(fit, "BayesVAR_FIT.RDS")
+saveRDS(fit, "BayesOrderedVAR_FIT.RDS")
 # Diagnostics
 print(fit)
 traceplot(fit)
 
+# WAIC and LOO
+log_lik_matrix_Net <- extract_log_lik(fit, parameter_name = "log_lik", merge_chains = FALSE)
+waic_results_Net <- waic(log_lik_matrix_Net)
+print(waic_results_Net)
+loo_results <- loo(log_lik_matrix_Net)
+print(loo_results)
 
 
+# Run the DCF model
+stan_model <- stan_model(file = "BayesianOrderedVAR.stan")
+fit_dcf <- sampling(stan_model, data = stan_data, 
+                iter = 4000, chains = 4, cores = 4 )
+saveRDS(fit, "BayesVAR_FIT.RDS")
+# Diagnostics
+print(fit_dcf)
+traceplot(fit_dcf)
 
+# WAIC and LOO
+log_lik_matrix_dcf <- extract_log_lik(fit_dcf, parameter_name = "log_lik", merge_chains = FALSE)
+waic_results <- waic(log_lik_matrix_dcf)
+print(waic_results)
+loo_results <- loo(log_lik_matrix_dcf)
+print(loo_results)
 
 
 

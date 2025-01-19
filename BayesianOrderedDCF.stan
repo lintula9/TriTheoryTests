@@ -15,13 +15,16 @@ data {
   real cutpoint_prior_locations[cutpoint_count];
 }
 parameters {
-  // 1. VAR(1) model parameters
-  vector[K] c;              // Intercept vector
-  matrix[K, K] A;           // VAR(1) coefficient matrix
+  // 1. D-CF model parameters
+  vector[K] c;              // Intercept vector.
+  real psi;                 // CF autoregression coefficient.
+  real<lower=0> Lambda_first;
+  vector[K-1] Lambda_rest;         // Factor loadings.
   
-  // 2. Covariance matrix for residuals
-  cholesky_factor_corr[K] L_Omega;  // Cholesky factor of the correlation matrix
-  vector<lower=0>[K] sigma;         // Standard deviations
+  // 2. Covariance matrix for residuals: NOT NEEDED in D-CF model.
+  // This will be produced in the transformed parameters block as (1-psi^2) * Lambda * Lambda'.
+  // cholesky_factor_corr[K] L_Omega;  // Cholesky factor of the correlation matrix
+  // vector<lower=0>[K] sigma;         // Standard deviations
   
   // 3. Random intercepts for each subject
   matrix[S, K] subject_intercept;  // subject-specific intercept deviations
@@ -35,7 +38,8 @@ parameters {
   // 6. UNIQUE to ordered: X* as the latent standard multinormal variables
   // Note the K times N structure, with time intervals for each subject
   // on the second dimension.
-  matrix[K,N] X_star;
+  // matrix[K,N] X_star; We wont use X_star, to make the notation more distinct.
+  vector[N] eta;
   
   // 7. UNIQUE to ordered: X* (time and subject invariant) thresholds:
   ordered[cutpoint_count] cutpoints[K];
@@ -46,18 +50,25 @@ transformed parameters {
   
   // 1. Create the covariance matrix.
   matrix[K, K] Omega;
-  Omega = multiply_lower_tri_self_transpose(L_Omega) .* (sigma * sigma');
+  Omega = (1-psi^2) * Lambda * Lambda';
 
   // 2. Handle missing data by constructing a complete data matrix X_full.
   // NOT NEEDED in ordered case. We only use the X*, which is missing anyhow.
+  
+  // 3. To solve the sign indeterminancy of factor loadings, we construct them separately here.
+  vector[K] Lambda;
+  Lambda[1] = Lambda_first;
+  for (k in 2:K)
+    Lambda[k] = Lambda_rest[k-1];
 }
 model {
   
   // 1. Priors for parameters
   c ~ normal(0, 1);                           // Prior for global intercept
-  to_vector(A) ~ normal(0, 0.2);                 // Prior for VAR coefficients
-  L_Omega ~ lkj_corr_cholesky(2);              // Prior for correlation matrix
-  sigma ~ exponential(1);                      // Prior for residual standard deviations
+  psi ~ normal(0, 0.5);                 // Prior for DCF autoregression coefficient.
+  Lambda_first ~ normal(0,0.5);              // Prior for correlation matrix
+  Lambda_rest ~ normal(0,0.5);              // Prior for correlation matrix
+  // sigma ~ exponential(1);                      // Prior for residual standard deviations. Not needed as Lambda, psi determine Omega.
   tau_subj ~ exponential(1);                   // Prior for subject intercept SDs
   
   // 2. Subject-specific intercepts
@@ -69,7 +80,7 @@ model {
   // 3. UNIQUE to ordered: Declare priors for the cutoffs.
   for (k in 1:K) {
     for(tau in 1:cutpoint_count)
-    cutpoints[k] ~ normal(cutpoint_prior_locations[tau], 5);                // or some other weakly informative prior
+    cutpoints[k] ~ normal(cutpoint_prior_locations[tau], 5);
     }
 
   // 4. VAR(1) model loop over subjects and time points
@@ -79,15 +90,15 @@ model {
       // UNIQUE TO ORDERED: X_full is modeled as a multivariate normal, with 
       // autoregressive structure.
             if(t==start[s]){
-          X_star[, t] ~ multi_normal(c + subject_intercept[s]', Omega);
+          eta[t] ~ multi_normal(c + subject_intercept[s]', Omega);
     } else {
-          X_star[, t] ~ multi_normal(c + subject_intercept[s]' + A * X_star[, t - 1], Omega);
+          eta[t] ~ multi_normal(c + subject_intercept[s]' + psi*eta[t - 1], Omega);
     }
       for (k in 1:K){
+        // Skip missing values - though they are modeled in the latent eta.
       if(missing_mask[t,k] == 0){
-      // Note, that X is N times K, whereas X_star is K times N, 
-      // hence the time index is placed differently.
-        target += ordered_probit_lpmf( X[t,k] | X_star[k,t], cutpoints[k]);
+      // Note, that we use now for the log likelihood.
+        target += ordered_probit_lpmf( X[t,k] | eta[t], cutpoints[k]);
         }
         }
     }
