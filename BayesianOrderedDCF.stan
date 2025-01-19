@@ -16,7 +16,7 @@ data {
 }
 parameters {
   // 1. D-CF model parameters
-  vector[K] c;              // Intercept vector.
+  real c;              // Intercept vector.
   real psi;                 // CF autoregression coefficient.
   real<lower=0> Lambda_first;
   vector[K-1] Lambda_rest;         // Factor loadings.
@@ -30,7 +30,7 @@ parameters {
   vector[S] subject_intercept;  // subject-specific intercept deviations
   
   // 4. Hyperparameters for the random intercepts
-  vector<lower=0>[K] tau_subj;     // Standard deviation for subject intercepts
+  real<lower=0> tau_subj;     // Standard deviation for subject intercept.
   
   // 5. Missing values vector, as a parameter.
   // NOT NEEDED in the ordered case. X* 'deals' with missingness.
@@ -53,10 +53,6 @@ transformed parameters {
   for (k in 2:K){
     Lambda[k] = Lambda_rest[k-1];}
   
-  // 2. As we have lambda, we can create the covariance matrix.
-  matrix[K, K] Omega;
-  Omega = (1-psi^2) * Lambda * Lambda';
-
   // 2. Handle missing data by constructing a complete data matrix X_full.
   // NOT NEEDED in ordered case. We only use the X*, which is missing anyhow.
   
@@ -110,7 +106,7 @@ generated quantities {
     for (k in 1:K) {
       if (missing_mask[n, k] == 0) {
         // Compute log-probability only for non-missing observations.
-        log_lik[n, k] = ordered_probit_lpmf(X[n,k] | X_star[k,n], cutpoints[k]);
+        log_lik[n, k] = ordered_probit_lpmf( X[n,k] | Lambda[k]*eta[n], cutpoints[k]);
       } else {
         log_lik[n, k] = 0; // or NA, but zero won't affect WAIC/LOO calculations
       }

@@ -109,37 +109,36 @@ stan_data <- list(
 )
 
 # Run the Network model
-stan_model <- stan_model(file = "BayesianOrderedVAR.stan")
-fit <- sampling(stan_model, data = stan_data, 
+stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan")
+fit_Net <- sampling(stan_model, data = stan_data, 
                 iter = 4000, chains = 4, cores = 4 )
-saveRDS(fit, "BayesOrderedVAR_FIT.RDS")
+saveRDS(fit_Net, "Datas/BayesOrderedVAR_FIT.RDS", compress = T); gc()
 # Diagnostics
-print(fit)
-traceplot(fit)
+print(fit_Net)
+traceplot(fit_Net)
 
 # WAIC and LOO
 log_lik_matrix_Net <- extract_log_lik(fit, parameter_name = "log_lik", merge_chains = FALSE)
 waic_results_Net <- waic(log_lik_matrix_Net)
 print(waic_results_Net)
-loo_results <- loo(log_lik_matrix_Net)
-print(loo_results)
-
+loo_results_Net <- loo(log_lik_matrix_Net)
+print(loo_results_Net)
 
 # Run the DCF model
-stan_model <- stan_model(file = "BayesianOrderedVAR.stan")
-fit_dcf <- sampling(stan_model, data = stan_data, 
+stan_model_DCF <- stan_model(file = "BayesianOrderedDCF.stan")
+fit_dcf <- sampling(stan_model_DCF, data = stan_data, 
                 iter = 4000, chains = 4, cores = 4 )
-saveRDS(fit, "BayesVAR_FIT.RDS")
+saveRDS(fit_dcf, "Datas/BayesOrderedDCF_FIT.RDS", compress = T); gc()
 # Diagnostics
 print(fit_dcf)
 traceplot(fit_dcf)
 
 # WAIC and LOO
 log_lik_matrix_dcf <- extract_log_lik(fit_dcf, parameter_name = "log_lik", merge_chains = FALSE)
-waic_results <- waic(log_lik_matrix_dcf)
-print(waic_results)
-loo_results <- loo(log_lik_matrix_dcf)
-print(loo_results)
+waic_results_dcf <- waic(log_lik_matrix_dcf)
+print(waic_results_dcf)
+loo_results_dcf <- loo(log_lik_matrix_dcf)
+print(loo_results_dcf)
 
 
 

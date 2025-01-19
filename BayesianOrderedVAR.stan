@@ -109,8 +109,5 @@ generated quantities {
     }
   }
   
-  matrix[K,K] A; // Map to A matrix (VAR(1) model presentation)
-  A = psi * Lambda * Lambda'; // We can input here some estimated A matrix to compute the closest A.
-  matrix[K,K] Z; // Map to Z matrix (VAR(1) model presentation)
-  Z = (1-psi^2) * Lambda * Lambda';
+
 }
