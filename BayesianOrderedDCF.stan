@@ -26,6 +26,7 @@ parameters {
   // vector<lower=0>[K] sigma;         // Standard deviations
   
   // 3. Random intercepts for each subject
+  // The subject specific intercepts are defind for the CF.
   vector[S] subject_intercept_raw;  // subject-specific intercept deviations
   real<lower=0> tau_subj;     // Standard deviation for subject intercept.
   
@@ -43,46 +44,42 @@ parameters {
   }
   
 transformed parameters {
-  // Better posterior geometry with non-centralized priors.
+  
+  
+  // 3.  posterior geometry with non-centralized priors.
   vector[S] subject_intercept;
   for(s in 1:S){
   subject_intercept[s] = subject_intercept_raw[s] * tau_subj;
   }
-  
-  // 2. Handle missing data by constructing a complete data matrix X_full.
-  // NOT NEEDED in ordered case. We only use the X*, which is missing anyhow.
-  
+
   // c = 0 (written in for compatibility of all syntax, though redundant).
   real c;
   c = 0;
   }
 model {
   // 1. Priors for parameters
-  // Due to identifiability issues, c will be set to 0.
-  // Subject-specific drifts are allowed in subject_intercept_raw
-  // c ~ normal(0, 1);                           // Prior for global intercept
+  // SET to 0: c ~ normal(0, 1);                           // Prior for global intercept
   psi ~ normal(0, 0.5);                 // Prior for DCF autoregression coefficient.
-  Lambda ~ normal(0, 5);                // Half-normal, weak, prior.
+  Lambda ~ lognormal(-0.5, 0.5);                // log-normal prior.
   // sigma ~ exponential(1);  NOT NEEDED for DCF // Prior for residual standard deviations. Not needed as Lambda, psi determine Omega.
   // 2. Subject-specific intercepts
   tau_subj ~ normal(0,1); // Prior for subject intercept SDs
   for (s in 1:S) {
     subject_intercept_raw[s] ~ normal(0, 0.1); // Raw intercept, scaled by tau_subj.
   }
-  // 3. Model the missing values: NOT NEEDED for DCF since X* is missing anyhow!
-  // 3. UNIQUE to ordered: Declare priors for the cutoffs.
-  for (k in 1:K) {
-    for(tau in 1:cutpoint_count)
-    cutpoints[k] ~ normal(cutpoint_prior_locations[tau], 1);
-    }
-  // 4. VAR(1) model loop over subjects and time points
+  // 7. Declare priors for the cutoffs.
+  for(k in 1:K){
+    for(j in 1:cutpoint_count){
+      cutpoints[k,j] ~ normal(cutpoint_prior_locations[j],0.5);
+    }}
+  
+  
+  // 4. DCF(1) model loop over subjects and time points
   for (s in 1:S) {
     // Loop over time for each subject
     for (t in start[s]:end[s]) {
-      // UNIQUE TO ORDERED: X_full is modeled as a multivariate normal, with 
-      // autoregressive structure.
-            if(t==start[s]){
-          eta[t] ~ normal(c + subject_intercept[s], 1);
+            if(t==start[s]){ // Note that we constraint the innovation variance to 1.
+          eta[t] ~ normal(subject_intercept[s] / (1 - psi), sqrt(1 / (1 - psi^2)));
     } else {
           eta[t] ~ normal(c + subject_intercept[s] + psi*eta[t - 1], 1);
     }
@@ -92,10 +89,9 @@ model {
       // Note, that we use now for the log likelihood.
         target += ordered_probit_lpmf( X[t,k] | Lambda[k]*eta[t], cutpoints[k]);
         }
-        }
+        } } } 
     }
-  }
-  }
+  
 generated quantities {
   // We'll store the pointwise log-likelihood for each observation 
   // as a matrix of size N x K or as a vector if observations are univariate.
@@ -115,5 +111,5 @@ generated quantities {
   matrix[K,K] A; // Map to A matrix (VAR(1) model presentation)
   A = psi * Lambda * Lambda'; // We can input here some estimated A matrix to compute the closest A.
   matrix[K,K] Z; // Map to Z matrix (VAR(1) model presentation)
-  Z = (1-psi^2) * Lambda * Lambda';
-}
+  Z = (1-psi^2) * Lambda * Lambda'; 
+  }

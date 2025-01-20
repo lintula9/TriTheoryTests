@@ -90,6 +90,9 @@ missing_idx <- sorted_positions[,1,drop=T]
 missing_var <- sorted_positions[,2,drop=T]
 cutpoint_prior_locations <- c(-1,-1L/3L, 1L/3L, 1)
 cutpoint_count <- length(cutpoint_prior_locations)
+mu0 = rep(0, times = K)
+Sigma0 = matrix(rep(0.5, times = K^2), ncol = 3, nrow = 3)
+diag(Sigma0) <- 1
 
 # Prepare data list for Stan
 stan_data <- list(
@@ -105,18 +108,22 @@ stan_data <- list(
   missing_idx = missing_idx,
   missing_var = missing_var,
   cutpoint_prior_locations = cutpoint_prior_locations,
-  cutpoint_count = cutpoint_count
+  cutpoint_count = cutpoint_count,
+  mu0 = mu0,
+  Sigma0 = Sigma0
 )
 
 # Run the Network model
 stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan")
-fit_Net <- sampling(stan_model, data = stan_data, 
+fit_Net <- sampling(stan_model_Net, data = stan_data, 
                 iter = 4000, chains = 4, cores = 4, 
                 control = list(adapt_delta = 0.95) )
 saveRDS(fit_Net, "Datas/BayesOrderedVAR_FIT.RDS", compress = T); gc()
 # Diagnostics
-print(fit_Net)
+print(fit_Net, pars = c("psi", "Lambda", "cutpoints", "tau_subj"))
+dev.new(noRStudioGD = T)
 traceplot(fit_Net)
+traceplot(fit_Net, pars = "cutpoints")
 check_hmc_diagnostics(fit_Net)
 
 
@@ -134,7 +141,8 @@ fit_dcf <- sampling(stan_model_DCF, data = stan_data,
                 control = list(adapt_delta = 0.95) )
 saveRDS(fit_dcf, "Datas/BayesOrderedDCF_FIT.RDS", compress = T); gc()
 # Diagnostics
-print(fit_dcf)
+print(fit_dcf, pars = c("psi", "Lambda", "cutpoints", "tau_subj"))
+dev.new(noRStudioGD = T)
 traceplot(fit_dcf)
 traceplot(fit_dcf, pars = "cutpoints")
 check_hmc_diagnostics(fit_dcf)
