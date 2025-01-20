@@ -64,7 +64,7 @@ model {
   // 2. Subject-specific intercepts
   tau_subj ~ normal(0,1);                   // Prior for subject intercept SDs
   for (s in 1:S) {
-    subject_intercept_raw[s] ~ normal(0, 1);
+    subject_intercept_raw[s] ~ normal(0, 0.1);
   }
 
   // 3. Model the missing values: NOT NEEDED since X* is missing anyhow!

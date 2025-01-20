@@ -16,10 +16,9 @@ data {
 }
 parameters {
   // 1. D-CF model parameters
-  real c;              // Intercept vector.
+  // Will be set to 0. real c;              // Intercept vector.
   real psi;                 // CF autoregression coefficient.
-  real<lower=0> Lambda_first;
-  vector[K-1] Lambda_rest;         // Factor loadings.
+  vector<lower=0>[K] Lambda; // Factor loadings are assumed positive, to better identify the model.
   
   // 2. Covariance matrix for residuals: NOT NEEDED in D-CF model.
   // This will be produced in the transformed parameters block as (1-psi^2) * Lambda * Lambda'.
@@ -27,9 +26,7 @@ parameters {
   // vector<lower=0>[K] sigma;         // Standard deviations
   
   // 3. Random intercepts for each subject
-  vector[S] subject_intercept;  // subject-specific intercept deviations
-  
-  // 4. Hyperparameters for the random intercepts
+  vector[S] subject_intercept_raw;  // subject-specific intercept deviations
   real<lower=0> tau_subj;     // Standard deviation for subject intercept.
   
   // 5. Missing values vector, as a parameter.
@@ -46,35 +43,37 @@ parameters {
   }
   
 transformed parameters {
-   // 1. To solve the sign indeterminancy of factor loadings, we construct them separately here.
-  vector[K] Lambda;
-  Lambda[1] = Lambda_first;
-  for (k in 2:K){
-    Lambda[k] = Lambda_rest[k-1];}
+  // Better posterior geometry with non-centralized priors.
+  vector[S] subject_intercept;
   for(s in 1:S){
   subject_intercept[s] = subject_intercept_raw[s] * tau_subj;
   }
   
   // 2. Handle missing data by constructing a complete data matrix X_full.
   // NOT NEEDED in ordered case. We only use the X*, which is missing anyhow.
+  
+  // c = 0 (written in for compatibility of all syntax, though redundant).
+  real c;
+  c = 0;
   }
 model {
   // 1. Priors for parameters
-  c ~ normal(0, 1);                           // Prior for global intercept
+  // Due to identifiability issues, c will be set to 0.
+  // Subject-specific drifts are allowed in subject_intercept_raw
+  // c ~ normal(0, 1);                           // Prior for global intercept
   psi ~ normal(0, 0.5);                 // Prior for DCF autoregression coefficient.
-  Lambda_first ~ normal(0,0.5);              // Prior for correlation matrix
-  Lambda_rest ~ normal(0,0.5);              // Prior for correlation matrix
+  Lambda ~ normal(0, 5);                // Half-normal, weak, prior.
   // sigma ~ exponential(1);  NOT NEEDED for DCF // Prior for residual standard deviations. Not needed as Lambda, psi determine Omega.
   // 2. Subject-specific intercepts
   tau_subj ~ normal(0,1); // Prior for subject intercept SDs
   for (s in 1:S) {
-    subject_intercept_raw[s] ~ normal(0, 1); // Raw intercept, scaled by tau_subj.
+    subject_intercept_raw[s] ~ normal(0, 0.1); // Raw intercept, scaled by tau_subj.
   }
   // 3. Model the missing values: NOT NEEDED for DCF since X* is missing anyhow!
   // 3. UNIQUE to ordered: Declare priors for the cutoffs.
   for (k in 1:K) {
     for(tau in 1:cutpoint_count)
-    cutpoints[k] ~ normal(cutpoint_prior_locations[tau], 5);
+    cutpoints[k] ~ normal(cutpoint_prior_locations[tau], 1);
     }
   // 4. VAR(1) model loop over subjects and time points
   for (s in 1:S) {
