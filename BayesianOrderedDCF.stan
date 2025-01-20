@@ -45,19 +45,19 @@ parameters {
   ordered[cutpoint_count] cutpoints[K];
   }
   
-  
 transformed parameters {
    // 1. To solve the sign indeterminancy of factor loadings, we construct them separately here.
   vector[K] Lambda;
   Lambda[1] = Lambda_first;
   for (k in 2:K){
     Lambda[k] = Lambda_rest[k-1];}
+  for(s in 1:S){
+  subject_intercept[s] = subject_intercept_raw[s] * tau_subj;
+  }
   
   // 2. Handle missing data by constructing a complete data matrix X_full.
   // NOT NEEDED in ordered case. We only use the X*, which is missing anyhow.
-  
-
-}
+  }
 model {
   // 1. Priors for parameters
   c ~ normal(0, 1);                           // Prior for global intercept
@@ -65,10 +65,10 @@ model {
   Lambda_first ~ normal(0,0.5);              // Prior for correlation matrix
   Lambda_rest ~ normal(0,0.5);              // Prior for correlation matrix
   // sigma ~ exponential(1);  NOT NEEDED for DCF // Prior for residual standard deviations. Not needed as Lambda, psi determine Omega.
-  tau_subj ~ exponential(1);                   // Prior for subject intercept SDs
   // 2. Subject-specific intercepts
+  tau_subj ~ normal(0,1); // Prior for subject intercept SDs
   for (s in 1:S) {
-    subject_intercept[s] ~ normal(0, tau_subj);
+    subject_intercept_raw[s] ~ normal(0, 1); // Raw intercept, scaled by tau_subj.
   }
   // 3. Model the missing values: NOT NEEDED for DCF since X* is missing anyhow!
   // 3. UNIQUE to ordered: Declare priors for the cutoffs.

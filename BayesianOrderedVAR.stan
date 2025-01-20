@@ -24,9 +24,7 @@ parameters {
   vector<lower=0>[K] sigma;         // Standard deviations
   
   // 3. Random intercepts for each subject
-  matrix[S, K] subject_intercept;  // subject-specific intercept deviations
-  
-  // 4. Hyperparameters for the random intercepts
+  matrix[S, K] subject_intercept_raw;  // subject-specific intercept deviations
   vector<lower=0>[K] tau_subj;     // Standard deviation for subject intercepts
   
   // 5. Missing values vector, as a parameter.
@@ -47,6 +45,10 @@ transformed parameters {
   // 1. Create the covariance matrix.
   matrix[K, K] Omega;
   Omega = multiply_lower_tri_self_transpose(L_Omega) .* (sigma * sigma');
+    for(s in 1:S){
+      for(k in 1:K){
+  subject_intercept[s,k] = subject_intercept_raw[s,k] * tau_subj[k];
+  }}
 
   // 2. Handle missing data by constructing a complete data matrix X_full.
   // NOT NEEDED in ordered case. We only use the X*, which is missing anyhow.
@@ -58,11 +60,11 @@ model {
   to_vector(A) ~ normal(0, 0.2);                 // Prior for VAR coefficients
   L_Omega ~ lkj_corr_cholesky(2);              // Prior for correlation matrix
   sigma ~ exponential(1);                      // Prior for residual standard deviations
-  tau_subj ~ exponential(1);                   // Prior for subject intercept SDs
   
   // 2. Subject-specific intercepts
+  tau_subj ~ normal(0,1);                   // Prior for subject intercept SDs
   for (s in 1:S) {
-    subject_intercept[s] ~ normal(0, tau_subj);
+    subject_intercept_raw[s] ~ normal(0, 1);
   }
 
   // 3. Model the missing values: NOT NEEDED since X* is missing anyhow!
