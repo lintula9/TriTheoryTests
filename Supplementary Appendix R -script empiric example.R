@@ -57,18 +57,24 @@ Data5b <- Data5b %>%
                 .names = "{.col}_lag")) %>%
   ungroup()
 
-# Exclude the IDs with lowe obs count:
+# Exclude the IDs with lower than 50 obs count:
+excluded_ids <- Data5b %>% group_by(id) %>% summarize(n = length(id)) %>% arrange(n, id) %>%
+  filter(n < 50) %>% select(id) %>% unlist()
+Data5b <- Data5b %>% filter(!(id %in% excluded_ids))
 
 # Exclude double beeps:
-Data5b[rep(which(Data5b$beep == lag(Data5b$beep) & Data5b$day == lag(Data5b$day)), each = 2) - 
-         rep(c(1,0), times = length(which(Data5b$beep == lag(Data5b$beep) & Data5b$day == lag(Data5b$day))))
-,] %>% select(id, beep, day) %>%
-  View()
+Data5b <- Data5b %>% group_by(id) %>%
+  filter(beep != lag(beep)) %>% ungroup
+
+# Truncate to 4.
+Data5b <- Data5b %>% mutate(across(all_of(varLabs2), ~ pmin(.x, 4)))
+
 
 # STAN Bayesian multilevel analysis. -----------------
 
   # Data:
-subjects <- unique(Data5b$id)
+{
+  subjects <- unique(Data5b$id)
 S <- length(subjects)
 N <- nrow(Data5b)
 K <- length(varLabs)  
@@ -95,11 +101,12 @@ missing_positions <- which(X == 0, arr.ind = TRUE)
 sorted_positions <- missing_positions[order(missing_positions[, 1]), ]
 missing_idx <- sorted_positions[,1,drop=T]
 missing_var <- sorted_positions[,2,drop=T]
-cutpoint_prior_locations <- c(-1,-1L/3L, 1L/3L, 1)
+cutpoint_prior_locations <- 1:max(Data5b$Relax, na.rm = T) - mean(1:max(Data5b$Relax, na.rm = T))
 cutpoint_count <- length(cutpoint_prior_locations)
 mu0 = rep(0, times = K)
 Sigma0 = matrix(rep(0.5, times = K^2), ncol = K, nrow = K)
 diag(Sigma0) <- 1
+  }
 
 # Prepare data list for Stan
 stan_data <- list(
@@ -143,14 +150,18 @@ print(loo_results_Net)
 
 # Run the DCF model
 stan_model_DCF <- stan_model(file = "BayesianOrderedDCF.stan")
+
+  #Prior sampling check:
 fit_dcf <- sampling(stan_model_DCF, data = stan_data, 
                 iter = 4000, chains = 4, cores = 4, 
                 control = list(adapt_delta = 0.95) )
 saveRDS(fit_dcf, "Datas/BayesOrderedDCF_FIT.RDS", compress = T); gc()
 # Diagnostics
-print(fit_dcf, pars = c("psi", "Lambda", "cutpoints", "tau_subj"))
+print(fit_dcf, pars = c("psi", "Lambda", "cutpoints", paste0("eta[",1:10,"]"), paste0("eta_star[",1:10,"]"),
+                        "subject_intercept", ))
 dev.new(noRStudioGD = T)
 traceplot(fit_dcf)
+dev.new()
 traceplot(fit_dcf, pars = "cutpoints")
 check_hmc_diagnostics(fit_dcf)
 

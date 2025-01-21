@@ -28,7 +28,6 @@ parameters {
   matrix[K,N] X_star;
   vector[K] X_star_zero[S];   // Initial state for each subject at t=0
 
-  
   // 5. UNIQUE to ordered: X* (time and subject invariant) cutoffs:
   ordered[cutpoint_count] cutpoints[K];
   }

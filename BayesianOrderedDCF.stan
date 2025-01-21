@@ -7,94 +7,89 @@ data {
   int<lower=0,upper=1> missing_mask[N, K]; // Mask: 1 if X[i,k] is missing, 0 otherwise
   int<lower=1> start[S];        // start[s]: starting index for subject s
   int<lower=1> end[S];          // end[s]: ending index for subject s
-  // Number of missing entries not needed in ordered case:
-  // int<lower=0> M;  // number of missing entries
-  // This was not needed: int<lower=1, upper=N> missing_idx[M];
-  // This is not needed: int<lower=1, upper=K> missing_var[M];
   int<lower=1> cutpoint_count;
   real cutpoint_prior_locations[cutpoint_count];
 }
+
 parameters {
   // 1. D-CF model parameters
-  // Will be set to 0. real c;              // Intercept vector.
   real psi;                 // CF autoregression coefficient.
   vector<lower=0>[K] Lambda; // Factor loadings are assumed positive, to better identify the model.
+  real<lower=0> subject_innovation_scale[S]; // Innovation variance is assumed to be time invariant.
+  vector[N] eta_innovation;  // Innovations (for non-centralized parameterization).
   
-  // 2. Covariance matrix for residuals: NOT NEEDED in D-CF model.
-  // This will be produced in the transformed parameters block as (1-psi^2) * Lambda * Lambda'.
-  // cholesky_factor_corr[K] L_Omega;  // Cholesky factor of the correlation matrix
-  // vector<lower=0>[K] sigma;         // Standard deviations
+  // 2. Initial state for eta, eta*:
+  real eta_star[S];
   
   // 3. Random intercepts for each subject
-  // The subject specific intercepts are defind for the CF.
+  // The subject specific intercepts are defined for the CF.
   vector[S] subject_intercept_raw;  // subject-specific intercept deviations
-  real<lower=0> tau_subj;     // Standard deviation for subject intercept.
-  
-  // 5. Missing values vector, as a parameter.
-  // NOT NEEDED in the ordered case. X* 'deals' with missingness.
-  
-  // 6. UNIQUE to ordered: X* as the latent standard multinormal variables
-  // Note the K times N structure, with time intervals for each subject
-  // on the second dimension.
-  // matrix[K,N] X_star; We wont use X_star, to make the notation more distinct.
-  vector[N] eta;
-  
+  real<lower=0> subject_intercept_sd;     // Standard deviation for subject intercept.
+
   // 7. UNIQUE to ordered: X* (time and subject invariant) thresholds:
   ordered[cutpoint_count] cutpoints[K];
   }
   
 transformed parameters {
   
-  
-  // 3.  posterior geometry with non-centralized priors.
+  // 3. Improved posterior geometry with non-centralized priors.
   vector[S] subject_intercept;
-  for(s in 1:S){
-  subject_intercept[s] = subject_intercept_raw[s] * tau_subj;
-  }
-
-  // c = 0 (written in for compatibility of all syntax, though redundant).
+  subject_intercept = subject_intercept_raw * subject_intercept_sd;
+  
+  // 99. c = 0 (written in for compatibility of all syntax, though redundant).
   real c;
   c = 0;
-  }
-model {
-  // 1. Priors for parameters
-  // SET to 0: c ~ normal(0, 1);                           // Prior for global intercept
-  psi ~ normal(0, 0.5);                 // Prior for DCF autoregression coefficient.
-  Lambda ~ lognormal(-0.5, 0.5);                // log-normal prior.
-  // sigma ~ exponential(1);  NOT NEEDED for DCF // Prior for residual standard deviations. Not needed as Lambda, psi determine Omega.
-  // 2. Subject-specific intercepts
-  tau_subj ~ normal(0,1); // Prior for subject intercept SDs
-  for (s in 1:S) {
-    subject_intercept_raw[s] ~ normal(0, 0.1); // Raw intercept, scaled by tau_subj.
-  }
-  // 7. Declare priors for the cutoffs.
-  for(k in 1:K){
-    for(j in 1:cutpoint_count){
-      cutpoints[k,j] ~ normal(cutpoint_prior_locations[j],0.5);
-    }}
   
-  
-  // 4. DCF(1) model loop over subjects and time points
+  // 1. Eta as a transformed parameter. Improved posterior geometry with non-centralized priors
+  vector[N] eta;
   for (s in 1:S) {
     // Loop over time for each subject
     for (t in start[s]:end[s]) {
-            if(t==start[s]){ // Note that we constraint the innovation variance to 1.
-          eta[t] ~ normal(subject_intercept[s] / (1 - psi), sqrt(1 / (1 - psi^2)));
+            if(t==start[s]){ 
+          eta[t] = c + subject_intercept[s] + psi * eta_star[s] + eta_innovation[t]*subject_innovation_scale[s];
     } else {
-          eta[t] ~ normal(c + subject_intercept[s] + psi*eta[t - 1], 1);
+          eta[t] = c + subject_intercept[s] + psi * eta[t-1] + eta_innovation[t]*subject_innovation_scale[s];
     }
-      for (k in 1:K){
-        // Skip missing values - though they are modeled in the latent eta.
-      if(missing_mask[t,k] == 0){
-      // Note, that we use now for the log likelihood.
-        target += ordered_probit_lpmf( X[t,k] | Lambda[k]*eta[t], cutpoints[k]);
+
         }
-        } } } 
+        } 
+        
+model {
+  
+  // 1. Priors for parameters
+  psi ~    normal(0, 0.1);                 // Prior for DCF autoregression coefficient.
+  Lambda ~ normal(0, 0.5);                // (half)-normal prior.
+  eta_innovation ~ normal(0,0.1);     // Innovation prior.
+  // 1a Subject specific innovation scale.
+  subject_innovation_scale ~ normal(0,0.1);
+  
+  // 2. Initial state prior.
+  to_vector(eta_star) ~ normal(0,0.5);
+
+  // 3. Subject-specific intercepts
+  subject_intercept_sd ~ normal(0,0.1); // Prior for subject intercept SDs
+  to_vector(subject_intercept_raw) ~ normal(0, 0.1); // Raw intercept, scaled by SD.
+  
+  // 7. Declare priors for the cutoffs.
+  for(k in 1:K){
+    for(j in 1:cutpoint_count){
+      cutpoints[k,j] ~ normal(cutpoint_prior_locations[j],0.2);
+    }}
+  
+  
+  // 4. Target likelihood loop over observations and variables.
+  for (t in 1:N) {
+    for (k in 1:K){
+    // Skip missing values - though they are modeled in the latent eta.
+      if(missing_mask[t,k] == 0){
+        target += ordered_probit_lpmf( X[t,k] | Lambda[k]*eta[t], cutpoints[k]);
+        }}}
+        
     }
   
 generated quantities {
   // We'll store the pointwise log-likelihood for each observation 
-  // as a matrix of size N x K or as a vector if observations are univariate.
+  // as a matrix of size N x K.
   matrix[N, K] log_lik;
   
   for (n in 1:N) {
@@ -107,9 +102,5 @@ generated quantities {
       }
     }
   }
-  
-  matrix[K,K] A; // Map to A matrix (VAR(1) model presentation)
-  A = psi * Lambda * Lambda'; // We can input here some estimated A matrix to compute the closest A.
-  matrix[K,K] Z; // Map to Z matrix (VAR(1) model presentation)
-  Z = (1-psi^2) * Lambda * Lambda'; 
+  // Possibly introduce a quick and dirty map to a VAR(1) model from D-CF(1)
   }
