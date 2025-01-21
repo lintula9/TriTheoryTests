@@ -91,7 +91,7 @@ missing_var <- sorted_positions[,2,drop=T]
 cutpoint_prior_locations <- c(-1,-1L/3L, 1L/3L, 1)
 cutpoint_count <- length(cutpoint_prior_locations)
 mu0 = rep(0, times = K)
-Sigma0 = matrix(rep(0.5, times = K^2), ncol = 3, nrow = 3)
+Sigma0 = matrix(rep(0.5, times = K^2), ncol = K, nrow = K)
 diag(Sigma0) <- 1
 
 # Prepare data list for Stan
@@ -120,7 +120,7 @@ fit_Net <- sampling(stan_model_Net, data = stan_data,
                 control = list(adapt_delta = 0.95) )
 saveRDS(fit_Net, "Datas/BayesOrderedVAR_FIT.RDS", compress = T); gc()
 # Diagnostics
-print(fit_Net, pars = c("psi", "Lambda", "cutpoints", "tau_subj"))
+print(fit_Net, pars = c("A","Omega", "cutpoints", "tau_subj"))
 dev.new(noRStudioGD = T)
 traceplot(fit_Net)
 traceplot(fit_Net, pars = "cutpoints")

@@ -66,9 +66,9 @@ model {
 
   // 5. Priors for the cutoffs.
   for (k in 1:K) {
-    for(j in 1:cutpoint_count)
+    for(j in 1:cutpoint_count){
     cutpoints[k] ~ normal(cutpoint_prior_locations[j], 0.5); // or some other weakly informative prior
-    }
+    }}
   
   // 6. VAR(1) model loop over subjects and time points
   for (s in 1:S) {
@@ -93,6 +93,7 @@ model {
     }
   }
   }
+
 generated quantities {
   // We'll store the pointwise log-likelihood for each observation 
   // as a matrix of size N x K or as a vector if observations are univariate.
@@ -111,5 +112,4 @@ generated quantities {
   
   // Here we could implement the quick and dirty 'close' indistinguishable VAR(1).
   
-
 }
