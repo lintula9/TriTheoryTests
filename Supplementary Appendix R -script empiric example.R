@@ -57,6 +57,13 @@ Data5b <- Data5b %>%
                 .names = "{.col}_lag")) %>%
   ungroup()
 
+# Exclude the IDs with lowe obs count:
+
+# Exclude double beeps:
+Data5b[rep(which(Data5b$beep == lag(Data5b$beep) & Data5b$day == lag(Data5b$day)), each = 2) - 
+         rep(c(1,0), times = length(which(Data5b$beep == lag(Data5b$beep) & Data5b$day == lag(Data5b$day))))
+,] %>% select(id, beep, day) %>%
+  View()
 
 # STAN Bayesian multilevel analysis. -----------------
 
