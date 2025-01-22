@@ -146,7 +146,7 @@ fit_Net <- sampling(stan_model_Net, data = stan_data,
                     subject_intercept_raw = matrix(0, stan_data$S, stan_data$K),
                     subject_intercept_sd = rep(0.5, stan_data$K),
                     X_star_innovation = matrix(0, stan_data$K, stan_data$N),
-                    X_star_zero = matrix(rep(0, N*S), nrow = K, ncol = N), 
+                    X_star_zero = matrix(rep(0, K*S), nrow = K, ncol = S), 
                     subject_innovation_scale = matrix(1, stan_data$K, stan_data$S),
                     cutpoints = replicate(stan_data$K, seq(-2, 2, length.out = stan_data$cutpoint_count), simplify = FALSE),
                     time_of_day_intercept = replicate(stan_data$nbeeps, rep(0, stan_data$K), simplify = FALSE)
