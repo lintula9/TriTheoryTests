@@ -158,7 +158,7 @@ fit_dcf <- sampling(stan_model_DCF, data = stan_data,
 saveRDS(fit_dcf, "Datas/BayesOrderedDCF_FIT.RDS", compress = T); gc()
 # Diagnostics
 print(fit_dcf, pars = c("psi", "Lambda", "cutpoints", paste0("eta[",1:10,"]"), paste0("eta_star[",1:10,"]"),
-                        "subject_intercept", ))
+                        "subject_intercept"))
 dev.new(noRStudioGD = T)
 traceplot(fit_dcf)
 dev.new()
