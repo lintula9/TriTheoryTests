@@ -131,11 +131,26 @@ stan_data <- list(
   nbeeps = nbeeps
 )
 
+
+  ## Network ----
 # Run the Network model
 stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan")
 fit_Net <- sampling(stan_model_Net, data = stan_data, 
-                iter = 4000, chains = 4, cores = 4, 
-                control = list(adapt_delta = 0.95) )
+                iter = 2000, chains = 4, cores = 4, 
+                control = list(adapt_delta = 0.95),
+                init = function() {
+                  list(
+                    A = diag(rep(0.1, stan_data$K)),
+                    L_corr = diag(rep(1, stan_data$K)),
+                    sigma = rep(0.5, stan_data$K),
+                    subject_intercept_raw = matrix(0, stan_data$S, stan_data$K),
+                    subject_intercept_sd = rep(0.5, stan_data$K),
+                    X_star_innovation = matrix(0, stan_data$K, stan_data$N),
+                    X_star_zero = matrix(rep(0, N*S), nrow = K, ncol = N), 
+                    subject_innovation_scale = matrix(1, stan_data$K, stan_data$S),
+                    cutpoints = replicate(stan_data$K, seq(-2, 2, length.out = stan_data$cutpoint_count), simplify = FALSE),
+                    time_of_day_intercept = replicate(stan_data$nbeeps, rep(0, stan_data$K), simplify = FALSE)
+                  )})
 saveRDS(fit_Net, "Datas/BayesOrderedVAR_FIT.RDS", compress = T); gc()
 # Diagnostics
 print(fit_Net, pars = c("A","Omega", "cutpoints", "tau_subj"))
@@ -152,6 +167,10 @@ print(waic_results_Net)
 loo_results_Net <- loo(log_lik_matrix_Net)
 print(loo_results_Net)
 
+
+
+
+  ## DCF ------
 # Run the DCF model
 stan_model_DCF <- stan_model(file = "BayesianOrderedDCF.stan")
 fit_dcf <- sampling(stan_model_DCF, data = stan_data, 
@@ -160,7 +179,7 @@ fit_dcf <- sampling(stan_model_DCF, data = stan_data,
 saveRDS(fit_dcf, "Datas/BayesOrderedDCF_FIT.RDS", compress = T); gc()
 # Diagnostics
 print(fit_dcf, pars = c("psi", "Lambda", "cutpoints", paste0("eta[",1:10,"]"), 
-                        paste0("eta_star[",1:10,"]"),
+                        paste0("eta_zero[",1:5,"]"),
                         "subject_intercept"))
 dev.new(noRStudioGD = T)
 traceplot(fit_dcf)

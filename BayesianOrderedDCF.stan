@@ -21,7 +21,7 @@ parameters {
   vector[N] eta_innovation;  // Innovations (for non-centralized parameterization).
   
   // 2. Initial state for eta, eta*:
-  real eta_star[S];
+  real eta_zero[S];
   
   // 3. Random intercepts for each subject
   // The subject specific intercepts are defined for the CF.
@@ -37,7 +37,7 @@ parameters {
   
 transformed parameters {
   
-  // 3. Improved posterior geometry with non-centralized priors.
+  // 3. Subject intercetps: Improved posterior geometry with non-centralized priors.
   vector[S] subject_intercept;
   subject_intercept = subject_intercept_raw * subject_intercept_sd;
   
@@ -51,7 +51,7 @@ transformed parameters {
     // Loop over time for each subject
     for (t in start[s]:end[s]) {
             if(t==start[s]){
-          eta[t] = c + subject_intercept[s] + psi * eta_star[s] + eta_innovation[t]*subject_innovation_scale[s] + time_of_day_intercept[beep[t]];
+          eta[t] = c + subject_intercept[s] + psi * eta_zero[s] + eta_innovation[t]*subject_innovation_scale[s] + time_of_day_intercept[beep[t]];
     } else {
           eta[t] = c + subject_intercept[s] + psi * eta[t-1] + eta_innovation[t]*subject_innovation_scale[s] + time_of_day_intercept[beep[t]];
     }
@@ -61,14 +61,14 @@ transformed parameters {
 
 model {
   // 1. Priors for parameters
-  psi ~    normal(0, 0.1);                 // Prior for DCF autoregression coefficient.
+  psi ~    normal(0, 0.1);                // Prior for DCF autoregression coefficient.
   Lambda ~ normal(0, 0.5);                // (half)-normal prior.
-  eta_innovation ~ normal(0,0.1);     // Innovation prior.
+  eta_innovation ~ normal(0,0.1);         // Innovation prior.
   // 1a Subject specific innovation scale.
   subject_innovation_scale ~ normal(0,0.1);
   
   // 2. Initial state prior.
-  to_vector(eta_star) ~ normal(0,0.5);
+  to_vector(eta_zero) ~ normal(0,0.5);
 
   // 3. Subject-specific intercepts
   subject_intercept_sd ~ normal(0,0.1); // Prior for subject intercept SDs

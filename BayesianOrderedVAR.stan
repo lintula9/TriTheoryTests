@@ -11,85 +11,102 @@ data {
   real cutpoint_prior_locations[cutpoint_count];
   vector[K] mu0;              // Mean for initial states
   cov_matrix[K] Sigma0;       // Covariance for initial states
+  int<lower=1> beep[N];         // Time of day, for each observation. (4 = evening, 1 = morning.)
+  int<lower=1> nbeeps;          // Count of different times of day.
 }
+
 parameters {
   // 1. VAR(1) model parameters
   matrix[K, K] A;           // VAR(1) coefficient matrix
   
   // 2. Covariance matrix for residuals
-  cholesky_factor_corr[K] L_Omega;  // Cholesky factor of the correlation matrix
+  cholesky_factor_corr[K] L_corr;  // Cholesky factor of the correlation matrix
   vector<lower=0>[K] sigma;         // Standard deviations
   
   // 3. Random intercepts for each subject
   matrix[S, K] subject_intercept_raw;  // subject-specific intercept deviations
-  vector<lower=0>[K] tau_subj;     // Standard deviation for subject intercepts
+  vector<lower=0>[K] subject_intercept_sd;     // Standard deviation for subject intercepts
   
-  // 4. X_star as the latent, true, symptom structure.
-  matrix[K,N] X_star;
-  vector[K] X_star_zero[S];   // Initial state for each subject at t=0
+  // 4. X_star as latent symptoms.
+  matrix[K,N] X_star_innovation; // The non-deterministic part of X_star.
+  matrix[K,S] X_star_zero;   // Initial state for each subject at t=0.
+  matrix<lower=0>[K,S] subject_innovation_scale; // Subject specific scale for X_star innovations.
 
-  // 5. UNIQUE to ordered: X* (time and subject invariant) cutoffs:
+  // 5. Probit measurement model cutoffs:
   ordered[cutpoint_count] cutpoints[K];
+  
+  // 8. Time of day parameter:
+  vector[K] time_of_day_intercept[nbeeps];
   }
   
 transformed parameters {
-  // 2. Create the residual covariance matrix.
-  matrix[K, K] Omega;
-  Omega = multiply_lower_tri_self_transpose(L_Omega) .* (sigma * sigma');
-  
+
   // 3. Subject intercepts. Better posterior geometry with non-centralized priors.
   vector[K] subject_intercept[S];
   for(s in 1:S){
     for(k in 1:K){
-  subject_intercept[s, k] = subject_intercept_raw[s,k] * tau_subj[k];
+  subject_intercept[s, k] = subject_intercept_raw[s,k] * subject_intercept_sd[k];
   }}
   
   // 99. c = 0 (written in for compatibility of all syntax, though redundant).
   vector[K] c;
   c = rep_vector(0, K);
+  
+  // 4. Latent symptoms X_star as a transformed parameter. Improved posterior geometry with non-centralized priors
+  matrix[K,N] X_star;
+  for (s in 1:S) {
+    matrix[K,K] L;
+    L = diag_pre_multiply(sigma.*subject_innovation_scale[,s], L_corr);
+    // Loop over time for each subject
+    for (t in start[s]:end[s]) {
+            if(t==start[s]){                                           // diag_pre_multiply creates the full cholesky factor here.
+          X_star[,t] = c + subject_intercept[s] + A * X_star_zero[,s] + L*X_star_innovation[,t] + time_of_day_intercept[beep[t]];
+    } else {
+          X_star[,t] = c + subject_intercept[s] + A * X_star[,t-1] + L*X_star_innovation[,t] + time_of_day_intercept[beep[t]];
+    }
+        }
+        }
 }
+
 model {
   
   // 1. Priors for VAR model parameters
-  // NOT needed, set to 0. c ~ normal(0, 1);                           // Prior for global intercept
-  to_vector(A) ~ normal(0, 0.2);                 // Prior for VAR coefficients
-  L_Omega ~ lkj_corr_cholesky(2);              // Prior for correlation matrix
-  sigma ~ exponential(1);                      // Prior for residual standard deviations
+  to_vector(A) ~ normal(0, 1);               // Prior for VAR coefficients
+  L_corr ~ lkj_corr_cholesky(1);              // Prior for correlation matrix
+  sigma ~ normal(0,1);                      // Prior for residual standard deviations
+  to_vector(X_star_innovation) ~ normal(0,1); // Prior for the innovations, which are then mixed with L_corr.
   
   // 3. Priors for subject-specific intercepts
-  tau_subj ~ normal(0,1);                   // Prior for subject intercept SDs
+  subject_intercept_sd ~ normal(0,1);                   // Prior for subject intercept SDs
   for (s in 1:S) {
-    subject_intercept_raw[s] ~ normal(0, 0.1);
+    subject_intercept_raw[s] ~ normal(0, 1);
   }
+  
+  // 4. Latent symptoms at t = 0 and subject specific scale.
+  for (s in 1:S) {
+    X_star_zero[,s] ~ multi_normal(mu0, Sigma0); 
+    }
+  to_vector(subject_innovation_scale) ~ normal(0,1);
 
   // 5. Priors for the cutoffs.
   for (k in 1:K) {
     for(j in 1:cutpoint_count){
-    cutpoints[k] ~ normal(cutpoint_prior_locations[j], 0.5); // or some other weakly informative prior
+    cutpoints[k][j] ~ normal(cutpoint_prior_locations[j], 1);
     }}
   
-  // 6. VAR(1) model loop over subjects and time points
-  for (s in 1:S) {
-    // Initiate X_star at t = 0.
-    X_star_zero[s] ~ multi_normal(mu0, Sigma0); 
-    // Loop over time for each subject
-    for (t in start[s]:end[s]) {
-      // UNIQUE TO ORDERED: X_full is modeled as a multivariate normal, with 
-      // autoregressive structure.
-            if(t==start[s]){
-          X_star[, t] ~ multi_normal(c + subject_intercept[s] + A * X_star_zero[s], Omega);
-    } else {
-          X_star[, t] ~ multi_normal(c + subject_intercept[s] + A * X_star[, t - 1], Omega);
-    }
+  // 8. Time of day prior:
+  for(time in 1:nbeeps){
+    time_of_day_intercept[time] ~ normal(0,1); }
+  
+  // 6. VAR(1) model observations and variables.
+  for (n in 1:N) {
       for (k in 1:K){
-      if(missing_mask[t,k] == 0){
-      // Note, that X is N times K, whereas X_star is K times N, 
-      // hence the time index is placed differently.
-        target += ordered_probit_lpmf( X[t,k] | X_star[k,t], cutpoints[k]);
+      if(missing_mask[n,k] == 0){
+      // Note, that X is N times K, whereas X_star is K times N.
+        target += ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
         }
         }
     }
-  }
   }
 
 generated quantities {
@@ -107,6 +124,9 @@ generated quantities {
       }
     }
   }
+  // 1. Create the residual covariance matrix ( for interpretation)
+  matrix[K, K] Omega;
+  Omega = multiply_lower_tri_self_transpose(L_corr) .* (sigma * sigma');
   
   // Here we could implement the quick and dirty 'close' indistinguishable VAR(1).
   
