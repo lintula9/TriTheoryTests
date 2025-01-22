@@ -32,7 +32,6 @@ parameters {
   ordered[cutpoint_count] cutpoints[K];
   }
   
-  
 transformed parameters {
   // 2. Create the residual covariance matrix.
   matrix[K, K] Omega;

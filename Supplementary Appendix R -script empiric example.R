@@ -86,6 +86,8 @@ X[,3] <- Data5b$Nervous
 X[is.na(X)] <- 1
 start <- integer(S)
 end <- integer(S)
+beep <- Data5b$beep + 1
+nbeeps <- length(unique(beep))
 for (s in seq_along(subjects)) {
   subj_indices <- c()
   subj_indices <- which(Data5b$id == subjects[s])
@@ -124,7 +126,9 @@ stan_data <- list(
   cutpoint_prior_locations = cutpoint_prior_locations,
   cutpoint_count = cutpoint_count,
   mu0 = mu0,
-  Sigma0 = Sigma0
+  Sigma0 = Sigma0,
+  beep = beep,
+  nbeeps = nbeeps
 )
 
 # Run the Network model
@@ -150,19 +154,20 @@ print(loo_results_Net)
 
 # Run the DCF model
 stan_model_DCF <- stan_model(file = "BayesianOrderedDCF.stan")
-
-  #Prior sampling check:
 fit_dcf <- sampling(stan_model_DCF, data = stan_data, 
                 iter = 4000, chains = 4, cores = 4, 
                 control = list(adapt_delta = 0.95) )
 saveRDS(fit_dcf, "Datas/BayesOrderedDCF_FIT.RDS", compress = T); gc()
 # Diagnostics
-print(fit_dcf, pars = c("psi", "Lambda", "cutpoints", paste0("eta[",1:10,"]"), paste0("eta_star[",1:10,"]"),
+print(fit_dcf, pars = c("psi", "Lambda", "cutpoints", paste0("eta[",1:10,"]"), 
+                        paste0("eta_star[",1:10,"]"),
                         "subject_intercept"))
 dev.new(noRStudioGD = T)
 traceplot(fit_dcf)
-dev.new()
+dev.new(noRstudioGD = T)
 traceplot(fit_dcf, pars = "cutpoints")
+dev.new(noRstudioGD = T)
+traceplot(fit_dcf, pars = c("time_of_day_intercept", "eta_innovation"))
 check_hmc_diagnostics(fit_dcf)
 
 # WAIC and LOO
