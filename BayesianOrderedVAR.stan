@@ -127,8 +127,6 @@ generated quantities {
   // 1. Create the residual covariance matrix ( for interpretation)
   matrix[K, K] Omega;
   Omega = multiply_lower_tri_self_transpose(L_corr);
-  A_eigens = 
-  
   // Here we could implement the quick and dirty 'close' indistinguishable VAR(1).
   
 }

@@ -6,6 +6,7 @@
 
 # --------------- 1. Loading packages & Data ------------------------------
 # List of required packages
+setwd("C:/LocalData/lintusak/TriTheoryTests/")
 required_packages <- c(
   "Matrix", "fastmatrix", "BVAR", 
   "brms", "expm", "rstan",
@@ -103,7 +104,8 @@ missing_positions <- which(X == 0, arr.ind = TRUE)
 sorted_positions <- missing_positions[order(missing_positions[, 1]), ]
 missing_idx <- sorted_positions[,1,drop=T]
 missing_var <- sorted_positions[,2,drop=T]
-cutpoint_prior_locations <- 1:max(Data5b$Relax, na.rm = T) - mean(1:max(Data5b$Relax, na.rm = T))
+cutpoint_prior_locations <- 1:(length(unique(na.omit(Data5b$Relax))) - 1)
+cutpoint_prior_locations <- cutpoint_prior_locations - mean(cutpoint_prior_locations)
 cutpoint_count <- length(cutpoint_prior_locations)
 mu0 = rep(0, times = K)
 Sigma0 = matrix(rep(0.5, times = K^2), ncol = K, nrow = K)
@@ -136,7 +138,7 @@ stan_data <- list(
 # Run the Network model
 stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan")
 fit_Net <- sampling(stan_model_Net, data = stan_data, 
-                iter = 1000, chains = 4, cores = 4, 
+                iter = 4000, chains = 8, cores = 8, 
                 control = list(adapt_delta = 0.80),
                 init = function() {
                   list(
@@ -159,7 +161,20 @@ traceplot(fit_Net)
 traceplot(fit_Net, pars = paste0("X_star[1,",1:9,"]"))
 traceplot(fit_Net, pars = "cutpoints")
 traceplot(fit_Net, pars = "Omega")
+traceplot(fit_Net, pars = "time_of_day")
 check_hmc_diagnostics(fit_Net)
+
+# Posterior plots
+plot_indices <- seq(1,length(names(fit_Net)), by = 19)
+plotskips <- logical(length(plot_indices))
+for( i in 1:length(plot_indices) ){
+  if(plotskips[i]) next
+  dev.new(noRStudioGD = T)
+  print(mcmc_areas_ridges(fit_Net, pars = names(fit_Net)[(plot_indices[i]+1):plot_indices[i+1]]))
+  plotskip <- as.integer(readline("Enter for nxt plot. Integer if you want to skip plots."))
+  if(!is.na(plotskip) & plotskip > 0) plotskips[i:(i+plotskip)] <- T
+  
+}
 
 
 # WAIC and LOO
