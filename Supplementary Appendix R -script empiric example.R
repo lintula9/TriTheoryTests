@@ -155,14 +155,13 @@ fit_Net <- sampling(stan_model_Net, data = stan_data,
                 )
 saveRDS(fit_Net, "Datas/BayesOrderedVAR_FIT.RDS", compress = T); gc()
 # Diagnostics
-print(fit_Net, pars = c("A","Omega", "subject_intercept_sd"))
-dev.new(noRStudioGD = T)
-traceplot(fit_Net)
+print(fit_Net, pars = c("A", "subject_intercept_sd"))
+traceplot(fit_Net, pars = c("A", "subject_intercept_sd"))
 traceplot(fit_Net, pars = paste0("X_star[1,",1:9,"]"))
 traceplot(fit_Net, pars = "cutpoints")
 traceplot(fit_Net, pars = "Omega")
-traceplot(fit_Net, pars = "time_of_day")
-check_hmc_diagnostics(fit_Net)
+traceplot(fit_Net, pars = "time_of_day_intercept")
+check_hmc_diagnostics(fit_Net) # Can be slow!!
 
 # Posterior plots
 plot_indices <- seq(1,length(names(fit_Net)), by = 19)
