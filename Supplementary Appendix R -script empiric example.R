@@ -142,7 +142,6 @@ fit_Net <- sampling(stan_model_Net, data = stan_data,
                   list(
                     A = diag(rep(0.1, stan_data$K)),
                     L_corr = diag(rep(1, stan_data$K)),
-                    sigma = rep(0.5, stan_data$K),
                     subject_intercept_raw = matrix(0, stan_data$S, stan_data$K),
                     subject_intercept_sd = rep(0.5, stan_data$K),
                     X_star_innovation = matrix(0, stan_data$K, stan_data$N),
