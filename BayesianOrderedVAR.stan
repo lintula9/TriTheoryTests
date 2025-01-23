@@ -29,7 +29,7 @@ parameters {
   // 4. X_star as latent symptoms.
   matrix[K,N] X_star_innovation; // The non-deterministic part of X_star.
   matrix[K,S] X_star_zero;   // Initial state for each subject at t=0.
-  matrix<lower=0>[K,S] subject_innovation_scale; // Subject specific scale for X_star innovations.
+  matrix<lower=0>[K,S] subject_innovation_sd; // Subject specific scale for X_star innovations.
 
   // 5. Probit measurement model cutoffs:
   ordered[cutpoint_count] cutpoints[K];
@@ -55,36 +55,40 @@ transformed parameters {
   matrix[K,N] X_star;
   for (s in 1:S) {
     matrix[K,K] L;
-    L = diag_pre_multiply(subject_innovation_scale[,s], L_corr);
+    L = diag_pre_multiply(subject_innovation_sd[,s], L_corr);
     // Loop over time for each subject
     for (t in start[s]:end[s]) {
             if(t==start[s]){                                           // diag_pre_multiply creates the full cholesky factor here.
-          X_star[,t] = c + subject_intercept[s] + A * X_star_zero[,s] + L*X_star_innovation[,t] + time_of_day_intercept[beep[t]];
+          X_star[,t] = c + subject_intercept[s] 
+                         + A * X_star_zero[,s] 
+                    // X*_0 is already random.  + L * X_star_innovation[,t] 
+                         + time_of_day_intercept[beep[t]];
     } else {
-          X_star[,t] = c + subject_intercept[s] + A * X_star[,t-1] + L*X_star_innovation[,t] + time_of_day_intercept[beep[t]];
-    }
-        }
-        }
+          X_star[,t] = c + subject_intercept[s] 
+                         + A * X_star[,t-1] 
+                         + L * X_star_innovation[,t] 
+                         + time_of_day_intercept[beep[t]];
+    }}}
 }
 
 model {
   
   // 1. Priors for VAR model parameters
-  to_vector(A) ~ normal(0, 1);               // Prior for VAR coefficients
+  to_vector(A) ~ normal(0, 0.1);               // Prior for VAR coefficients
   L_corr ~ lkj_corr_cholesky(1);              // Prior for correlation matrix
-  to_vector(X_star_innovation) ~ normal(0,1); // Prior for the innovations, which are then mixed with L_corr.
+  to_vector(X_star_innovation) ~ normal(0,0.5); // Prior for the innovations, which are then mixed with L_corr.
   
   // 3. Priors for subject-specific intercepts
-  subject_intercept_sd ~ normal(0,1);                   // Prior for subject intercept SDs
+  subject_intercept_sd ~ normal(1,0.1);                   // Prior for subject intercept SDs
   for (s in 1:S) {
-    subject_intercept_raw[s] ~ normal(0, 1);
+    subject_intercept_raw[s] ~ normal(0, 0.1);
   }
   
   // 4. Latent symptoms at t = 0 and subject specific scale.
   for (s in 1:S) {
     X_star_zero[,s] ~ multi_normal(mu0, Sigma0); 
     }
-  to_vector(subject_innovation_scale) ~ normal(0,0.1); // Tight prior, for identifiability.
+  to_vector(subject_innovation_sd) ~ normal(1,0.1); // Tight prior, for identifiability.
 
   // 5. Priors for the cutoffs.
   for (k in 1:K) {
@@ -94,17 +98,15 @@ model {
   
   // 8. Time of day prior:
   for(time in 1:nbeeps){
-    time_of_day_intercept[time] ~ normal(0,1); }
+    time_of_day_intercept[time] ~ normal(0,0.1); }
   
   // 6. VAR(1) model observations and variables.
   for (n in 1:N) {
       for (k in 1:K){
       if(missing_mask[n,k] == 0){
       // Note, that X is N times K, whereas X_star is K times N.
-        target += ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
-        }
-        }
-    }
+       target += ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
+        }}}
   }
 
 generated quantities {
@@ -125,6 +127,7 @@ generated quantities {
   // 1. Create the residual covariance matrix ( for interpretation)
   matrix[K, K] Omega;
   Omega = multiply_lower_tri_self_transpose(L_corr);
+  A_eigens = 
   
   // Here we could implement the quick and dirty 'close' indistinguishable VAR(1).
   

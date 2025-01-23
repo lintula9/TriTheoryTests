@@ -17,7 +17,7 @@ parameters {
   // 1. D-CF model parameters
   real psi;                  // CF autoregression coefficient.
   vector<lower=0>[K] Lambda; // Factor loadings are assumed positive, to better identify the model.
-  real<lower=0> subject_innovation_scale[S]; // Innovation variance is assumed to be time invariant.
+  real<lower=0> subject_innovation_sd[S]; // Innovation variance is assumed to be time invariant.
   vector[N] eta_innovation;  // Innovations (for non-centralized parameterization).
   
   // 2. Initial state for eta, eta*:
@@ -51,9 +51,9 @@ transformed parameters {
     // Loop over time for each subject
     for (t in start[s]:end[s]) {
             if(t==start[s]){
-          eta[t] = c + subject_intercept[s] + psi * eta_zero[s] + eta_innovation[t]*subject_innovation_scale[s] + time_of_day_intercept[beep[t]];
+          eta[t] = c + subject_intercept[s] + psi * eta_zero[s] + eta_innovation[t]*subject_innovation_sd[s] + time_of_day_intercept[beep[t]];
     } else {
-          eta[t] = c + subject_intercept[s] + psi * eta[t-1] + eta_innovation[t]*subject_innovation_scale[s] + time_of_day_intercept[beep[t]];
+          eta[t] = c + subject_intercept[s] + psi * eta[t-1] + eta_innovation[t]*subject_innovation_sd[s] + time_of_day_intercept[beep[t]];
     }
         }
         } 
@@ -65,13 +65,13 @@ model {
   Lambda ~ normal(0, 0.5);                // (half)-normal prior.
   eta_innovation ~ normal(0,0.1);         // Innovation prior.
   // 1a Subject specific innovation scale.
-  subject_innovation_scale ~ normal(0,0.1);
+  subject_innovation_sd ~ normal(1,0.1);
   
   // 2. Initial state prior.
   to_vector(eta_zero) ~ normal(0,0.5);
 
   // 3. Subject-specific intercepts
-  subject_intercept_sd ~ normal(0,0.1); // Prior for subject intercept SDs
+  subject_intercept_sd ~ normal(1,0.1); // Prior for subject intercept SDs
   to_vector(subject_intercept_raw) ~ normal(0, 0.1); // Raw intercept, scaled by SD.
   
   // 7. Declare priors for the cutoffs.
