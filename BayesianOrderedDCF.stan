@@ -54,9 +54,7 @@ transformed parameters {
           eta[t] = c + subject_intercept[s] + psi * eta_zero[s] + eta_innovation[t]*subject_innovation_sd[s] + time_of_day_intercept[beep[t]];
     } else {
           eta[t] = c + subject_intercept[s] + psi * eta[t-1] + eta_innovation[t]*subject_innovation_sd[s] + time_of_day_intercept[beep[t]];
-    }
-        }
-        } 
+    }}} 
 }
 
 model {
@@ -105,7 +103,6 @@ generated quantities {
       } else {
         log_lik[n, k] = 0; // or NA, but zero won't affect WAIC/LOO calculations
       }
-    }
-  }
+    }}
   // Possibly introduce a quick and dirty map to a VAR(1) model from D-CF(1)
   }

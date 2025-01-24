@@ -122,8 +122,7 @@ generated quantities {
       } else {
         log_lik[n, k] = 0; // or NA, but zero won't affect WAIC/LOO calculations
       }
-    }
-  }
+      }}
   // 1. Create the residual covariance matrix ( for interpretation)
   matrix[K, K] Omega;
   Omega = multiply_lower_tri_self_transpose(L_corr);
