@@ -138,7 +138,7 @@ stan_data <- list(
 # Run the Network model
 stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan")
 fit_Net <- sampling(stan_model_Net, data = stan_data, 
-                iter = 4000, chains = 8, cores = 8, 
+                iter = 2000, chains = 4, cores = 8, 
                 control = list(adapt_delta = 0.80),
                 init = function() {
                   list(
@@ -152,7 +152,7 @@ fit_Net <- sampling(stan_model_Net, data = stan_data,
                     cutpoints = replicate(stan_data$K, seq(-1, 1, length.out = stan_data$cutpoint_count), simplify = FALSE),
                     time_of_day_intercept = replicate(stan_data$nbeeps, rep(0, stan_data$K), simplify = FALSE)
                   )}
-                )
+                ); gc()
 
   # Split the draws to inference set, likelihood set and nuisance set
     # Nuisance set
@@ -282,10 +282,28 @@ stan_data <- list(
   nbeeps = nbeeps
 )
 
+# Set of variables of interest, which we can set to pars argument, or later on extract.
+inference_vars <- c(
+  sapply(1:K, function(x) paste0("A[",x,",",1:K, "]")),
+# sapply(1:K, function(x) paste0("A[",x,",",1:K, "]")),
+  sapply(1:K, function(x) paste0("Omega[",x,",",1:K, "]")),
+  sapply(1:K, function(x) paste0("cutpoints[",x,",",1:cutpoint_count, "]")), #Works or not?
+  sapply(1:K, function(x) paste0("time_of_day_intercept[",x,",",1:nbeeps, "]")),
+)
+# Nuisance set
+nuisance_vars <- c(sapply(1:K, function(x) paste0("X_star_innovation[",x,",",1:N, "]")),
+                   sapply(1:K, function(x) paste0("subject_innovation_sd[",x,",",1:S, "]")),
+                   sapply(1:K, function(x) paste0("subject_intercept[",1:S,",",x, "]")),
+                   sapply(1:K, function(x) paste0("subject_intercept_sd[",1:S,",",x, "]")),
+                   sapply(1:K, function(x) paste0("subject_intercept_raw[",1:S,",",x, "]")),
+                   sapply(1:K, function(x) paste0("X_star_zero[",x,",",1:S, "]")),
+                   sapply(1:K, function(x) paste0("X_star[",x,",",1:N, "]")),
+                   "lp__")
+
 # Run the Network model
 stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan")
 fit_Net_7 <- sampling(stan_model_Net, data = stan_data, 
-                    iter = 4000, chains = 8, cores = 8, 
+                    iter = 2000, chains = 8, cores = 8, 
                     control = list(adapt_delta = 0.80),
                     init = function() {
                       list(
@@ -298,41 +316,28 @@ fit_Net_7 <- sampling(stan_model_Net, data = stan_data,
                         subject_innovation_sd = matrix(1, stan_data$K, stan_data$S),
                         cutpoints = replicate(stan_data$K, seq(-1, 1, length.out = stan_data$cutpoint_count), simplify = FALSE),
                         time_of_day_intercept = replicate(stan_data$nbeeps, rep(0, stan_data$K), simplify = FALSE)
-                      )}
-)
+                      )}); gc()
 
 # Split the draws to inference set, likelihood set and nuisance set
-# Nuisance set
-nuisance_vars <- c(sapply(1:K, function(x) paste0("X_star_innovation[",x,",",1:N, "]")),
-                   sapply(1:K, function(x) paste0("subject_innovation_sd[",x,",",1:S, "]")),
-                   sapply(1:K, function(x) paste0("subject_intercept[",1:S,",",x, "]")),
-                   sapply(1:K, function(x) paste0("subject_intercept_sd[",1:S,",",x, "]")),
-                   sapply(1:K, function(x) paste0("subject_intercept_raw[",1:S,",",x, "]")),
-                   sapply(1:K, function(x) paste0("X_star_zero[",x,",",1:S, "]")),
-                   sapply(1:K, function(x) paste0("X_star[",x,",",1:N, "]")),
-                   "lp__")
-fit_Net <- as.array(fit_Net); gc() # Rewrite, so that RAM is not occupied.
-saveRDS(fit_Net[,,nuisance_vars], "Datas/BayesOrderedVAR_FIT_NUISANCE_POSTERIOR.RDS", compress = T); gc()
-# Likelihoo set
-likelihood_array_Net  <- fit_Net[,, grepl("log_lik", dimnames(fit_Net)$parameters) ]
-saveRDS(likelihood_array_Net, "Datas/BayesOrderedVAR_FIT_LIKELIHOOD_POSTERIOR.RDS", compress = T); gc()
+fit_Net_7 <- as.matrix(fit_Net_7); gc() # Rewrite, so that RAM is not occupied.
+saveRDS(as.matrix(fit_Net_7)[,,nuisance_vars], "Datas/BayesOrderedVAR_FIT_7_NUISANCE_POSTERIOR.RDS", compress = T); gc()
+# Likelihood set
+saveRDS(fit_Net_7[, grepl("log_lik_7", dimnames(fit_Net_7)$parameters) ], "Datas/BayesOrderedVAR_FIT_7_LIKELIHOOD_POSTERIOR.RDS", compress = T); gc()
 # Inference set:
-fit_Net <- fit_Net[,, !(dimnames(fit_Net)$parameters %in% nuisance_vars | 
-                          grepl("log_lik", dimnames(fit_Net)$parameters)) ]
-network_pars <- dimnames(fit_Net)$parameters
-
+fit_Net_7 <- fit_Net_7[, inference_vars ]; gc()
+saveRDS(fit_Net_7, file ="Datas/BayesOrderedVAR_FIT_7_INFERENCE_POSTERIOR.RDS"); gc()
 # Diagnostics
 plotnams <- c("A", "Omega", "subject_intercept", "cutpoints",
               "time_of_day_intercept")
 for(i in 1:length(plotnams)){
   dev.new()
-  print(  mcmc_trace(fit_Net, regex_pars  = plotnams[i] ))
+  print(  mcmc_trace(fit_Net_7, regex_pars  = plotnams[i] ))
 }
 
 # Posterior plots
 for(i in 1:length(plotnams)){
   dev.new()
-  print(  mcmc_intervals(fit_Net, regex_pars  = plotnams[i] ))
+  print(  mcmc_intervals(fit_Net_7, regex_pars  = plotnams[i] ))
 }
 
 
@@ -340,15 +345,15 @@ for(i in 1:length(plotnams)){
 
 
 # Extract parameters
-posterior_samples <- rstan::extract(fit_Net, pars = "A", permuted = TRUE)
+posterior_samples <- rstan::extract(fit_Net_7, pars = "A", permuted = TRUE)
 
 A_mean <- matrix(0, ncol = K, nrow = K)
 for(i in 1:K) for(j in 1:K){
-  A_mean[i,j] <- mean(as.vector(fit_Net[,,paste0("A[",i,",",j,"]")]))
+  A_mean[i,j] <- mean(as.vector(fit_Net_7[,,paste0("A[",i,",",j,"]")]))
 }
 Omega_mean <- matrix(0, ncol = K, nrow = K)
 for(i in 1:K) for(j in 1:K){
-  Omega_mean[i,j] <- mean(as.vector(fit_Net[,,paste0("Omega[",i,",",j,"]")]))
+  Omega_mean[i,j] <- mean(as.vector(fit_Net_7[,,paste0("Omega[",i,",",j,"]")]))
 }
 
 # Plot the Network:

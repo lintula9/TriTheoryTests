@@ -18,6 +18,7 @@ data {
 parameters {
   // 1. VAR(1) model parameters
   matrix[K, K] A;           // VAR(1) coefficient matrix
+  // matrix[K, K] B;        // Evening to morning transition adjustment matrix.
   
   // 2. Correlation matrix for residuals
   cholesky_factor_corr[K] L_corr;  // Cholesky factor of the correlation matrix
@@ -51,7 +52,7 @@ transformed parameters {
   vector[K] c;
   c = rep_vector(0, K);
   
-  // 4. Latent symptoms X_star as a transformed parameter. Improved posterior geometry with non-centralized priors
+  // 4. Latent symptoms X_star as a transformed parameter: Improved posterior geometry with non-centralized priors
   matrix[K,N] X_star;
   for (s in 1:S) {
     matrix[K,K] L;
@@ -61,13 +62,15 @@ transformed parameters {
             if(t==start[s]){                                           // diag_pre_multiply creates the full cholesky factor here.
           X_star[,t] = c + subject_intercept[s] 
                          + A * X_star_zero[,s] 
-                    // X*_0 is already random.  + L * X_star_innovation[,t] 
+                    // Arguably can be ignored: X*_0 is already random.  + L * X_star_innovation[,t] 
                          + time_of_day_intercept[beep[t]];
     } else {
           X_star[,t] = c + subject_intercept[s] 
                          + A * X_star[,t-1] 
                          + L * X_star_innovation[,t] 
                          + time_of_day_intercept[beep[t]];
+                    //   + (time_of_day_intercept[beep[t]] == 4) * B * X_star[,t-1]
+
     }}}
 }
 
@@ -75,6 +78,8 @@ model {
   
   // 1. Priors for VAR model parameters
   to_vector(A) ~ normal(0, 0.1);               // Prior for VAR coefficients
+  //to_vector(B) ~ normal(0, 0.1);               // Prior for evening-to-morning adjustment
+
   L_corr ~ lkj_corr_cholesky(1);              // Prior for correlation matrix
   to_vector(X_star_innovation) ~ normal(0,0.5); // Prior for the innovations, which are then mixed with L_corr.
   
@@ -100,13 +105,21 @@ model {
   for(time in 1:nbeeps){
     time_of_day_intercept[time] ~ normal(0,0.1); }
   
-  // 6. VAR(1) model observations and variables.
-  for (n in 1:N) {
-      for (k in 1:K){
-      if(missing_mask[n,k] == 0){
+  // 6. Model target likelihood and variables. Old version
+  //for (n in 1:N) {
+    //  for (k in 1:K){
+      //if(missing_mask[n,k] == 0){
       // Note, that X is N times K, whereas X_star is K times N.
-       target += ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
+      
+      // target += ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
+       
         }}}
+        
+      // Vectorized version.
+  for(k in 1:K){
+   target += sum( ( missing_mask[,k] == 0 ) .* ordered_probit_lpmf(X[,k] | transpose(X_star)[,k], cutpoints[k]))
+   }
+
   }
 
 generated quantities {
