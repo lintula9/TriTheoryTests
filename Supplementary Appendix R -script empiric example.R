@@ -96,9 +96,9 @@ for (s in seq_along(subjects)) {
   end[s] <- max(subj_indices)
 }
 missing_mask <- matrix(0, nrow = N, ncol = K)
-missing_mask[, 1] <- as.integer(is.na(Data5b$Relax))
-missing_mask[, 2] <- as.integer(is.na(Data5b$Worry))
-missing_mask[, 3] <- as.integer(is.na(Data5b$Nervous))
+missing_mask[, 1] <- as.integer(!is.na(Data5b$Relax))
+missing_mask[, 2] <- as.integer(!is.na(Data5b$Worry))
+missing_mask[, 3] <- as.integer(!is.na(Data5b$Nervous))
 M = sum(missing_mask == 1)
 missing_positions <- which(X == 0, arr.ind = TRUE)
 sorted_positions <- missing_positions[order(missing_positions[, 1]), ]
@@ -287,8 +287,8 @@ inference_vars <- c(
   sapply(1:K, function(x) paste0("A[",x,",",1:K, "]")),
 # sapply(1:K, function(x) paste0("A[",x,",",1:K, "]")),
   sapply(1:K, function(x) paste0("Omega[",x,",",1:K, "]")),
-  sapply(1:K, function(x) paste0("cutpoints[",x,",",1:cutpoint_count, "]")), #Works or not?
-  sapply(1:K, function(x) paste0("time_of_day_intercept[",x,",",1:nbeeps, "]")),
+  sapply(1:K, function(x) paste0("cutpoints[",x,",",1:cutpoint_count, "]")),
+  sapply(1:K, function(x) paste0("time_of_day_intercept[",x,",",1:nbeeps, "]"))
 )
 # Nuisance set
 nuisance_vars <- c(sapply(1:K, function(x) paste0("X_star_innovation[",x,",",1:N, "]")),
@@ -320,14 +320,14 @@ fit_Net_7 <- sampling(stan_model_Net, data = stan_data,
 
 # Split the draws to inference set, likelihood set and nuisance set
 fit_Net_7 <- as.matrix(fit_Net_7); gc() # Rewrite, so that RAM is not occupied.
-saveRDS(as.matrix(fit_Net_7)[,,nuisance_vars], "Datas/BayesOrderedVAR_FIT_7_NUISANCE_POSTERIOR.RDS", compress = T); gc()
+saveRDS(as.matrix(fit_Net_7)[,dimnames(fit_Net_7)$parameters %in% nuisance_vars], "Datas/BayesOrderedVAR_FIT_7_NUISANCE_POSTERIOR.RDS", compress = T); gc()
 # Likelihood set
 saveRDS(fit_Net_7[, grepl("log_lik_7", dimnames(fit_Net_7)$parameters) ], "Datas/BayesOrderedVAR_FIT_7_LIKELIHOOD_POSTERIOR.RDS", compress = T); gc()
 # Inference set:
-fit_Net_7 <- fit_Net_7[, inference_vars ]; gc()
+fit_Net_7 <- fit_Net_7[, dimnames(fit_Net_7)$parameters %in% inference_vars ]; gc()
 saveRDS(fit_Net_7, file ="Datas/BayesOrderedVAR_FIT_7_INFERENCE_POSTERIOR.RDS"); gc()
 # Diagnostics
-plotnams <- c("A", "Omega", "subject_intercept", "cutpoints",
+plotnams <- c("A", "Omega", "cutpoints",
               "time_of_day_intercept")
 for(i in 1:length(plotnams)){
   dev.new()
@@ -349,11 +349,11 @@ posterior_samples <- rstan::extract(fit_Net_7, pars = "A", permuted = TRUE)
 
 A_mean <- matrix(0, ncol = K, nrow = K)
 for(i in 1:K) for(j in 1:K){
-  A_mean[i,j] <- mean(as.vector(fit_Net_7[,,paste0("A[",i,",",j,"]")]))
+  A_mean[i,j] <- mean(as.vector(fit_Net_7[,paste0("A[",i,",",j,"]")]))
 }
 Omega_mean <- matrix(0, ncol = K, nrow = K)
 for(i in 1:K) for(j in 1:K){
-  Omega_mean[i,j] <- mean(as.vector(fit_Net_7[,,paste0("Omega[",i,",",j,"]")]))
+  Omega_mean[i,j] <- mean(as.vector(fit_Net_7[,paste0("Omega[",i,",",j,"]")]))
 }
 
 # Plot the Network:

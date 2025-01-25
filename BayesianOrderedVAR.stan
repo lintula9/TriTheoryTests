@@ -18,7 +18,7 @@ data {
 parameters {
   // 1. VAR(1) model parameters
   matrix[K, K] A;           // VAR(1) coefficient matrix
-  // matrix[K, K] B;        // Evening to morning transition adjustment matrix.
+  matrix[K, K] B;        // Evening to morning transition adjustment matrix.
   
   // 2. Correlation matrix for residuals
   cholesky_factor_corr[K] L_corr;  // Cholesky factor of the correlation matrix
@@ -68,8 +68,8 @@ transformed parameters {
           X_star[,t] = c + subject_intercept[s] 
                          + A * X_star[,t-1] 
                          + L * X_star_innovation[,t] 
-                         + time_of_day_intercept[beep[t]];
-                    //   + (time_of_day_intercept[beep[t]] == 4) * B * X_star[,t-1]
+                         + time_of_day_intercept[beep[t]]
+                         + (beep[t] == 4) * B * X_star[,t-1];
 
     }}}
 }
@@ -78,7 +78,7 @@ model {
   
   // 1. Priors for VAR model parameters
   to_vector(A) ~ normal(0, 0.1);               // Prior for VAR coefficients
-  //to_vector(B) ~ normal(0, 0.1);               // Prior for evening-to-morning adjustment
+  to_vector(B) ~ normal(0, 0.1);               // Prior for evening-to-morning adjustment
 
   L_corr ~ lkj_corr_cholesky(1);              // Prior for correlation matrix
   to_vector(X_star_innovation) ~ normal(0,0.5); // Prior for the innovations, which are then mixed with L_corr.
@@ -113,11 +113,11 @@ model {
       
       // target += ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
        
-        }}}
+       // }}}
         
       // Vectorized version.
-  for(k in 1:K){
-   target += sum( ( missing_mask[,k] == 0 ) .* ordered_probit_lpmf(X[,k] | transpose(X_star)[,k], cutpoints[k]))
+  for(k in 1:K){ // DOES NOT WORK?
+   target += sum(  missing_mask[,k]  .* ordered_probit_lpmf(X[,k] | transpose(X_star)[,k], cutpoints[k]) );
    }
 
   }
