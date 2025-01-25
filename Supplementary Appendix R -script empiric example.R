@@ -96,9 +96,9 @@ for (s in seq_along(subjects)) {
   end[s] <- max(subj_indices)
 }
 missing_mask <- matrix(0, nrow = N, ncol = K)
-missing_mask[, 1] <- as.integer(!is.na(Data5b$Relax))
-missing_mask[, 2] <- as.integer(!is.na(Data5b$Worry))
-missing_mask[, 3] <- as.integer(!is.na(Data5b$Nervous))
+missing_mask[, 1] <- as.integer(is.na(Data5b$Relax))
+missing_mask[, 2] <- as.integer(is.na(Data5b$Worry))
+missing_mask[, 3] <- as.integer(is.na(Data5b$Nervous))
 M = sum(missing_mask == 1)
 missing_positions <- which(X == 0, arr.ind = TRUE)
 sorted_positions <- missing_positions[order(missing_positions[, 1]), ]
@@ -135,6 +135,14 @@ stan_data <- list(
 
 
   ## First analysis: 3 symptom Network ----
+# Set of variables of interest, which we can set to pars argument, or later on extract.
+inference_vars <- c(
+  sapply(1:K, function(x) paste0("A[",x,",",1:K, "]")),
+  sapply(1:K, function(x) paste0("B[",x,",",1:K, "]")),
+  sapply(1:K, function(x) paste0("Omega[",x,",",1:K, "]")),
+  sapply(1:K, function(x) paste0("cutpoints[",x,",",1:cutpoint_count, "]")),
+  sapply(1:K, function(x) paste0("time_of_day_intercept[",x,",",1:nbeeps, "]"))
+)
 # Run the Network model
 stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan")
 fit_Net <- sampling(stan_model_Net, data = stan_data, 
@@ -151,7 +159,10 @@ fit_Net <- sampling(stan_model_Net, data = stan_data,
                     subject_innovation_sd = matrix(1, stan_data$K, stan_data$S),
                     cutpoints = replicate(stan_data$K, seq(-1, 1, length.out = stan_data$cutpoint_count), simplify = FALSE),
                     time_of_day_intercept = replicate(stan_data$nbeeps, rep(0, stan_data$K), simplify = FALSE)
-                  )}
+                  )},
+                pars = c("A", "B",
+                         "Omega", "cutpoints",
+                         "time_of_day_intercept")
                 ); gc()
 
   # Split the draws to inference set, likelihood set and nuisance set

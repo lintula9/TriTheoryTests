@@ -77,8 +77,8 @@ transformed parameters {
 model {
   
   // 1. Priors for VAR model parameters
-  to_vector(A) ~ normal(0, 0.1);               // Prior for VAR coefficients
-  to_vector(B) ~ normal(0, 0.1);               // Prior for evening-to-morning adjustment
+  to_vector(A) ~ normal(0, 0.5);               // Prior for VAR coefficients
+  to_vector(B) ~ normal(0, 0.5);               // Prior for evening-to-morning adjustment
 
   L_corr ~ lkj_corr_cholesky(1);              // Prior for correlation matrix
   to_vector(X_star_innovation) ~ normal(0,0.5); // Prior for the innovations, which are then mixed with L_corr.
@@ -98,27 +98,21 @@ model {
   // 5. Priors for the cutoffs.
   for (k in 1:K) {
     for(j in 1:cutpoint_count){
-    cutpoints[k][j] ~ normal(cutpoint_prior_locations[j], 1);
+    cutpoints[k][j] ~ normal(cutpoint_prior_locations[j], 0.5);
     }}
   
   // 8. Time of day prior:
   for(time in 1:nbeeps){
-    time_of_day_intercept[time] ~ normal(0,0.1); }
+    time_of_day_intercept[time] ~ normal(0,0.5); }
   
   // 6. Model target likelihood and variables. Old version
-  //for (n in 1:N) {
-    //  for (k in 1:K){
-      //if(missing_mask[n,k] == 0){
-      // Note, that X is N times K, whereas X_star is K times N.
-      
-      // target += ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
-       
-       // }}}
-        
-      // Vectorized version.
-  for(k in 1:K){ // DOES NOT WORK?
-   target += sum(  missing_mask[,k]  .* ordered_probit_lpmf(X[,k] | transpose(X_star)[,k], cutpoints[k]) );
-   }
+  for (n in 1:N) {
+      for (k in 1:K){
+      if(missing_mask[n,k] == 0){
+       // Note, that X is N times K, whereas X_star is K times N.
+       target += ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
+        }}}
+
 
   }
 
