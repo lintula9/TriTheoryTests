@@ -22,6 +22,7 @@ parameters {
   
   // 2. Correlation matrix for residuals
   cholesky_factor_corr[K] L_corr;  // Cholesky factor of the correlation matrix
+  vector<lower=0>[K] X_star_innovation_sd; // Scale for the (independent) innovations.
 
   // 3. Random intercepts for each subject
   matrix[S, K] subject_intercept_raw;  // subject-specific intercept deviations
@@ -52,25 +53,25 @@ transformed parameters {
   vector[K] c;
   c = rep_vector(0, K);
   
-  // 4. Latent symptoms X_star as a transformed parameter: Improved posterior geometry with non-centralized priors
+  // 4. Latent symptoms X_star as a transformed parameter: 
+  // Improved posterior geometry with non-centralized priors
   matrix[K,N] X_star;
   for (s in 1:S) {
     matrix[K,K] L;
     L = diag_pre_multiply(subject_innovation_sd[,s], L_corr);
     // Loop over time for each subject
     for (t in start[s]:end[s]) {
-            if(t==start[s]){                                           // diag_pre_multiply creates the full cholesky factor here.
+            if(t==start[s]){     // diag_pre_multiply creates the full cholesky factor here.
           X_star[,t] = c + subject_intercept[s] 
                          + A * X_star_zero[,s] 
-                    // Arguably can be ignored: X*_0 is already random.  + L * X_star_innovation[,t] 
                          + time_of_day_intercept[beep[t]];
     } else {
+      // Scale of X_star is problematic for identifiability.
           X_star[,t] = c + subject_intercept[s] 
                          + A * X_star[,t-1] 
-                         + L * X_star_innovation[,t] 
+                         + L * ( X_star_innovation[,t] .* X_star_innovation_sd ) 
                          + time_of_day_intercept[beep[t]]
                          + (beep[t] == 4) * B * X_star[,t-1];
-
     }}}
 }
 
@@ -81,10 +82,14 @@ model {
   to_vector(B) ~ normal(0, 0.5);               // Prior for evening-to-morning adjustment
 
   L_corr ~ lkj_corr_cholesky(1);              // Prior for correlation matrix
-  to_vector(X_star_innovation) ~ normal(0,0.5); // Prior for the innovations, which are then mixed with L_corr.
+  to_vector(X_star_innovation) ~ normal(0,0.5); 
+  // After mixing with L: X -> LX, we obtain multinormal variables.
+  // Scale of X_star_innovations is difficult to identify. We'll use a vague prior.
+  to_vector(X_star_innovation_sd) ~ normal(0.707,1);
   
   // 3. Priors for subject-specific intercepts
-  subject_intercept_sd ~ normal(1,0.1);                   // Prior for subject intercept SDs
+  subject_intercept_sd ~ normal(1,0.1);                   
+  // Prior for subject intercept SDs, strong prior for identifiability.
   for (s in 1:S) {
     subject_intercept_raw[s] ~ normal(0, 0.1);
   }
@@ -93,43 +98,40 @@ model {
   for (s in 1:S) {
     X_star_zero[,s] ~ multi_normal(mu0, Sigma0); 
     }
-  to_vector(subject_innovation_sd) ~ normal(1,0.1); // Tight prior, for identifiability.
+  to_vector(subject_innovation_sd) ~ normal(1,0.1); 
+  // Tight prior, for identifiability. 
 
   // 5. Priors for the cutoffs.
   for (k in 1:K) {
     for(j in 1:cutpoint_count){
-    cutpoints[k][j] ~ normal(cutpoint_prior_locations[j], 0.5);
+    cutpoints[k][j] ~ normal(cutpoint_prior_locations[j], 0.1); 
+    // Empirical CDFs of data justify strong prior, assuming X_star is standard multinormal.
+    // The problem is that cutpoints correlate with scaling of X_star.
     }}
   
   // 8. Time of day prior:
   for(time in 1:nbeeps){
     time_of_day_intercept[time] ~ normal(0,0.5); }
   
-  // 6. Model target likelihood and variables. Old version
-  for (n in 1:N) {
-      for (k in 1:K){
+  // 6. Model target likelihood and variables. OLD:
+
+  for (k in 1:K){
+    for (n in 1:N) {
       if(missing_mask[n,k] == 0){
        // Note, that X is N times K, whereas X_star is K times N.
        target += ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
         }}}
-
+  // Possibly change something that does not require missing_mask;
+  // e.g., vectorize whole data and create indicator variables for n (row), k(column.
+  // Then we have:
+  // for (m in 1:M) {
+  //  target += ordered_probit_lpmf(X[m] | X_star[observed_k[m], observed_n[m]], cutpoints[observed_k[m]]);
+  //  }
 
   }
 
 generated quantities {
-  // We'll store the pointwise log-likelihood for each observation 
-  // as a matrix of size N x K or as a vector if observations are univariate.
-  matrix[N, K] log_lik;
-  
-  for (n in 1:N) {
-    for (k in 1:K) {
-      if (missing_mask[n, k] == 0) {
-        // Compute log-probability only for non-missing observations.
-        log_lik[n, k] = ordered_probit_lpmf(X[n,k] | X_star[k,n], cutpoints[k]);
-      } else {
-        log_lik[n, k] = 0; // or NA, but zero won't affect WAIC/LOO calculations
-      }
-      }}
+
   // 1. Create the residual covariance matrix ( for interpretation)
   matrix[K, K] Omega;
   Omega = multiply_lower_tri_self_transpose(L_corr);

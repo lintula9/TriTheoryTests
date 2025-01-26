@@ -104,8 +104,9 @@ missing_positions <- which(X == 0, arr.ind = TRUE)
 sorted_positions <- missing_positions[order(missing_positions[, 1]), ]
 missing_idx <- sorted_positions[,1,drop=T]
 missing_var <- sorted_positions[,2,drop=T]
-cutpoint_prior_locations <- 1:(length(unique(na.omit(Data5b$Relax))) - 1)
-cutpoint_prior_locations <- cutpoint_prior_locations - mean(cutpoint_prior_locations)
+cutpoint_prior_locations <- rowMeans(qnorm((sapply(Data5b %>% select(Relax, Worry, Nervous),
+                                                   function(x) cumsum(prop.table(table(na.omit(x))))))))
+cutpoint_prior_locations <- cutpoint_prior_locations[-length(cutpoint_prior_locations)]
 cutpoint_count <- length(cutpoint_prior_locations)
 mu0 = rep(0, times = K)
 Sigma0 = matrix(rep(0.5, times = K^2), ncol = K, nrow = K)
@@ -141,28 +142,29 @@ inference_vars <- c(
   sapply(1:K, function(x) paste0("B[",x,",",1:K, "]")),
   sapply(1:K, function(x) paste0("Omega[",x,",",1:K, "]")),
   sapply(1:K, function(x) paste0("cutpoints[",x,",",1:cutpoint_count, "]")),
-  sapply(1:K, function(x) paste0("time_of_day_intercept[",x,",",1:nbeeps, "]"))
+  sapply(1:K, function(x) paste0("time_of_day_intercept[",x,",",1:nbeeps, "]")),
+  sapply(1:K, function(x) paste0("X_star_innovation_sd[",x,"]"))
 )
+inference_vars_regex <- c("A", "B","Omega", "cutpoints","time_of_day_intercept", "X_star_innovation_sd")
 # Run the Network model
 stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan")
 fit_Net <- sampling(stan_model_Net, data = stan_data, 
-                iter = 2000, chains = 4, cores = 8, 
-                control = list(adapt_delta = 0.80),
+                iter = 2000, chains = 8, cores = 8, 
+                control = list(adapt_delta = 0.99),
                 init = function() {
                   list(
-                    A = diag(rep(0.1, stan_data$K)),
+                    A = diag(rep(0, stan_data$K)),
                     L_corr = diag(rep(1, stan_data$K)),
                     subject_intercept_raw = matrix(0, stan_data$S, stan_data$K),
                     subject_intercept_sd = rep(1, stan_data$K),
                     X_star_innovation = matrix(0, stan_data$K, stan_data$N),
+                    X_star_innovation_sd = rep(0.5,times = stan_data$K),
                     X_star_zero = matrix(rep(0, K*S), nrow = K, ncol = S),
                     subject_innovation_sd = matrix(1, stan_data$K, stan_data$S),
-                    cutpoints = replicate(stan_data$K, seq(-1, 1, length.out = stan_data$cutpoint_count), simplify = FALSE),
+                    cutpoints = matrix(rep(cutpoint_prior_locations,times = stan_data$K), ncol = stan_data$K, byrow = T),
                     time_of_day_intercept = replicate(stan_data$nbeeps, rep(0, stan_data$K), simplify = FALSE)
                   )},
-                pars = c("A", "B",
-                         "Omega", "cutpoints",
-                         "time_of_day_intercept")
+                pars = inference_vars_regex
                 ); gc()
 
   # Split the draws to inference set, likelihood set and nuisance set
@@ -175,7 +177,7 @@ nuisance_vars <- c(sapply(1:K, function(x) paste0("X_star_innovation[",x,",",1:N
                    sapply(1:K, function(x) paste0("X_star_zero[",x,",",1:S, "]")),
                    sapply(1:K, function(x) paste0("X_star[",x,",",1:N, "]")),
                    "lp__")
-fit_Net <- as.array(fit_Net); gc() # Rewrite, so that RAM is not occupied.
+fit_Net <- as.matrix(fit_Net); gc() # Rewrite, so that RAM is not occupied.
 saveRDS(fit_Net[,,nuisance_vars], "Datas/BayesOrderedVAR_FIT_NUISANCE_POSTERIOR.RDS", compress = T); gc()
     # Likelihoo set
 likelihood_array_Net  <- fit_Net[,, grepl("log_lik", dimnames(fit_Net)$parameters) ]
@@ -186,12 +188,16 @@ fit_Net <- fit_Net[,, !(dimnames(fit_Net)$parameters %in% nuisance_vars |
 network_pars <- dimnames(fit_Net)$parameters
 
 # Diagnostics
-plotnams <- c("A", "Omega", "subject_intercept", "cutpoints",
+plotnams <- c("A", "Omega", "cutpoints",
               "time_of_day_intercept")
 for(i in 1:length(plotnams)){
   dev.new()
   print(  mcmc_trace(fit_Net, regex_pars  = plotnams[i] ))
   }
+# Pairwise plots, for multicollinearit:
+pairplotter <- function(var1,var2,fit = fit_Net) {
+  mcmc_pairs(fit_Net, regex_pars = c(var1,var2))
+}
 
 # Posterior plots
 for(i in 1:length(plotnams)){
@@ -338,7 +344,7 @@ saveRDS(fit_Net_7[, grepl("log_lik_7", dimnames(fit_Net_7)$parameters) ], "Datas
 fit_Net_7 <- fit_Net_7[, dimnames(fit_Net_7)$parameters %in% inference_vars ]; gc()
 saveRDS(fit_Net_7, file ="Datas/BayesOrderedVAR_FIT_7_INFERENCE_POSTERIOR.RDS"); gc()
 # Diagnostics
-plotnams <- c("A", "Omega", "cutpoints",
+plotnams <- c("A","B", "Omega", "cutpoints",
               "time_of_day_intercept")
 for(i in 1:length(plotnams)){
   dev.new()
