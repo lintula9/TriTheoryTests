@@ -20,9 +20,10 @@ parameters {
   matrix[K, K] A;           // VAR(1) coefficient matrix
   matrix[K, K] B;        // Evening to morning transition adjustment matrix.
   
+  // Note: the scale of the latent X* symtpoms is not identified, thus it is user defined.
+  
   // 2. Correlation matrix for residuals
   cholesky_factor_corr[K] L_corr;  // Cholesky factor of the correlation matrix
-  vector<lower=0>[K] X_star_innovation_sd; // Scale for the (independent) innovations.
 
   // 3. Random intercepts for each subject
   matrix[S, K] subject_intercept_raw;  // subject-specific intercept deviations
@@ -69,7 +70,7 @@ transformed parameters {
       // Scale of X_star is problematic for identifiability.
           X_star[,t] = c + subject_intercept[s] 
                          + A * X_star[,t-1] 
-                         + L * ( X_star_innovation[,t] .* X_star_innovation_sd ) 
+                         + L * ( X_star_innovation[,t] ) 
                          + time_of_day_intercept[beep[t]]
                          + (beep[t] == 4) * B * X_star[,t-1];
     }}}
@@ -84,10 +85,7 @@ model {
   L_corr ~ lkj_corr_cholesky(1);              // Prior for correlation matrix
   to_vector(X_star_innovation) ~ normal(0,0.5); 
   // After mixing with L: X -> LX, we obtain multinormal variables.
-  // Scale of X_star_innovations is difficult to identify. 
-  // We'll use a vague prior for now, but this might simply need removal (cutoffs are dependent on X_star scale).
-  to_vector(X_star_innovation_sd) ~ normal(0.707,1);
-  
+
   // 3. Priors for subject-specific intercepts
   subject_intercept_sd ~ normal(1,0.1);                   
   // Prior for subject intercept SDs, strong prior for identifiability.
@@ -125,9 +123,10 @@ model {
   // Possibly change something that does not require missing_mask;
   // e.g., vectorize whole data and create indicator variables for n (row), k(column.
   // Then we have:
-  // for (m in 1:M) {
-  //  target += ordered_probit_lpmf(X[m] | X_star[observed_k[m], observed_n[m]], cutpoints[observed_k[m]]);
+  // for (obs in obs_indices) {
+  //  target += ordered_probit_lpmf(X[obs] | X_star[x_k[obs], x_n[obs]], cutpoints[x_k[obs]]);
   //  }
+  // Where obs_indices can be made not to include the missing data.
 
   }
 
@@ -136,6 +135,5 @@ generated quantities {
   // 1. Create the residual covariance matrix ( for interpretation)
   matrix[K, K] Omega;
   Omega = multiply_lower_tri_self_transpose(L_corr);
-  // Here we could implement the quick and dirty 'close' indistinguishable VAR(1).
   
 }

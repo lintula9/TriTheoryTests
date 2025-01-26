@@ -149,7 +149,7 @@ inference_vars_regex <- c("A", "B","Omega", "cutpoints","time_of_day_intercept",
 # Run the Network model
 stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan")
 fit_Net <- sampling(stan_model_Net, data = stan_data, 
-                iter = 2000, chains = 8, cores = 8, 
+                iter = 4000, chains = 8, cores = 8, 
                 control = list(adapt_delta = 0.99),
                 init = function() {
                   list(
@@ -167,25 +167,8 @@ fit_Net <- sampling(stan_model_Net, data = stan_data,
                 pars = inference_vars_regex
                 ); gc()
 
-  # Split the draws to inference set, likelihood set and nuisance set
-    # Nuisance set
-nuisance_vars <- c(sapply(1:K, function(x) paste0("X_star_innovation[",x,",",1:N, "]")),
-                   sapply(1:K, function(x) paste0("subject_innovation_sd[",x,",",1:S, "]")),
-                   sapply(1:K, function(x) paste0("subject_intercept[",1:S,",",x, "]")),
-                   sapply(1:K, function(x) paste0("subject_intercept_sd[",1:S,",",x, "]")),
-                   sapply(1:K, function(x) paste0("subject_intercept_raw[",1:S,",",x, "]")),
-                   sapply(1:K, function(x) paste0("X_star_zero[",x,",",1:S, "]")),
-                   sapply(1:K, function(x) paste0("X_star[",x,",",1:N, "]")),
-                   "lp__")
 fit_Net <- as.matrix(fit_Net); gc() # Rewrite, so that RAM is not occupied.
-saveRDS(fit_Net[,,nuisance_vars], "Datas/BayesOrderedVAR_FIT_NUISANCE_POSTERIOR.RDS", compress = T); gc()
-    # Likelihoo set
-likelihood_array_Net  <- fit_Net[,, grepl("log_lik", dimnames(fit_Net)$parameters) ]
-saveRDS(likelihood_array_Net, "Datas/BayesOrderedVAR_FIT_LIKELIHOOD_POSTERIOR.RDS", compress = T); gc()
-    # Inference set:
-fit_Net <- fit_Net[,, !(dimnames(fit_Net)$parameters %in% nuisance_vars | 
-                          grepl("log_lik", dimnames(fit_Net)$parameters)) ]
-network_pars <- dimnames(fit_Net)$parameters
+saveRDS(fit_Net, file = "Datas/BayesianVAR_3_symptoms_26_01.RDS"); gc()
 
 # Diagnostics
 plotnams <- c("A", "Omega", "cutpoints",
@@ -199,26 +182,16 @@ pairplotter <- function(var1,var2,fit = fit_Net) {
   mcmc_pairs(fit_Net, regex_pars = c(var1,var2))
 }
 
-# Posterior plots
-for(i in 1:length(plotnams)){
-  dev.new()
-  print(  mcmc_intervals(fit_Net, regex_pars  = plotnams[i] ))
-  }
-
-
-# WAIC and LOO
-
-
 # Extract parameters
 posterior_samples <- rstan::extract(fit_Net, pars = "A", permuted = TRUE)
 
 A_mean <- matrix(0, ncol = K, nrow = K)
 for(i in 1:K) for(j in 1:K){
-  A_mean[i,j] <- mean(as.vector(fit_Net[,,paste0("A[",i,",",j,"]")]))
+  A_mean[i,j] <- mean(as.vector(fit_Net[,paste0("A[",i,",",j,"]")]))
   }
 Omega_mean <- matrix(0, ncol = K, nrow = K)
 for(i in 1:K) for(j in 1:K){
-  Omega_mean[i,j] <- mean(as.vector(fit_Net[,,paste0("Omega[",i,",",j,"]")]))
+  Omega_mean[i,j] <- mean(as.vector(fit_Net[,paste0("Omega[",i,",",j,"]")]))
 }
 
 # Plot the Network:
