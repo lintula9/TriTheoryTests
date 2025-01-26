@@ -84,7 +84,8 @@ model {
   L_corr ~ lkj_corr_cholesky(1);              // Prior for correlation matrix
   to_vector(X_star_innovation) ~ normal(0,0.5); 
   // After mixing with L: X -> LX, we obtain multinormal variables.
-  // Scale of X_star_innovations is difficult to identify. We'll use a vague prior.
+  // Scale of X_star_innovations is difficult to identify. 
+  // We'll use a vague prior for now, but this might simply need removal (cutoffs are dependent on X_star scale).
   to_vector(X_star_innovation_sd) ~ normal(0.707,1);
   
   // 3. Priors for subject-specific intercepts
