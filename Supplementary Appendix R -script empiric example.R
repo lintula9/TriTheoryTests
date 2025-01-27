@@ -193,7 +193,7 @@ fit_Net <- sampling(stan_model_Net, data = stan_data,
 launch_shinystan(fit_Net)
 
 fit_Net <- as.matrix(fit_Net); gc() # Rewrite, so that RAM is not occupied.
-saveRDS(fit_Net, file = "Datas/BayesianVAR_3_symptoms_26_01.RDS"); gc()
+saveRDS(fit_Net, file = "Datas/BayesianVAR_3_symptoms_27_01.RDS"); gc()
 
 # Diagnostics
 plotnams <- c("A", "Omega", "cutpoints",
@@ -361,7 +361,7 @@ saveRDS(as.matrix(fit_Net_7)[,dimnames(fit_Net_7)$parameters %in% nuisance_vars]
 saveRDS(fit_Net_7[, grepl("log_lik_7", dimnames(fit_Net_7)$parameters) ], "Datas/BayesOrderedVAR_FIT_7_LIKELIHOOD_POSTERIOR.RDS", compress = T); gc()
 # Inference set:
 fit_Net_7 <- fit_Net_7[, dimnames(fit_Net_7)$parameters %in% inference_vars ]; gc()
-saveRDS(fit_Net_7, file ="Datas/BayesOrderedVAR_FIT_7_INFERENCE_POSTERIOR.RDS"); gc()
+saveRDS(fit_Net_7, file ="Datas/BayesOrderedVAR_FIT_7_INFERENCE_POSTERIOR_27_01.RDS"); gc()
 # Diagnostics
 plotnams <- c("A","B", "Omega", "cutpoints",
               "time_of_day_intercept")
