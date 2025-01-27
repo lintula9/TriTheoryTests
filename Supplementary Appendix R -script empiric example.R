@@ -171,9 +171,9 @@ inference_vars <- c(
 inference_vars_regex <- c("A", "B","Omega", 
                           "cutpoints","time_of_day_intercept")
 # Run the Network model
-stan_model_Net <- stan_model(file = "BayesianOrderedVAR_alpha.stan"); gc()
+stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan"); gc()
 fit_Net <- sampling(stan_model_Net, data = stan_data, 
-                iter = 1000, chains = 1, cores = 1, 
+                iter = 1000, chains = 4, cores = 4, 
                 control = list(adapt_delta = 0.95),
                 init = function() {
                   list(
