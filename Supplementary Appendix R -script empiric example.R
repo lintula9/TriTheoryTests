@@ -263,18 +263,35 @@ par(mfrow=c(1,1))
   missing_mask[, 6] <- as.integer(is.na(Data5b$Alone))
   missing_mask[, 7] <- as.integer(is.na(Data5b$Angry))
   
-  M = sum(missing_mask == 1)
-  missing_positions <- which(X == 0, arr.ind = TRUE)
-  sorted_positions <- missing_positions[order(missing_positions[, 1]), ]
-  missing_idx <- sorted_positions[,1,drop=T]
-  missing_var <- sorted_positions[,2,drop=T]
-  cutpoint_prior_locations <- 1:(length(unique(na.omit(Data5b$Relax))) - 1)
-  cutpoint_prior_locations <- cutpoint_prior_locations - mean(cutpoint_prior_locations)
-  cutpoint_count <- length(cutpoint_prior_locations)
-  mu0 = rep(0, times = K)
-  Sigma0 = matrix(rep(0.5, times = K^2), ncol = K, nrow = K)
-  diag(Sigma0) <- 1
-}
+  # Vectorized form:
+  X_vector <- as.vector(X) # X as a vector so that vectorized operations can be used in R Stan.
+  X_k <- rep(1:K, each = N)
+  observed_indices = which(as.vector(missing_mask)==0) # For selecting only the obs vals.
+  N_obs = length(observed_indices)
+  X_observed = X_vector[observed_indices]
+  X_k_observed = X_k[observed_indices]
+  
+  obsval_slice_start <- integer(0L)
+  obsval_slice_end <- integer(0L)
+  for (k in 1:K) {
+    var_indices <- c()
+    var_indices <- which(X_k_observed == k)
+    obsval_slice_start[k] <- min(var_indices)
+    obsval_slice_end[k] <- max(var_indices)
+
+  }
+  }
+  
+# Cutpoint settings:
+cutpoint_prior_locations <- rowMeans(qnorm((sapply(Data5b %>% select(Relax, Worry, Nervous),
+                                                   function(x) cumsum(prop.table(table(na.omit(x))))))))
+cutpoint_prior_locations <- cutpoint_prior_locations[-length(cutpoint_prior_locations)]
+cutpoint_count <- length(cutpoint_prior_locations)
+
+# Settings for the X_star_zero, the t = 0 unobserved variables.
+mu0 = rep(0, times = K)
+Sigma0 = matrix(rep(0.5, times = K^2), ncol = K, nrow = K)
+diag(Sigma0) <- 1
 
 # Prepare data list for Stan
 stan_data <- list(
@@ -286,15 +303,19 @@ stan_data <- list(
   missing_mask = missing_mask,
   start = start,
   end = end,
-  M = M,
-  missing_idx = missing_idx,
-  missing_var = missing_var,
   cutpoint_prior_locations = cutpoint_prior_locations,
   cutpoint_count = cutpoint_count,
   mu0 = mu0,
   Sigma0 = Sigma0,
   beep = beep,
-  nbeeps = nbeeps
+  nbeeps = nbeeps,
+  X_vector = X_vector,
+  X_k = X_k,
+  observed_indices = observed_indices,
+  N_obs = N_obs,
+  X_observed = X_observed,
+  obsval_slice_start = obsval_slice_start,
+  obsval_slice_end = obsval_slice_end
 )
 
 # Set of variables of interest, which we can set to pars argument, or later on extract.
@@ -318,8 +339,8 @@ nuisance_vars <- c(sapply(1:K, function(x) paste0("X_star_innovation[",x,",",1:N
 # Run the Network model
 stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan")
 fit_Net_7 <- sampling(stan_model_Net, data = stan_data, 
-                    iter = 2000, chains = 8, cores = 8, 
-                    control = list(adapt_delta = 0.80),
+                    iter = 4000, chains = 8, cores = 8, 
+                    control = list(adapt_delta = 0.95),
                     init = function() {
                       list(
                         A = diag(rep(0.1, stan_data$K)),
