@@ -135,6 +135,15 @@ See https://mc-stan.org/misc/warnings for details.
  time_of_day_intercept[3,3] -0.66  -0.66 0.16 0.17 -0.92 -0.41 1.10       22       76
  time_of_day_intercept[4,3] -0.51  -0.50 0.17 0.18 -0.81 -0.27 1.03       45      106
 
-  
-  
+  - Still seems like the scale problem exists. Why, though, are the
+  A elements so varying? The model is not identified, because it is
+  near identical to a DCF1?
+
+19:46
+- Running a model with 8 chains and 4000 iterations. Hopefully, the model can adapt
+better during warmups so that the treedepth wont be a problem.
+- A ~ normal(0, 0.2) prior was set. It stabilizes scale and it is a reasonable
+prior since large coefficients are rare (especially if a stationary A is estimated)
+Model run begun at 20:00.
+
   

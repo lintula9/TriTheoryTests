@@ -84,7 +84,10 @@ transformed parameters {
 model {
   
   // 1. Priors for VAR model parameters
-  to_vector(A) ~ std_normal();               // Prior for VAR coefficients
+  to_vector(A) ~ normal(0,0.2);               // Prior for VAR coefficients
+  // Since it is untypical for VAR (especially for stationary VAR) to have coefficients
+  // with absolute values much larger than 0.5, we will set the prior tight. This will still
+  // allow for large coefficients to appear, but, also stabilizes the scales better as well.
 
   L_corr ~ lkj_corr_cholesky(1);              // Prior for correlation matrix
   to_vector(X_star_innovation) ~ std_normal(); 

@@ -202,11 +202,12 @@ fit_Net <- mod_Net$sample(
   data = stan_data,
   seed = 123,                 # or your preferred seed
   refresh = 100,
-  chains = 1,
-  parallel_chains = 1,        # set >1 if you want parallel MCMC
-  iter_warmup = 500,          # e.g. half of 1000
-  iter_sampling = 500,        # total 1000 draws
-  adapt_delta = 0.99, 
+  chains = 8,
+  parallel_chains = 8, 
+  num_cores = 8,       # set >1 if you want parallel MCMC
+  iter_warmup = 2000,          # e.g. half of 1000
+  iter_sampling = 2000,        # total 1000 draws
+  adapt_delta = 0.95,
   init = function(chain_id) {
     list(
       A = diag(rep(0, stan_data$K)),
@@ -237,9 +238,9 @@ saveRDS(fit_Net, file = "Datas/BayesianVAR_3_symptoms_28_01.RDS"); gc()
 # Diagnostics
 plotnams <- c("A", "Omega","B", "cutpoints",
               "time_of_day_intercept")
-for(i in 1:length(plotnams)){
+for(i in plotnams){
   dev.new()
-  print(  mcmc_trace(fit_Net, regex_pars  = plotnams[i] ))
+  print(  mcmc_trace(fit_Net$draws(variables = i)))
   }; gc()
 # Pairwise plots, for multicollinearit:
 pairplotter <- function(var1,var2,fit = fit_Net) {
