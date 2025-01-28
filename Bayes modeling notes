@@ -71,10 +71,13 @@ https://mc-stan.org/misc/warnings.html#tail-ess
 
 Interpretation:
 - At least no divergents. Even only with 1000 transitions.
-- 
+- Consistent finding is the near 1 Omega parameters.
 
 15:38
 Running cmdstanr, with 1 chain:
 - mostly changes to data and parameter declarations in alpha.Rstan
 - We'll see if cmdstanr is faster
 
+  16:00 (approx) 30% (after 22min) -> much faster than rstan.
+  
+  
