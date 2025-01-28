@@ -79,5 +79,62 @@ Running cmdstanr, with 1 chain:
 - We'll see if cmdstanr is faster
 
   16:00 (approx) 30% (after 22min) -> much faster than rstan.
+  16:11 40% -> approx 75min until 100% (45min left)
+  16:20 50%, sampling
+  16:29 (approx) 60%, sampler might be faster.
+  16:38 70%
+  16:56 90%
+  17:05 100% (After 5382 seconds, 90 mins)
+
+Warning: 500 of 500 (100.0%) transitions hit the maximum treedepth limit of 10.
+See https://mc-stan.org/misc/warnings for details.
+> fit_Net$print(variables = "A")
+ variable  mean median   sd  mad    q5   q95 rhat ess_bulk ess_tail
+   A[1,1]  0.84   0.83 0.11 0.12  0.66  1.03 1.01       35       81
+   A[2,1] -0.01  -0.01 0.10 0.10 -0.16  0.18 1.01       35       59
+   A[3,1]  0.04   0.03 0.13 0.14 -0.16  0.24 1.01       38       69
+   A[1,2]  1.44   1.43 0.16 0.16  1.21  1.73 1.04       29      141
+   A[2,2]  2.09   2.08 0.14 0.16  1.87  2.32 1.03       26      148
+   A[3,2]  1.63   1.61 0.17 0.18  1.36  1.91 1.03       27      127
+   A[1,3] -1.82  -1.79 0.19 0.21 -2.14 -1.54 1.04       23      101
+   A[2,3] -1.57  -1.57 0.18 0.22 -1.85 -1.28 1.02       23       85
+   A[3,3] -1.23  -1.23 0.21 0.25 -1.56 -0.87 1.03       22       71
+> fit_Net$print(variables = "Omega")
+   variable mean median   sd  mad   q5  q95 rhat ess_bulk ess_tail
+ Omega[1,1] 1.00   1.00 0.00 0.00 1.00 1.00   NA       NA       NA
+ Omega[2,1] 0.97   0.98 0.01 0.01 0.96 0.99 1.01       28       39
+ Omega[3,1] 0.98   0.98 0.01 0.01 0.97 0.99 1.02       29       81
+ Omega[1,2] 0.97   0.98 0.01 0.01 0.96 0.99 1.01       28       39
+ Omega[2,2] 1.00   1.00 0.00 0.00 1.00 1.00   NA       NA       NA
+ Omega[3,2] 1.00   1.00 0.00 0.00 0.99 1.00 1.10        9       12
+ Omega[1,3] 0.98   0.98 0.01 0.01 0.97 0.99 1.02       29       81
+ Omega[2,3] 1.00   1.00 0.00 0.00 0.99 1.00 1.10        9       12
+ Omega[3,3] 1.00   1.00 0.00 0.00 1.00 1.00   NA       NA       NA
+> fit_Net$print("cutpoints")
+       variable  mean median   sd  mad    q5   q95 rhat ess_bulk ess_tail
+ cutpoints[1,1] -0.62  -0.62 0.06 0.06 -0.72 -0.51 1.01      170      295
+ cutpoints[2,1] -0.85  -0.85 0.06 0.06 -0.94 -0.75 1.01      133      224
+ cutpoints[3,1] -0.48  -0.48 0.05 0.05 -0.57 -0.40 1.02       73      215
+ cutpoints[1,2]  1.12   1.12 0.06 0.06  1.02  1.23 1.01      299      349
+ cutpoints[2,2]  0.93   0.92 0.06 0.05  0.83  1.03 1.00      167      250
+ cutpoints[3,2]  1.06   1.07 0.05 0.06  0.97  1.15 1.00      126      226
+ cutpoints[1,3]  2.24   2.24 0.06 0.06  2.14  2.35 1.00      446      418
+ cutpoints[2,3]  2.31   2.32 0.06 0.06  2.21  2.41 1.01      208      446
+ cutpoints[3,3]  2.19   2.19 0.06 0.06  2.09  2.29 1.00      159      295
+                  variable  mean median   sd  mad    q5   q95 rhat ess_bulk ess_tail
+ time_of_day_intercept[1,1] -0.44  -0.43 0.16 0.16 -0.70 -0.17 1.01       72      177
+ time_of_day_intercept[2,1] -0.58  -0.58 0.13 0.13 -0.80 -0.37 1.01       55       85
+ time_of_day_intercept[3,1] -0.76  -0.76 0.16 0.16 -1.03 -0.51 1.04       28       98
+ time_of_day_intercept[4,1] -0.63  -0.61 0.16 0.16 -0.91 -0.38 1.01       52       83
+ time_of_day_intercept[1,2] -0.27  -0.27 0.15 0.16 -0.52 -0.02 1.01       87      253
+ time_of_day_intercept[2,2] -0.54  -0.53 0.13 0.12 -0.74 -0.34 1.01       61      110
+ time_of_day_intercept[3,2] -0.60  -0.60 0.16 0.17 -0.86 -0.33 1.03       34      128
+ time_of_day_intercept[4,2] -0.51  -0.50 0.16 0.16 -0.79 -0.26 1.02       55      156
+ time_of_day_intercept[1,3] -0.49  -0.48 0.16 0.16 -0.75 -0.23 1.02       59       88
+ time_of_day_intercept[2,3] -0.60  -0.59 0.14 0.14 -0.85 -0.37 1.01       41       63
+ time_of_day_intercept[3,3] -0.66  -0.66 0.16 0.17 -0.92 -0.41 1.10       22       76
+ time_of_day_intercept[4,3] -0.51  -0.50 0.17 0.18 -0.81 -0.27 1.03       45      106
+
+  
   
   
