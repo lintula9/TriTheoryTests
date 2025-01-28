@@ -1,0 +1,80 @@
+28.1.
+08:43
+In main .stan file:
+- Removed B,
+- adjusted priors: std_normal() or, if justified, tight normal prior.
+- reverted back to original for loop likelihood computation
+
+08:48
+Running with 1 chain and 1000 iterations as a test,
+begin at 08.48.
+  
+  09:02
+  10% iterations -> roughly 140min est to 100%.
+  09:14 (approx)
+  20% iterations -> roughly 130min est to 100%.
+  09:40
+  40% iterations -> roughly 120min est to 100%.
+  09:53
+  Sampling. (50%)
+  10:32
+  80%
+  10:45
+  90%
+
+10:59
+Warning messages:
+1: There were 500 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
+https://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded 
+2: Examine the pairs() plot to diagnose sampling problems
+3: The largest R-hat is NA, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+4: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+5: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+- Examining shinystan plots...
+
+12:10
+in main .stan file:
+- Removed the subject intercept from the 0:th unobserved X*
+- Larger adapt delta (0.99)
+- Some more std_normal() sampling statements. Fixed (at least) now.
+
+12:39
+Sampling start.
+Gradient eval 0.009197
+91.97 s for 1000 transitions
+
+  12:51 10%
+  13:05 20%
+  13:18 30%
+  13:32 40%
+
+14:40
+Warning messages:
+1: There were 500 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
+https://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded 
+2: Examine the pairs() plot to diagnose sampling problems
+3: The largest R-hat is NA, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+4: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+5: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+
+Interpretation:
+- At least no divergents. Even only with 1000 transitions.
+- 
+
+15:38
+Running cmdstanr, with 1 chain:
+- mostly changes to data and parameter declarations in alpha.Rstan
+- We'll see if cmdstanr is faster
+

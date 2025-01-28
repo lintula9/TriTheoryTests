@@ -11,7 +11,7 @@ required_packages <- c(
   "Matrix", "fastmatrix", "expm", "rstan",
   "qgraph", "tidyverse", 
   "ggplot2", "rstantools", "loo", "bayesplot",
-  "shinystan"
+  "shinystan", "cmdstanr"
 )
 
 # Function to check and install missing packages
@@ -57,14 +57,25 @@ Data5b <- Data5b %>%
                 .names = "{.col}_lag")) %>%
   ungroup()
 
-# Exclude the IDs with lower than 50 obs count:
-excluded_ids <- Data5b %>% group_by(id) %>% summarize(n = length(id)) %>% arrange(n, id) %>%
-  filter(n < 50) %>% select(id) %>% unlist()
-Data5b <- Data5b %>% filter(!(id %in% excluded_ids))
-
 # Exclude double beeps:
 Data5b <- Data5b %>% group_by(id) %>%
   filter(beep != lag(beep)) %>% ungroup
+
+# Exclude the IDs with lower than 50 obs count:
+excluded_ids <- Data5b %>% group_by(id) %>% summarize(n = length(id)) %>% arrange(n, id) %>%
+  filter(n < 50) %>% select(id) %>% unlist()
+
+# Exclude the IDs with more than 7 days worth (half) of missing values in any variable
+excluded_ids <- base::union(excluded_ids,
+                            Data5b %>%
+                              group_by(id) %>%
+                              summarise(across(all_of(varLabs), ~ sum(is.na(.)))) %>%
+                              filter(if_any(all_of(varLabs), ~ . > 28)) %>%
+                              pull(id))
+# Filter data.
+Data5b <- Data5b %>% filter(!(id %in% excluded_ids))
+
+
 
 # Truncate to 4.
 Data5b <- Data5b %>% mutate(across(all_of(varLabs2), ~ pmin(.x, 4)))
@@ -139,9 +150,6 @@ stan_data <- list(
   missing_mask = missing_mask,
   start = start,
   end = end,
-  # M = M,
-  # missing_idx = missing_idx,
-  # missing_var = missing_var,
   cutpoint_prior_locations = cutpoint_prior_locations,
   cutpoint_count = cutpoint_count,
   mu0 = mu0,
@@ -168,13 +176,12 @@ inference_vars <- c(
   sapply(1:K, function(x) paste0("time_of_day_intercept[",x,",",1:nbeeps, "]")),
   sapply(1:K, function(x) paste0("X_star_innovation_sd[",x,"]"))
 )
-inference_vars_regex <- c("A", "B","Omega", 
-                          "cutpoints","time_of_day_intercept")
+inference_vars_regex <- c("A", "Omega", "cutpoints","time_of_day_intercept")
 # Run the Network model
 stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan"); gc()
 fit_Net <- sampling(stan_model_Net, data = stan_data, 
-                iter = 1000, chains = 4, cores = 4, 
-                control = list(adapt_delta = 0.95),
+                iter = 1000, chains = 1, cores = 1, 
+                control = list(adapt_delta = 0.99),
                 init = function() {
                   list(
                     A = diag(rep(0, stan_data$K)),
@@ -183,33 +190,63 @@ fit_Net <- sampling(stan_model_Net, data = stan_data,
                     subject_intercept_sd = rep(1, stan_data$K),
                     X_star_innovation = matrix(0, stan_data$K, stan_data$N),
                     X_star_zero = matrix(rep(0, K*S), nrow = K, ncol = S),
-                    subject_innovation_sd = matrix(1, stan_data$K, stan_data$S),
                     cutpoints = matrix(rep(cutpoint_prior_locations,times = stan_data$K), ncol = stan_data$K, byrow = T),
                     time_of_day_intercept = replicate(stan_data$nbeeps, rep(0, stan_data$K), simplify = FALSE)
                   )},
                 pars = inference_vars_regex
                 ); gc()
 
-launch_shinystan(fit_Net)
+# 2. Run MCMC with cmdstanr
+mod_Net <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
+fit_Net <- mod_Net$sample(
+  data = stan_data,
+  seed = 123,                 # or your preferred seed
+  refresh = 100,
+  chains = 1,
+  parallel_chains = 1,        # set >1 if you want parallel MCMC
+  iter_warmup = 500,          # e.g. half of 1000
+  iter_sampling = 500,        # total 1000 draws
+  adapt_delta = 0.99, 
+  init = function(chain_id) {
+    list(
+      A = diag(rep(0, stan_data$K)),
+      L_corr = diag(rep(1, stan_data$K)),
+      subject_intercept_raw = matrix(0, stan_data$S, stan_data$K),
+      subject_intercept_sd = rep(1, stan_data$S),
+      X_star_innovation = matrix(0, stan_data$K, stan_data$N),
+      X_star_zero = matrix(0, stan_data$K, stan_data$S),
+      cutpoints = matrix(
+        rep(stan_data$cutpoint_prior_locations,
+            times = stan_data$K),
+        ncol  = stan_data$K,
+        byrow = TRUE
+      ),
+      time_of_day_intercept = replicate(
+        stan_data$nbeeps,
+        rep(0, stan_data$K),
+        simplify = FALSE
+      )
+    )
+  }
+)
 
+# Possible conversion to matrix and saving.
 fit_Net <- as.matrix(fit_Net); gc() # Rewrite, so that RAM is not occupied.
 saveRDS(fit_Net, file = "Datas/BayesianVAR_3_symptoms_28_01.RDS"); gc()
 
 # Diagnostics
-plotnams <- c("A", "Omega", "cutpoints",
+plotnams <- c("A", "Omega","B", "cutpoints",
               "time_of_day_intercept")
 for(i in 1:length(plotnams)){
   dev.new()
   print(  mcmc_trace(fit_Net, regex_pars  = plotnams[i] ))
-  }
+  }; gc()
 # Pairwise plots, for multicollinearit:
 pairplotter <- function(var1,var2,fit = fit_Net) {
   mcmc_pairs(fit_Net, regex_pars = c(var1,var2))
 }
 
 # Extract parameters
-posterior_samples <- rstan::extract(fit_Net, pars = "A", permuted = TRUE)
-
 A_mean <- matrix(0, ncol = K, nrow = K)
 for(i in 1:K) for(j in 1:K){
   A_mean[i,j] <- mean(as.vector(fit_Net[,paste0("A[",i,",",j,"]")]))
