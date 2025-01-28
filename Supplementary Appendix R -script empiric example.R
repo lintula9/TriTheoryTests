@@ -193,7 +193,7 @@ fit_Net <- sampling(stan_model_Net, data = stan_data,
 launch_shinystan(fit_Net)
 
 fit_Net <- as.matrix(fit_Net); gc() # Rewrite, so that RAM is not occupied.
-saveRDS(fit_Net, file = "Datas/BayesianVAR_3_symptoms_27_01.RDS"); gc()
+saveRDS(fit_Net, file = "Datas/BayesianVAR_3_symptoms_28_01.RDS"); gc()
 
 # Diagnostics
 plotnams <- c("A", "Omega", "cutpoints",
