@@ -151,15 +151,34 @@ Model run begun at 20:00.
 07:48 checking back in
 All 8 chains finished successfully.
 Mean chain execution time: 13705.3 seconds.
-Total execution time: 15789.8 seconds.
+Total execution time: 15789.8 seconds. ~ 260minutes, 4.3 hours
 - No warning messages.
 - All looks good.
 
 13:00
 - Satisfying result, civ_find function used, manuscript updated.
+- Note: We should update the RMSEA computation to be (also) provided for covariance based analysis.
 - Now, we run the 7 variable scenario. Lets see...
 
 13:08 Start running, hopefully the cutpoint initializatios were not fucked up...
 
+  - 13:44 Chain 2 first to reach 2%... This will take a while.
+  -> approx lower bound for estimation time is 30h
+  - hopefully the warmups get faster...
+  14:45 chains approachis 5%...
+  
+14:35 Note: Create a Mahalanobis -distance based script. 
+-> Obtain the differneces between the VAR(1) parameters and indistinguishable VAR(1)
+parameters, for each (or, say, 1000) draws from the posterior.
+-> Obtain the covariance of these differences.
+-> Set \mu = 0, i.e., we presume they would be distributed with expectation of 0 vector.
+-> compute d^2, Mahalanobis distance squared.
+-> This follows a chi-squared test statistic with p degrees of freedom.
+-> Compute P -value, and possibly translate it onto RMSEA, for example.
+-> To obtain the equivalence testing scenario, we would need to set come epsilon.
+-> Then we set the null for the parameter differences to equal the epsilon I guess,
+-> and after whitening, we have a non-centralized chisquared distributed random variable.
 
-
+  15:37 Chains approachin 10% after 2 hours 7 minutes. So 20h rough estimate now.
+  19.14 Chains approaching 25% after 6 hours 6 minutes.
+  

@@ -218,10 +218,9 @@ draws_df <- as_draws_df(fit_Net$draws(variables = c(inference_vars_regex, "lp__"
 plotnams <- c("A", "Omega", "cutpoints","time_of_day_intercept");pdf(file = paste0("Datas/Bayespots_",format(Sys.time(), "%Y-%m-%d"), ".pdf"))
 for(i in plotnams){print(  mcmc_trace(draws_df[ , grep(i, names(draws_df))]) );print(  mcmc_areas_ridges(draws_df[ , grep(i, names(draws_df))]) );
   }; gc(); dev.off()
-# Extract maximum a posterior (approximated) VAR parameters:
-
-map_index <- which.max(draws_df$lp__);A <- matrix( unlist(draws_df[map_index,grep("A", names(draws_df))]), ncol = K, nrow = K);
-Z <- matrix( unlist(draws_df[map_index,grep("Omega", names(draws_df))]), ncol = K, nrow = K)
+# Extract posterior means as the VAR parameters:
+A <- matrix( unlist(colMeans(draws_df[,grep("A", names(draws_df))])), ncol = K, nrow = K);
+Z <- matrix( unlist(colMeans(draws_df[map_index,grep("Omega", names(draws_df))])), ncol = K, nrow = K)
 
 par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_MAP_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"))
 qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()

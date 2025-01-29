@@ -1,7 +1,8 @@
 # Dependencies:
-require(fastmatrix)
+if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
 
-civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6, W = NULL) {
+civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6, 
+                     W = NULL, RMSEA = F, RMSEA_Delta = 0) {
 
   K <- ncol(A)
   
@@ -46,6 +47,7 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6, W = NULL) {
   Z_result <- (1 - psi_opt^2) * Lambda_opt %*% t(Lambda_opt)
   
   gc(verbose = F)
+
   
   # Return results
   return(list(
