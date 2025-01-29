@@ -374,8 +374,6 @@ fit_Net_7 <- sampling(stan_model_Net, data = stan_data,
                         time_of_day_intercept = replicate(stan_data$nbeeps, rep(0, stan_data$K), simplify = FALSE)
                       )}); gc()
 
-
-
 # Split the draws to inference set, likelihood set and nuisance set
 fit_Net_7 <- as.matrix(fit_Net_7); gc() # Rewrite, so that RAM is not occupied.
 saveRDS(as.matrix(fit_Net_7)[,dimnames(fit_Net_7)$parameters %in% nuisance_vars], "Datas/BayesOrderedVAR_FIT_7_NUISANCE_POSTERIOR.RDS", compress = T); gc()
