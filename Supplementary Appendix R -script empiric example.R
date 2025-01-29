@@ -236,7 +236,7 @@ fit_Net <- as.matrix(fit_Net); gc() # Rewrite, so that RAM is not occupied.
 saveRDS(fit_Net, file = "Datas/BayesianVAR_3_symptoms_28_01.RDS"); gc()
 
 # Diagnostics
-plotnams <- c("A", "Omega","B", "cutpoints",
+plotnams <- c("A", "Omega", "cutpoints",
               "time_of_day_intercept")
 for(i in plotnams){
   dev.new()
