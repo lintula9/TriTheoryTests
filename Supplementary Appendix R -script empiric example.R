@@ -173,26 +173,8 @@ inference_vars <- c(
   sapply(1:K, function(x) paste0("X_star_innovation_sd[",x,"]"))
 )
 inference_vars_regex <- c("A", "Omega", "cutpoints","time_of_day_intercept")
-# Run the Network model
-stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan"); gc()
-fit_Net <- sampling(stan_model_Net, data = stan_data, 
-                iter = 1000, chains = 1, cores = 1, 
-                control = list(adapt_delta = 0.99),
-                init = function() {
-                  list(
-                    A = diag(rep(0, stan_data$K)),
-                    L_corr = diag(rep(1, stan_data$K)),
-                    subject_intercept_raw = matrix(0, stan_data$S, stan_data$K),
-                    subject_intercept_sd = rep(1, stan_data$K),
-                    X_star_innovation = matrix(0, stan_data$K, stan_data$N),
-                    X_star_zero = matrix(rep(0, K*S), nrow = K, ncol = S),
-                    cutpoints = matrix(rep(cutpoint_prior_locations,times = stan_data$K), ncol = stan_data$K, byrow = T),
-                    time_of_day_intercept = replicate(stan_data$nbeeps, rep(0, stan_data$K), simplify = FALSE)
-                  )},
-                pars = inference_vars_regex
-                ); gc()
 
-# 2. Run MCMC with cmdstanr
+# Run MCMC with cmdstanr
 mod_Net <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
 fit_Net <- mod_Net$sample(
   data = stan_data,
@@ -237,13 +219,29 @@ plotnams <- c("A", "Omega", "cutpoints","time_of_day_intercept");pdf(file = past
 for(i in plotnams){print(  mcmc_trace(draws_df[ , grep(i, names(draws_df))]) );print(  mcmc_areas_ridges(draws_df[ , grep(i, names(draws_df))]) );
   }; gc(); dev.off()
 # Extract maximum a posterior (approximated) VAR parameters:
+
 map_index <- which.max(draws_df$lp__);A <- matrix( unlist(draws_df[map_index,grep("A", names(draws_df))]), ncol = K, nrow = K);
 Z <- matrix( unlist(draws_df[map_index,grep("Omega", names(draws_df))]), ncol = K, nrow = K)
 
-# Plot the Network:
 par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_MAP_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"))
-qgraph(input = as.matrix(A));qgraph(input = as.matrix(Z));dev.off();par(mfrow=c(1,1));
+qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()
 
+# Find the closest indistinguishable model, and compare
+source("Supplementary Appendix R -script civ_find.R")
+sqrt(mean(c(c(civ_find(A,Z)$A - A)^2, c(civ_find(A,Z)$Z[lower.tri(Z, diag = T)] - Z[lower.tri(Z, diag = T)])^2)))
+
+# Randomly select 1000 posterior draws and obtain a distribution for RMSEA
+indices <- sample(1:nrow(draws_df),size = 1000L, replace = F)
+RMSEA_dist <- pbapply::pbsapply(1:length(indices),
+                  FUN = function(i){
+                    A_temp <- matrix( unlist(draws_df[i,grep("A", names(draws_df))]), ncol = K, nrow = K);
+                    Z_temp <- matrix( unlist(draws_df[i,grep("Omega", names(draws_df))]), ncol = K, nrow = K);
+                    closest <- civ_find(A_temp,Z_temp);
+                    return(sqrt(mean(c(fastmatrix::vec(closest$A - A_temp)^2, (fastmatrix::vech(closest$Z) - fastmatrix::vech(Z_temp))^2))));
+                  }); gc()
+ggplot() + geom_histogram(aes(x=RMSEA_dist))
+
+quantile(RMSEA_dist, probs = c(0.025,0.975))
 
 
   ## Second analysis: More symptoms -----
@@ -300,18 +298,20 @@ qgraph(input = as.matrix(A));qgraph(input = as.matrix(Z));dev.off();par(mfrow=c(
     obsval_slice_end[k] <- max(var_indices)
 
   }
+  
+  # Cutpoint settings:
+  cutpoint_prior_locations <- rowMeans(qnorm((sapply(Data5b %>% select(Relax, Worry, Nervous),
+                                                     function(x) cumsum(prop.table(table(na.omit(x))))))))
+  cutpoint_prior_locations <- cutpoint_prior_locations[-length(cutpoint_prior_locations)]
+  cutpoint_count <- length(cutpoint_prior_locations)
+  
+  # Settings for the X_star_zero, the t = 0 unobserved variables.
+  mu0 = rep(0, times = K)
+  Sigma0 = matrix(rep(0.5, times = K^2), ncol = K, nrow = K)
+  diag(Sigma0) <- 1
+
   }
   
-# Cutpoint settings:
-cutpoint_prior_locations <- rowMeans(qnorm((sapply(Data5b %>% select(Relax, Worry, Nervous),
-                                                   function(x) cumsum(prop.table(table(na.omit(x))))))))
-cutpoint_prior_locations <- cutpoint_prior_locations[-length(cutpoint_prior_locations)]
-cutpoint_count <- length(cutpoint_prior_locations)
-
-# Settings for the X_star_zero, the t = 0 unobserved variables.
-mu0 = rep(0, times = K)
-Sigma0 = matrix(rep(0.5, times = K^2), ncol = K, nrow = K)
-diag(Sigma0) <- 1
 
 # Prepare data list for Stan
 stan_data <- list(
@@ -338,82 +338,37 @@ stan_data <- list(
   obsval_slice_end = obsval_slice_end
 )
 
-# Set of variables of interest, which we can set to pars argument, or later on extract.
-inference_vars <- c(
-  sapply(1:K, function(x) paste0("A[",x,",",1:K, "]")),
-# sapply(1:K, function(x) paste0("A[",x,",",1:K, "]")),
-  sapply(1:K, function(x) paste0("Omega[",x,",",1:K, "]")),
-  sapply(1:K, function(x) paste0("cutpoints[",x,",",1:cutpoint_count, "]")),
-  sapply(1:K, function(x) paste0("time_of_day_intercept[",x,",",1:nbeeps, "]"))
+# Run MCMC with cmdstanr
+mod_Net_7 <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
+fit_Net_7 <- mod_Net_7$sample(
+  data = stan_data,
+  seed = 123,                 # or your preferred seed
+  refresh = 100,
+  chains = 8,
+  parallel_chains = 8, 
+  num_cores = 8,       # set >1 if you want parallel MCMC
+  iter_warmup = 2000,          # e.g. half of 1000
+  iter_sampling = 2000,        # total 1000 draws
+  adapt_delta = 0.95,
+  init = function(chain_id) {
+    list(
+      A = diag(rep(0, stan_data$K)),
+      L_corr = diag(rep(1, stan_data$K)),
+      subject_intercept_raw = matrix(0, stan_data$S, stan_data$K),
+      subject_intercept_sd = rep(1, stan_data$S),
+      X_star_innovation = matrix(0, stan_data$K, stan_data$N),
+      X_star_zero = matrix(0, stan_data$K, stan_data$S),
+      cutpoints = matrix(
+        rep(stan_data$cutpoint_prior_locations,
+            times = stan_data$K),
+        nrow  = stan_data$K,
+        byrow = TRUE
+      ),
+      time_of_day_intercept = replicate(
+        stan_data$nbeeps,
+        rep(0, stan_data$K),
+        simplify = FALSE
+      )
+    )
+  }
 )
-# Nuisance set
-nuisance_vars <- c(sapply(1:K, function(x) paste0("X_star_innovation[",x,",",1:N, "]")),
-                   sapply(1:K, function(x) paste0("subject_innovation_sd[",x,",",1:S, "]")),
-                   sapply(1:K, function(x) paste0("subject_intercept[",1:S,",",x, "]")),
-                   sapply(1:K, function(x) paste0("subject_intercept_sd[",1:S,",",x, "]")),
-                   sapply(1:K, function(x) paste0("subject_intercept_raw[",1:S,",",x, "]")),
-                   sapply(1:K, function(x) paste0("X_star_zero[",x,",",1:S, "]")),
-                   sapply(1:K, function(x) paste0("X_star[",x,",",1:N, "]")),
-                   "lp__")
-
-# Run the Network model
-stan_model_Net <- stan_model(file = "BayesianOrderedVAR.stan")
-fit_Net_7 <- sampling(stan_model_Net, data = stan_data, 
-                    iter = 4000, chains = 8, cores = 8, 
-                    control = list(adapt_delta = 0.95),
-                    init = function() {
-                      list(
-                        A = diag(rep(0.1, stan_data$K)),
-                        L_corr = diag(rep(1, stan_data$K)),
-                        subject_intercept_raw = matrix(0, stan_data$S, stan_data$K),
-                        subject_intercept_sd = rep(1, stan_data$K),
-                        X_star_innovation = matrix(0, stan_data$K, stan_data$N),
-                        X_star_zero = matrix(rep(0, K*S), nrow = K, ncol = S),
-                        subject_innovation_sd = matrix(1, stan_data$K, stan_data$S),
-                        cutpoints = replicate(stan_data$K, seq(-1, 1, length.out = stan_data$cutpoint_count), simplify = FALSE),
-                        time_of_day_intercept = replicate(stan_data$nbeeps, rep(0, stan_data$K), simplify = FALSE)
-                      )}); gc()
-
-# Split the draws to inference set, likelihood set and nuisance set
-fit_Net_7 <- as.matrix(fit_Net_7); gc() # Rewrite, so that RAM is not occupied.
-saveRDS(as.matrix(fit_Net_7)[,dimnames(fit_Net_7)$parameters %in% nuisance_vars], "Datas/BayesOrderedVAR_FIT_7_NUISANCE_POSTERIOR.RDS", compress = T); gc()
-# Likelihood set
-saveRDS(fit_Net_7[, grepl("log_lik_7", dimnames(fit_Net_7)$parameters) ], "Datas/BayesOrderedVAR_FIT_7_LIKELIHOOD_POSTERIOR.RDS", compress = T); gc()
-# Inference set:
-fit_Net_7 <- fit_Net_7[, dimnames(fit_Net_7)$parameters %in% inference_vars ]; gc()
-saveRDS(fit_Net_7, file ="Datas/BayesOrderedVAR_FIT_7_INFERENCE_POSTERIOR_27_01.RDS"); gc()
-# Diagnostics
-plotnams <- c("A", "Omega", "cutpoints",
-              "time_of_day_intercept")
-for(i in 1:length(plotnams)){
-  dev.new()
-  print(  mcmc_trace(fit_Net_7, regex_pars  = plotnams[i] ))
-}
-
-# Posterior plots
-for(i in 1:length(plotnams)){
-  dev.new()
-  print(  mcmc_intervals(fit_Net_7, regex_pars  = plotnams[i] ))
-}
-
-
-# WAIC and LOO
-
-
-# Extract parameters
-posterior_samples <- rstan::extract(fit_Net_7, pars = "A", permuted = TRUE)
-
-A_mean <- matrix(0, ncol = K, nrow = K)
-for(i in 1:K) for(j in 1:K){
-  A_mean[i,j] <- mean(as.vector(fit_Net_7[,paste0("A[",i,",",j,"]")]))
-}
-Omega_mean <- matrix(0, ncol = K, nrow = K)
-for(i in 1:K) for(j in 1:K){
-  Omega_mean[i,j] <- mean(as.vector(fit_Net_7[,paste0("Omega[",i,",",j,"]")]))
-}
-
-# Plot the Network:
-par(mfrow=c(1,2))
-qgraph(A_mean);qgraph(Omega_mean)
-par(mfrow=c(1,1))
-

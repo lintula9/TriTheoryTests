@@ -3,28 +3,27 @@ data {
   int<lower=1> S;               // Number of subjects
   int<lower=1> K;               // Number of variables (here, K = 3)
   int<lower=1> N;               // Total number of observations across all subjects
-  array[N] int<lower=1> subject;
-      // Subject ID for each observation (sorted by subject and time)
+  array[N] int<lower=1> subject;      // Subject ID for each observation (sorted by subject and time)
   int<lower=1> N_obs;        // Number of observations
 
   // Matrix form data.
-  int<lower=1,upper=5> X[N,K];   // Observed data: matrix form. (Missing values contained!)
-  int<lower=0,upper=1> missing_mask[N, K]; // Mask: 1 if X[i,k] is missing, 0 otherwise. Matrix form.
+  array[N,K] int<lower=1,upper=4> X;   // Observed data: matrix form. (Missing values contained!)
+  array[N,K] int<lower=0,upper=1> missing_mask; // Mask: 1 if X[i,k] is missing, 0 otherwise. Matrix form.
 
   // Subject indexing.
-  int<lower=1> start[S];        // start[s]: starting index for subject s
-  int<lower=1> end[S];          // end[s]: ending index for subject s
+  array[S] int<lower=1>  start;        // start[s]: starting index for subject s
+  array[S] int<lower=1>  end;          // end[s]: ending index for subject s
   
   // Cutpoints for probit measurement model.
   int<lower=1> cutpoint_count; // Note that we assume (know) that category count is the same for all vars.
-  real cutpoint_prior_locations[cutpoint_count];
+  array[cutpoint_count] real cutpoint_prior_locations;
   
   // Initial, t = 0, unobserved state.
-  vector[K] mu0;              // Mean for initial states
+  array[K] real mu0;              // Mean for initial states
   cov_matrix[K] Sigma0;       // Covariance for initial states
   
   // Time of day variables.
-  int<lower=1> beep[N];         // Time of day, for each observation. (4 = evening, 1 = morning.)
+  array[N] int<lower=1> beep;         // Time of day, for each observation. (4 = evening, 1 = morning.)
   int<lower=1> nbeeps;          // Count of different times of day.
 }
 
@@ -32,34 +31,32 @@ parameters {
   // 1. VAR(1) model parameters
   matrix[K, K] A;           // VAR(1) coefficient matrix
 
-  
   // 2. Correlation matrix for innovations.
   cholesky_factor_corr[K] L_corr;  // Cholesky factor of the correlation matrix
 
   // 3. Random intercepts for each subject
   matrix[S, K] subject_intercept_raw;  // subject-specific intercept deviations
-  vector<lower=0>[K] subject_intercept_sd;     // Standard deviation for subject intercepts
+  array[S] real<lower=0> subject_intercept_sd;     // Standard deviation for subject intercepts
 
-  
   // 4. X_star as latent symptoms.
   // Note: the scale of the latent X* symtpoms is not identified, thus it is user defined.
   matrix[K,N] X_star_innovation; // The non-deterministic part of X_star.
   matrix[K,S] X_star_zero;   // Initial state for each subject at t=0.
 
   // 5. Probit measurement model cutoffs:
-  ordered[cutpoint_count] cutpoints[K];
+  array[K] ordered[cutpoint_count] cutpoints;
   
   // 8. Time of day parameter:
-  vector[K] time_of_day_intercept[nbeeps];
+  array[nbeeps] vector[K] time_of_day_intercept;
   }
   
 transformed parameters {
 
   // 3. Subject intercepts. Better posterior geometry with non-centralized priors.
-  vector[K] subject_intercept[S];
+  matrix[K,S] subject_intercept;
   for(s in 1:S){
     for(k in 1:K){
-  subject_intercept[s, k] = subject_intercept_raw[s,k] * subject_intercept_sd[k];
+  subject_intercept[k,s] = subject_intercept_raw[s,k] * subject_intercept_sd[s];
   }}
   
   // 99. c = 0 (written in for compatibility of all syntax, though redundant).
@@ -76,7 +73,7 @@ transformed parameters {
           X_star[,t] = c + A * X_star_zero[,s] 
                          + time_of_day_intercept[beep[t]];
     } else {
-          X_star[,t] = c + subject_intercept[s] 
+          X_star[,t] = c + subject_intercept[,s] 
                          + A * X_star[,t-1] 
                          + L_corr * X_star_innovation[,t]  
                          + time_of_day_intercept[beep[t]];
@@ -87,7 +84,10 @@ transformed parameters {
 model {
   
   // 1. Priors for VAR model parameters
-  to_vector(A) ~ std_normal();               // Prior for VAR coefficients
+  to_vector(A) ~ normal(0,0.2);               // Prior for VAR coefficients
+  // Since it is untypical for VAR (especially for stationary VAR) to have coefficients
+  // with absolute values much larger than 0.5, we will set the prior tight. This will still
+  // allow for large coefficients to appear, but, also stabilizes the scales better as well.
 
   L_corr ~ lkj_corr_cholesky(1);              // Prior for correlation matrix
   to_vector(X_star_innovation) ~ std_normal(); 
@@ -102,7 +102,7 @@ model {
   
   // 4. Latent symptoms at t = 0 and subject specific scale.
   for (s in 1:S) {
-    X_star_zero[,s] ~ multi_normal(mu0, Sigma0); 
+    X_star_zero[,s] ~ multi_normal(to_vector(mu0), Sigma0); 
     }
   
   // 5. Priors for the cutoffs.
