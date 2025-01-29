@@ -146,4 +146,9 @@ better during warmups so that the treedepth wont be a problem.
 prior since large coefficients are rare (especially if a stationary A is estimated)
 Model run begun at 20:00.
 
-  
+07:48 checking back in
+All 8 chains finished successfully.
+Mean chain execution time: 13705.3 seconds.
+Total execution time: 15789.8 seconds.
+- No warning messages.
+- All looks good.
