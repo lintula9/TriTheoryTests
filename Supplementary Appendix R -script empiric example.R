@@ -229,20 +229,37 @@ qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()
 source("Supplementary Appendix R -script civ_find.R")
 sqrt(mean(c(c(civ_find(A,Z)$A - A)^2, c(civ_find(A,Z)$Z[lower.tri(Z, diag = T)] - Z[lower.tri(Z, diag = T)])^2)))
 
-# Randomly select 1000 posterior draws and obtain a distribution for RMSEA
+# Randomly select 1000 posterior draws and obtain discrepancies
 indices <- sample(1:nrow(draws_df),size = 1000L, replace = F)
-RMSEA_dist <- pbapply::pbsapply(1:length(indices),
+estimated_var_samples <- draws_df[i,grep("A", names(draws_df)) | grep("Omega", names(draws_df))]; As <- grep("A", names(Alphas_Omegas)); Os <- grep("Omega", names(Alphas_Omegas)); 
+civ_var_samples <- pbapply::pbsapply(1:length(indices),
                   FUN = function(i){
-                    A_temp <- matrix( unlist(draws_df[i,grep("A", names(draws_df))]), ncol = K, nrow = K);
-                    Z_temp <- matrix( unlist(draws_df[i,grep("Omega", names(draws_df))]), ncol = K, nrow = K);
-                    closest <- civ_find(A_temp,Z_temp);
-                    return(sqrt(mean(c(fastmatrix::vec(closest$A - A_temp)^2, (fastmatrix::vech(closest$Z) - fastmatrix::vech(Z_temp))^2))));
-                  }); gc()
-ggplot() + geom_histogram(aes(x=RMSEA_dist))
+                    A_temp <- matrix( estimated_var_samples[i,As], ncol = K, nrow = K);
+                    Z_temp <- matrix( draws_df[i,Os], ncol = K, nrow = K);
+                    closest <- civ_find(A_temp,Z_temp); A_ <- fastmatrix::vec(closest$A); Z_ <- fastmatrix::vec(closest$Z); theta_0 <- c(A_,Z_)
+                    return(theta_0)
+                    }, simplify = "matrix"); gc()
+civ_var_samples <- t(civ_var_samples)
+discrepancy_samples <- estimated_var_samples - civ_var_samples
+S_discrepancy <- cov(discrepancy_samples)
 
-quantile(RMSEA_dist, probs = c(0.025,0.975))
+# Compute Mahalanobis squared distance:
+civ_var <- civ_find(A,Z)
+discrepancy <- c(fastmatrix::vec(A - civ_var$A), fastmatrix::vech( Z - civ_var$Z ))
+D_squared <- t(discrepancy) %*% solve(S_discrepancy) %*% discrepancy
 
+# Scenario 1.: Set discrepany = 0 as the null hypothesis, normal theory based inference:
+pchisq(q = D_squared, df = length(discrepancy))
 
+# Scenario 2.: Set discrepancy > epsilon as the null hypothesis, normal theory based inference:
+# Accept, say, RMSEA < 0.08. Find non-centrality parameter, if RMSEA = 0.08, alpha = 0.05.
+# RMSEA function
+ncpar_find <- function(ncppar, 
+                       chisq = D_squared, 
+                       df = length(discrepancy), 
+                       n = nrow(Data5b)) {
+  sqrt(( pchisq(chisq, df = df, ncp = ncppar) - df/(n-1))/(df)) - 0.08};
+ncpar <- optim(par = list(ncppar = 0), fn = ncpar_find, gr = numDeriv::grad(ncpar_find))
   ## Second analysis: More symptoms -----
 
 # Data: OVERWRITTEN to not overflow the environment.

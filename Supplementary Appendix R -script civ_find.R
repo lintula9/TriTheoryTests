@@ -2,13 +2,18 @@
 if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
 
 civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6, 
-                     W = NULL, RMSEA = F, RMSEA_Delta = 0) {
+                     W = NULL, RMSEA = F, RMSEA_Delta = 0,
+                     random.init = F) {
 
   K <- ncol(A)
+  if(!random.init){
+    # Initial values are taken based on A.
+    Lambda <- Re(eigen(A)$vectors[,1])
+    psi    <- Re(eigen(A)$values[1])} else {
+    Lambda <- rnorm(K,sd=sd(vec(A)))
+    psi <- rnorm(1)
+    }
   
-  # Initial values are taken based on A.
-  Lambda <- Re(eigen(A)$vectors[,1])
-  psi    <- Re(eigen(A)$values[1])
   
   loss_function <- function(pars, A = A, Z = Z) {
     # Loss written differently than in above:

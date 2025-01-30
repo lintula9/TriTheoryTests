@@ -181,4 +181,20 @@ parameters, for each (or, say, 1000) draws from the posterior.
 
   15:37 Chains approachin 10% after 2 hours 7 minutes. So 20h rough estimate now.
   19.14 Chains approaching 25% after 6 hours 6 minutes.
+
+30.1.
+
+  08:47 Checking in, 77%.
+  08:53 first chain ot 80%
+  
+9:58 Further notes on inference:
+- Perhaps the most direct way is to compute thediscrepancies and 
+inspect their confidence intervals. Maybe the discrepancies are normally distributed...
+-> We probably have to solve how to first make the closest theta not have sign
+indeterminancy.
+-> Run some sanity tests to see what happens when finding the closes A,Z...
+
+  10:24 First chain at 85%.
+  12:10 Chains reaching 90%.
+  
   

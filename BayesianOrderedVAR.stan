@@ -133,11 +133,14 @@ generated quantities {
   Omega = multiply_lower_tri_self_transpose(L_corr);
   
   // 2. Extract log densities
+  array[N;K] log_lik;
   for (k in 1:K){
     for (n in 1:N) {
       if(missing_mask[n,k] == 0){
        // Note, that X is N times K, whereas X_star is K times N.
-       log_lik += ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
-        }}}
+       log_lik[n,k] = ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
+        } else {
+      log_lik[n, k] = 0;
+    }}}
   
 }
