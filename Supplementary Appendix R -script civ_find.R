@@ -2,7 +2,7 @@
 if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
 
 civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6, 
-                     W = NULL, RMSEA = F, RMSEA_Delta = 0,
+                     W = NULL,
                      random.init = F) {
 
   K <- ncol(A)

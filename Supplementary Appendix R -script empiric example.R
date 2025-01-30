@@ -125,9 +125,11 @@ for (k in 1:K) {
 
 
 # Cutpoint settings:
-cutpoint_prior_locations <- rowMeans(qnorm((sapply(Data5b %>% select(Relax, Worry, Nervous),
-                                                   function(x) cumsum(prop.table(table(na.omit(x))))))))
-cutpoint_prior_locations <- cutpoint_prior_locations[-length(cutpoint_prior_locations)]
+# cutpoint_prior_locations <- rowMeans(qnorm((sapply(Data5b %>% select(Relax, Worry, Nervous),
+#                                                    function(x) cumsum(prop.table(table(na.omit(x))))))))
+# cutpoint_prior_locations <- cutpoint_prior_locations[-length(cutpoint_prior_locations)]
+# Custom adjustment to cutpoint priors, based on the model analyses. This is to identify the scales.
+cutpoint_prior_locations <- c(-0.6, 1, 2.2)
 cutpoint_count <- length(cutpoint_prior_locations)
 
 # Settings for the X_star_zero, the t = 0 unobserved variables.
@@ -218,9 +220,10 @@ draws_df <- as_draws_df(fit_Net$draws(variables = c(inference_vars_regex, "lp__"
 plotnams <- c("A", "Omega", "cutpoints","time_of_day_intercept");pdf(file = paste0("Datas/Bayespots_",format(Sys.time(), "%Y-%m-%d"), ".pdf"))
 for(i in plotnams){print(  mcmc_trace(draws_df[ , grep(i, names(draws_df))]) );print(  mcmc_areas_ridges(draws_df[ , grep(i, names(draws_df))]) );
   }; gc(); dev.off()
+
 # Extract posterior means as the VAR parameters:
 A <- matrix( unlist(colMeans(draws_df[,grep("A", names(draws_df))])), ncol = K, nrow = K);
-Z <- matrix( unlist(colMeans(draws_df[map_index,grep("Omega", names(draws_df))])), ncol = K, nrow = K)
+Z <- matrix( unlist(colMeans(draws_df[,grep("Omega", names(draws_df))])), ncol = K, nrow = K)
 
 par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_MAP_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"))
 qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()
@@ -231,25 +234,34 @@ sqrt(mean(c(c(civ_find(A,Z)$A - A)^2, c(civ_find(A,Z)$Z[lower.tri(Z, diag = T)] 
 
 # Randomly select 1000 posterior draws and obtain discrepancies
 indices <- sample(1:nrow(draws_df),size = 1000L, replace = F)
-estimated_var_samples <- draws_df[i,grep("A", names(draws_df)) | grep("Omega", names(draws_df))]; As <- grep("A", names(Alphas_Omegas)); Os <- grep("Omega", names(Alphas_Omegas)); 
+estimated_var_samples <- draws_df[,c( grep("A", names(draws_df)) , grep("Omega", names(draws_df)) )]; As <- grep("A", names(estimated_var_samples)); Os <- grep("Omega", names(estimated_var_samples)); 
 civ_var_samples <- pbapply::pbsapply(1:length(indices),
                   FUN = function(i){
-                    A_temp <- matrix( estimated_var_samples[i,As], ncol = K, nrow = K);
-                    Z_temp <- matrix( draws_df[i,Os], ncol = K, nrow = K);
-                    closest <- civ_find(A_temp,Z_temp); A_ <- fastmatrix::vec(closest$A); Z_ <- fastmatrix::vec(closest$Z); theta_0 <- c(A_,Z_)
+                    A_temp <- matrix( unlist(estimated_var_samples[indices[i],As]), ncol = K, nrow = K);
+                    Z_temp <- matrix( unlist(estimated_var_samples[indices[i],Os]), ncol = K, nrow = K);
+                    closest <- civ_find(A_temp,Z_temp); 
+                    A_ <- fastmatrix::vec(closest$A); 
+                    Z_ <- fastmatrix::vec(closest$Z); 
+                    theta_0 <- c(A_,Z_);
                     return(theta_0)
                     }, simplify = "matrix"); gc()
 civ_var_samples <- t(civ_var_samples)
-discrepancy_samples <- estimated_var_samples - civ_var_samples
-S_discrepancy <- cov(discrepancy_samples)
+discrepancy_samples <- estimated_var_samples[indices,] - civ_var_samples 
+# Remove the redundant parameters.
+red_pars <- c()
+for(j in 2:K){ red_pars <- c(red_pars,paste0("Omega",paste0("[",j:K,","), (j-1):(j-1), "]" )) }
 
+discrepancy_samples <- discrepancy_samples[ , !(names(discrepancy_samples) %in% red_pars) ]
+# We'll check the normality assumption at this point...
+for(i in 1:ncol(discrepancy_samples)) {dev.new();hist(discrepancy_samples[,i])}
+S_discrepancy <- cov(discrepancy_samples) + 1e-6 * diag(ncol(discrepancy_samples))
 # Compute Mahalanobis squared distance:
 civ_var <- civ_find(A,Z)
 discrepancy <- c(fastmatrix::vec(A - civ_var$A), fastmatrix::vech( Z - civ_var$Z ))
-D_squared <- t(discrepancy) %*% solve(S_discrepancy) %*% discrepancy
+D_squared <- t(discrepancy) %*% Matrix::solve(S_discrepancy) %*% discrepancy
 
 # Scenario 1.: Set discrepany = 0 as the null hypothesis, normal theory based inference:
-pchisq(q = D_squared, df = length(discrepancy))
+pchisq(q = D_squared, df = length(discrepancy)) # P is large -> we cannot reject our null.
 
 # Scenario 2.: Set discrepancy > epsilon as the null hypothesis, normal theory based inference:
 # Accept, say, RMSEA < 0.08. Find non-centrality parameter, if RMSEA = 0.08, alpha = 0.05.
@@ -362,7 +374,6 @@ fit_Net_7 <- mod_Net_7$sample(
   refresh = 100,
   chains = 8,
   parallel_chains = 8, 
-  num_cores = 8,       # set >1 if you want parallel MCMC
   iter_warmup = 2000,          # e.g. half of 1000
   iter_sampling = 2000,        # total 1000 draws
   adapt_delta = 0.95,
@@ -387,4 +398,23 @@ fit_Net_7 <- mod_Net_7$sample(
       )
     )
   }
-)
+); gc()
+# Save output
+fit_Net_7$save_output_files("Datas/",basename = "BVAR_7_variables_30_01")
+# Read data
+if(F){
+  fit_Net_7 <- as_cmdstan_fit(files = paste0("Datas/BVAR_7_variables_30_01-202501301454-",1:8,"-904f20.csv") ); gc()
+  draws_df_7 <- as_draws_df(fit_Net_7$draws(variables = c(inference_vars_regex, "lp__") )); gc(); rm(fit_Net_7); gc()
+}
+# Diagnostics and posterior distribution marignal plots. 
+plotnams <- c("A", "Omega", "cutpoints","time_of_day_intercept"); #pdf(file = paste0("Datas/Bayespots_7vars_",format(Sys.time(), "%Y-%m-%d"), ".pdf"))
+for(i in plotnams){
+  dev.new();print(  mcmc_trace( draws_df_7[ , grep(i, names(draws_df_7))]) );
+  # dev.new();print(  mcmc_areas_ridges(draws_df_7[ , grep(i, names(draws_df_7))]) );
+}; gc();# dev.off()
+# Extract posterior means as the VAR parameters:
+A <- matrix( unlist(colMeans(draws_df[,grep("A", names(draws_df))])), ncol = K, nrow = K);
+Z <- matrix( unlist(colMeans(draws_df[map_index,grep("Omega", names(draws_df))])), ncol = K, nrow = K)
+
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_MAP_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"))
+qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()

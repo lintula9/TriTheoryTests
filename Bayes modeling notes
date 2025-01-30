@@ -192,9 +192,30 @@ parameters, for each (or, say, 1000) draws from the posterior.
 inspect their confidence intervals. Maybe the discrepancies are normally distributed...
 -> We probably have to solve how to first make the closest theta not have sign
 indeterminancy.
--> Run some sanity tests to see what happens when finding the closes A,Z...
+-> Run some sanity tests to see what happens when finding the closest A,Z...
+-> RESULT: with random starts, it seems that we consistently find the same model.
+-> Perhaps more randomnes to starts.
+-> Anyway, all we are interested in is the correlatedness per one row, so
+there might not be a problem with estimating the covariacnes as planned.
 
   10:24 First chain at 85%.
   12:10 Chains reaching 90%.
+  14:30 (approx) Chain 3 finished in 90905.1 seconds, 25 hours.
+-> Warning: 16000 of 16000 (100.0%) transitions hit the maximum treedepth limit of 10.
+- otherwise, no errors.
+ cutpoints[1,1] -0.64  -0.63 0.06 0.06 -0.74 -0.53 1.01      640    12531
+ cutpoints[2,1] -0.74  -0.74 0.07 0.07 -0.85 -0.63 1.12       42      137
+ cutpoints[3,1] -0.60  -0.60 0.07 0.07 -0.71 -0.47 1.19       27       72
+ The prior seems way off. We set near 0.00 prior for first cutpoints.
+ -> Only change prior if this is also the case for 3 variables.
+- Traceplots suggest that (soft) multimodalities were seen, expecially concerning
+variables 4,5. A coefficients and omegas were multimodal. 
+- Cutpoint traceplots show simila patters, but not for other variables too..
+- The problems seem to appear only for certain chains (5 or so). Mixing problem.
+
+15:27
+- Checking if the cutpoint priors are equivocally 'bad': If so, adjust model.
+- Afterwards, compute the Mahalanobis distances and respective Chisquare tests.
+-> Yeah, cutpoint prior could be adjusted. Hopefully this will solve mixing issues.
   
   
