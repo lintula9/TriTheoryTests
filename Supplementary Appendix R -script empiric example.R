@@ -252,7 +252,7 @@ red_pars <- c()
 for(j in 2:K){ red_pars <- c(red_pars,paste0("Omega",paste0("[",j:K,","), (j-1):(j-1), "]" )) }
 
 discrepancy_samples <- discrepancy_samples[ , !(names(discrepancy_samples) %in% red_pars) ]
-# We'll check the normality assumption at this point...
+# We'll check (feasibility of) the normality assumption at this point.
 for(i in 1:ncol(discrepancy_samples)) {dev.new();hist(discrepancy_samples[,i])}
 S_discrepancy <- cov(discrepancy_samples) + 1e-6 * diag(ncol(discrepancy_samples))
 # Compute Mahalanobis squared distance:
@@ -265,13 +265,11 @@ pchisq(q = D_squared, df = length(discrepancy)) # P is large -> we cannot reject
 
 # Scenario 2.: Set discrepancy > epsilon as the null hypothesis, normal theory based inference:
 # Accept, say, RMSEA < 0.08. Find non-centrality parameter, if RMSEA = 0.08, alpha = 0.05.
-# RMSEA function
-ncpar_find <- function(ncppar, 
-                       chisq = D_squared, 
-                       df = length(discrepancy), 
-                       n = nrow(Data5b)) {
-  sqrt(( pchisq(chisq, df = df, ncp = ncppar) - df/(n-1))/(df)) - 0.08};
-ncpar <- optim(par = list(ncppar = 0), fn = ncpar_find, gr = numDeriv::grad(ncpar_find))
+# The computations are provided by Yuan et al., 2016. DF is computed as the differnce between our
+# esimtated VAR(1) model parameters, and the null hypothesis parameter amount...
+DF = (K^2 + (K^2-K)/2)
+sqrt( ( D_squared - DF ) / ( DF*(N-1) ) )
+
   ## Second analysis: More symptoms -----
 
 # Data: OVERWRITTEN to not overflow the environment.

@@ -219,3 +219,5 @@ variables 4,5. A coefficients and omegas were multimodal.
 -> Yeah, cutpoint prior could be adjusted. Hopefully this will solve mixing issues.
   
   
+17:06
+- RMSEA does not make sense, since we do not have the DF from anywhere?
