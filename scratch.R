@@ -1,5 +1,22 @@
 # Scratch or old
 
+# ncp from RMSEA  
+DF = 12
+
+qchisq(p = 0.95, df = DF, ncp = par)
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Obtain the estimates:
 
 # using brms

@@ -11,8 +11,7 @@ required_packages <- c(
   "Matrix", "fastmatrix", "expm", "rstan",
   "qgraph", "tidyverse", 
   "ggplot2", "rstantools", "loo", "bayesplot",
-  "shinystan", "cmdstanr", "posterior"
-)
+  "shinystan", "cmdstanr", "posterior" )
 
 # Function to check and install missing packages
 for (pkg in required_packages) {
@@ -196,8 +195,7 @@ fit_Net <- mod_Net$sample(
       subject_intercept_sd = rep(1, stan_data$S),
       X_star_innovation = matrix(0, stan_data$K, stan_data$N),
       X_star_zero = matrix(0, stan_data$K, stan_data$S),
-      cutpoints = matrix(
-        rep(stan_data$cutpoint_prior_locations,
+      cutpoints = matrix(rep(stan_data$cutpoint_prior_locations,
             times = stan_data$K),
         ncol  = stan_data$K,
         byrow = TRUE
@@ -230,9 +228,8 @@ qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()
 
 # Find the closest indistinguishable model, and compare
 source("Supplementary Appendix R -script civ_find.R")
-sqrt(mean(c(c(civ_find(A,Z)$A - A)^2, c(civ_find(A,Z)$Z[lower.tri(Z, diag = T)] - Z[lower.tri(Z, diag = T)])^2)))
 
-# Randomly select 1000 posterior draws and obtain discrepancies
+  # Randomly select 1000 posterior draws and obtain discrepancies
 indices <- sample(1:nrow(draws_df),size = 1000L, replace = F)
 estimated_var_samples <- draws_df[,c( grep("A", names(draws_df)) , grep("Omega", names(draws_df)) )]; As <- grep("A", names(estimated_var_samples)); Os <- grep("Omega", names(estimated_var_samples)); 
 civ_var_samples <- pbapply::pbsapply(1:length(indices),
@@ -254,11 +251,18 @@ for(j in 2:K){ red_pars <- c(red_pars,paste0("Omega",paste0("[",j:K,","), (j-1):
 discrepancy_samples <- discrepancy_samples[ , !(names(discrepancy_samples) %in% red_pars) ]
 # We'll check (feasibility of) the normality assumption at this point.
 for(i in 1:ncol(discrepancy_samples)) {dev.new();hist(discrepancy_samples[,i])}
+# Covariance is likely to not be invertible... A fix might not produce anything useful...
 S_discrepancy <- cov(discrepancy_samples) + 1e-6 * diag(ncol(discrepancy_samples))
+
 # Compute Mahalanobis squared distance:
 civ_var <- civ_find(A,Z)
 discrepancy <- c(fastmatrix::vec(A - civ_var$A), fastmatrix::vech( Z - civ_var$Z ))
 D_squared <- t(discrepancy) %*% Matrix::solve(S_discrepancy) %*% discrepancy
+
+# Get the distribution of D_squared
+D_squared_distribution <- apply(discrepancy_samples, MARGIN = 1,
+      FUN = function(row) t(row) %*% Matrix::solve(S_discrepancy) %*% row )
+D_squared_distribution <- as.matrix(discrepancy_samples) %*% Matrix::solve(S_discrepancy) %*% t(as.matrix(discrepancy_samples))
 
 # Scenario 1.: Set discrepany = 0 as the null hypothesis, normal theory based inference:
 pchisq(q = D_squared, df = length(discrepancy)) # P is large -> we cannot reject our null.

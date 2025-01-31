@@ -221,3 +221,7 @@ variables 4,5. A coefficients and omegas were multimodal.
   
 17:06
 - RMSEA does not make sense, since we do not have the DF from anywhere?
+
+31.1.025
+- We only need the statistic T (which is the Mahalanobis distance) and the ncp
+parameter (which can be estimated by using method of moments with T - df).
