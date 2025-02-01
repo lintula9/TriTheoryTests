@@ -168,14 +168,13 @@ stan_data <- list(
 inference_vars_regex <- c("A", "Omega", "cutpoints","time_of_day_intercept")
 
 # Run MCMC with cmdstanr
-mod_Net <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
+mod_Net <- cmdstan_model("BayesianOrderedVAR.stan")
 fit_Net <- mod_Net$sample(
   data = stan_data,
   seed = 123,                 # or your preferred seed
   refresh = 100,
   chains = 8,
   parallel_chains = 8, 
-  num_cores = 8,       # set >1 if you want parallel MCMC
   iter_warmup = 2000,          # e.g. half of 1000
   iter_sampling = 2000,        # total 1000 draws
   adapt_delta = 0.95,
@@ -236,49 +235,58 @@ civ_var_samples <- pbapply::pbsapply(1:length(indices),
                     theta_0 <- c(A_,Z_);
                     return(theta_0)
                     }, simplify = "matrix"); gc()
-civ_var_samples <- t(civ_var_samples)
+civ_var_samples <- t(civ_var_samples); 
 discrepancy_samples <- estimated_var_samples[indices,] - civ_var_samples 
 # Remove the redundant parameters.
 red_pars <- c();for(j in 2:K){ red_pars <- c(red_pars,paste0("Omega",paste0("[",j:K,","), (j-1):(j-1), "]" )) }
-
-# Get posterior samples of the discrepancies to the closest possible indistinguishable VAR(1) model.
 discrepancy_samples <- discrepancy_samples[ , !(names(discrepancy_samples) %in% red_pars) ]
-mcmc_areas(discrepancy_samples, regex_pars = "A" );dev.new();mcmc_areas(discrepancy_samples, regex_pars = "Omega" )
+mcmc_areas(discrepancy_samples, regex_pars = "A" );Sys.sleep(1);dev.new();mcmc_areas(discrepancy_samples, regex_pars = "Omega" )
 # We'll check (feasibility of) the normality assumption at this point.
 for(i in 1:ncol(discrepancy_samples)) {dev.new();hist(discrepancy_samples[,i])}
 # Covariance is likely to not be invertible... A fix might not produce anything useful...
 
-# First option
-D_distribution <- fastmatrix::Mahalanobis(discrepancy_samples, center = colMeans(discrepancy_samples), 
+# First option. We compute the Mahalanobist distances, presuming that the true distribution is around 0.
+D_squared_distribution <- fastmatrix::Mahalanobis(discrepancy_samples, 
+                                                  center = rep(0,times=DF), 
                                           cov = cov(discrepancy_samples),inverted =F )
-D_squared_distribution <- D_distribution^2
+closest <- civ_find(A,Z)
+D_at_mean <- fastmatrix::Mahalanobis(matrix(c(vec(A),vech(Z)) - c(vec(closest$A),vech(closest$Z)),
+                                            nrow = 1), center = rep(0, times = DF), 
+                                     cov = cov(discrepancy_samples),inverted =F )
+
+
+# Mahalanobis distance based inference might not work since the correct S is unknown.
+# S is not the covariance of the differences, since, as they get small, so does the covariance.
+# -> We scale by S^-1 which leads to large chisquare statistics.
+
 
 # Second option
-discrepancy_samples_whitened <- fastmatrix::whitening(discrepancy_samples)
-D_squared_distribution <- rowSums(discrepancy_samples_whitened^2)
+# discrepancy_samples_whitened <- fastmatrix::whitening(discrepancy_samples)
+# D_squared_distribution <- rowSums(discrepancy_samples_whitened^2)
 
   # Approximate the distribution with non-centralized chisquare:
 DF = ncol(discrepancy_samples); N = nrow(Data5b)
 ncp_par_opt <- stats4::mle(minuslogl = function(lambda,DF=DF) {
   -1*sum( dchisq(D_squared_distribution,DF,ncp = lambda,log = T) )
-  },  start = list("lambda" = 0.1),  lower = list("lambda" = 0),  fixed = list("DF" = 12))
+  },  start = list("lambda" = mean(D_squared_distribution - DF)),  lower = list("lambda" = 0),  fixed = list("DF" = 12))
   # Plot central chisq, mle estimate, and method of moments estimate.
 dev.new();ggplot() + geom_line(aes(x = seq(0,quantile(D_squared_distribution,0.90)), y =dchisq(seq(0,quantile(D_squared_distribution,0.90)), 12,ncp_par_opt@coef[1])), col = 1) +
   geom_line(aes(x = seq(0,quantile(D_squared_distribution,0.90)), y =dchisq(seq(0,quantile(D_squared_distribution,0.90)), 12,0)), col = "darkorange") + 
   geom_density(aes(D_squared_distribution), col = "purple4") + 
-  geom_line(aes(x = seq(0,quantile(D_squared_distribution,0.90)), y =dchisq(seq(0,quantile(D_squared_distribution,0.90)), 12,mean(D_squared_distribution) - DF)), col = 4)
+  geom_line(aes(x = seq(0,quantile(D_squared_distribution,0.90)), y =dchisq(seq(0,quantile(D_squared_distribution,0.90)), 12,mean(D_squared_distribution) - DF)), col = 4) +
+  coord_cartesian(xlim=c(0,100))
 
+# SEM imitations: RMSEA computation.
 # Scenario 1.: Set discrepany = 0 as the null hypothesis, normal theory based inference:
 chisq_stat = mean(D_squared_distribution)
-pchisq(q = chisq_stat, df = DF, ncp = c(ncp_par_opt@coef, 0)) # P is large -> we cannot reject our null.
+1-pchisq(q = chisq_stat, df = DF, ncp = c(ncp_par_opt@coef, 0)) # P is large -> we cannot reject our null.
 RMSEA = sqrt( max(c(chisq_stat - DF)) / (DF*(N-1)))
 # Scenario 2.: Set discrepancy > epsilon as the null hypothesis, normal theory based inference:
 # Accept, say, RMSEA < 0.08. Find non-centrality parameter, if RMSEA = 0.08, alpha = 0.05.
 # The computations are provided by Yuan et al., 2016. DF is computed as the differnce between our
 # esimtated VAR(1) model parameters, and the null hypothesis parameter amount...
-DF = (K^2 + (K^2-K)/2)
 sqrt( max( c(chisq_stat - DF, 0) ) / ( DF*(N-1) ) );
-Yuan_2016(DF,N) # Suggests excellent fit.
+source("Yuan 2016.R"); Yuan_2016(DF,N) # Suggests good fit.
 
 # Scenario 3.: Direct Bayesian analysis.
 # Whiten the parameter posterior draws:
@@ -342,6 +350,8 @@ Yuan_2016(DF,N) # Suggests excellent fit.
   cutpoint_prior_locations <- rowMeans(qnorm((sapply(Data5b %>% select(Relax, Worry, Nervous),
                                                      function(x) cumsum(prop.table(table(na.omit(x))))))))
   cutpoint_prior_locations <- cutpoint_prior_locations[-length(cutpoint_prior_locations)]
+  cutpoint_count <- length(cutpoint_prior_locations)
+  cutpoint_prior_locations <- c(-0.6, 1, 2.2)
   cutpoint_count <- length(cutpoint_prior_locations)
   
   # Settings for the X_star_zero, the t = 0 unobserved variables.
