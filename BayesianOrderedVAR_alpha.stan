@@ -72,10 +72,10 @@ transformed parameters {
   c = rep_vector(0, K);
   
   // 1. Create the Cholesky factor.
-  vector[K-1] Lambda; // Declare Lambda as the whole vector.
+  vector[K] Lambda; // Declare Lambda as the whole vector.
   // COMMENT: constrain to one to identify scale: Lambda[1] = Lambda_first;
   Lambda[1] = 1;
-  Lambda[2:(K-1)] = Lambda_rest;
+  Lambda[2:K] = Lambda_rest;
   
   matrix[K,K] L_;
   L_ = rep_matrix(0.0, K, K); // L_ will be the cholesky factor (of the covariance).
@@ -97,8 +97,8 @@ transformed parameters {
   array[nbeeps] vector[K] time_of_day_effect;
   for(i in 1:nbeeps){
     time_of_day_effect[i][1] = ref_time_of_day_effect[i];
-    for(k in 1:(K-1))
-    time_of_day_effect[i][k] = ref_time_of_day_effect[i] + specific_time_of_day_effect[i][k];
+    for(k in 2:(K))
+    time_of_day_effect[i][k] = ref_time_of_day_effect[i] + specific_time_of_day_effect[i][k-1];
   }
   
   // 4. Latent symptoms X_star as a transformed parameter: 
@@ -122,12 +122,12 @@ model {
   
   // 1. Priors for VAR model parameters
   // Brief note:
-  // An diagonal A, with structure A = psi * I, satisfies indistinguishability conditions.
+  // A diagonal A, with structure A = psi * I, satisfies indistinguishability conditions.
   // Thus, _any_ VAR(1) satisfying indistinguishability conditions is indistinguishable from
-  // psi*I, Lambda * Lambda' * constant parameterization. Also note, in our case we assume mvnormality, 
+  // psi*I, Lambda * Lambda' * constant - type of parameterization. Also note, in our case we assume mvnormality, 
   // thus the condition is stronger.
   // Using this knowledge, we present the prior as follows:
-  psi ~ normal(0,0.5);   // CF autoregression prior.
+  psi ~ normal(0,0.5);              // CF autoregression prior.
   to_vector(A) ~ normal(0,0.01);    // As per our prior belief, we set a strict prior for A parameters, outside of the diagonal psi.
   // To finalize, the computation: A_effective = A + psi * I is conducted in transformed parameters.
   // Effectively, using non-centralized parameterizatoin, psi will denote the location of the diagonal, and deviations from
