@@ -225,3 +225,31 @@ variables 4,5. A coefficients and omegas were multimodal.
 31.1.025
 - We only need the statistic T (which is the Mahalanobis distance) and the ncp
 parameter (which can be estimated by using method of moments with T - df).
+
+2.2.2025
+Complete overhaul of the analytical framework is implemented in the alpha stan file.
+- Priors, that reflect a belief of a CF underlying the symptoms.
+-> (Close to) rank 1 is a prior for the innovation correlaiton.
+-> Equivalent time of day effects for all variables is a prior.
+-> diagonal A matrix is a prior. (psi * I)
+-> Other changes, such as now log likelihood is again stored in the generated
+quantities, 4 chains (from 8), as well as 
+-> Sampling, 18:15.
+-> errors and unexpected finishes, we need to intialie the model again...
+-> RMSEA does not make sense. Give up on SEM methods, instead rely on 
+rationale derived from the analytical section.
+
+  18:24 0%, initial values seemed to work.
+  18:36 2%, rought estimate would be 50 * 12 = 510 minutes.
+  19:08 first chain at 20%. Last one at 12%
+  19:13 quick progress on par of the chains. 
+  Seems bad, probably the model is too complex
+  for the chains.
+  19:44 Chains 2 at 27%, maybe 320min is a good estimate, if the
+  sampling part is faster even.
+  19:46 Chain 1 32% So hopeful estimate 82min * 3 = 246min.
+  20:28 Sampling! Looks good, 2h until this point, hopefully faster onwards.
+  21:43 Chain 4 Iteration: 2500 / 4000 [ 62%]  (Sampling) 
+  Chain 4 seems stuck, not good.
+
+

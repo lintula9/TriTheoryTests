@@ -168,19 +168,23 @@ stan_data <- list(
 inference_vars_regex <- c("A", "Omega", "cutpoints","time_of_day_intercept")
 
 # Run MCMC with cmdstanr
-mod_Net <- cmdstan_model("BayesianOrderedVAR.stan")
+mod_Net <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
 fit_Net <- mod_Net$sample(
   data = stan_data,
   seed = 123,                 # or your preferred seed
   refresh = 100,
-  chains = 8,
-  parallel_chains = 8, 
+  chains = 4,
+  parallel_chains = 4, 
   iter_warmup = 2000,          # e.g. half of 1000
   iter_sampling = 2000,        # total 1000 draws
   adapt_delta = 0.95,
   init = function(chain_id) {
     list(
       A = diag(rep(0, stan_data$K)),
+      psi = 0.5,
+      Lambda_rest = rep(0.5,times=K-1),
+      L_rest_diag = rep(0.01, times = K-1),
+      L_rest_offdiag = rep(0.01, times = (K*(K-1)%/%2)),
       L_corr = diag(rep(1, stan_data$K)),
       subject_intercept_raw = matrix(0, stan_data$S, stan_data$K),
       subject_intercept_sd = rep(1, stan_data$S),
@@ -191,14 +195,18 @@ fit_Net <- mod_Net$sample(
         ncol  = stan_data$K,
         byrow = TRUE
       ),
-      time_of_day_intercept = replicate(
+      ref_time_of_day_effect = rep(0, times =nbeeps),
+      specific_time_of_day_effect = 
+        replicate(
         stan_data$nbeeps,
-        rep(0, stan_data$K),
+        rep(0, stan_data$K -1),
         simplify = FALSE
       )
     )
   }
-)
+); gc()
+# Save output.
+fit_Net$save_output_files("/Datas", basename = "3VAR_CF_prior", timestamp = T, random = F)
 
 # Read data
 if(F){

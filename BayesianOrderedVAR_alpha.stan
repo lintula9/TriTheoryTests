@@ -38,7 +38,7 @@ parameters {
   // COMMENT: constrain to 1 to identify scale: real<lower=0> Lambda_first;             // First element, constrained to be positive for sign identification.
   vector[K-1] Lambda_rest;                // Remaining elements with no sign constraint
   array[K-1] real<lower=0> L_rest_diag;       // Must be non-negative, to ensure PSD of covariance.
-  vector[(K*(K-1)/2)] L_rest_offdiag; // Unrestricted.
+  vector[(K*(K-1)%/%2)] L_rest_offdiag; // Unrestricted.
 
   // 3. Random intercepts for each subject
   matrix[S, K] subject_intercept_raw;  // subject-specific intercept deviations
@@ -82,7 +82,7 @@ transformed parameters {
   L_[,1] = Lambda;
   for( i in 2:K) L_[i,i] = L_rest_diag[i-1];
   for( i in 2:(K)) {
-    int counter = 2 + (i - 2) * K - ((i - 1) * i) / 2;
+    int counter = 2 + (i - 2) * K - ((i - 1) * i) %/% 2;
     L_[(i+1):K, i] = L_rest_offdiag[counter:(counter + (K - i) - 1)];
   }
       // Compute L_corr
@@ -113,7 +113,7 @@ transformed parameters {
           X_star[,t] = c + subject_intercept[,s] 
                          + A_effective * X_star[,t-1] 
                          + L_corr * X_star_innovation[,t]  // Transforms our standard normal (white noise) innovations to correlated innovations.
-                         + Lambda .* time_of_day_effect[beep[t]];
+                         + time_of_day_effect[beep[t]];
     }}}
     
 }
