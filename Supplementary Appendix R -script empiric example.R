@@ -166,15 +166,17 @@ stan_data <- list(
   #3. First analysis: 3 symptom Network ----
 # Set of variables of interest, which we can set to pars argument, or later on extract.
 inference_vars_regex <- c("A", "Omega", "cutpoints","time_of_day_intercept")
-
+inference_vars_regex_alpha <- c("A_effective","A","psi","Lambda", "Omega","L_", "cutpoints", "time_of_day_effect",
+                                "ref_time_of_day_effect", "specific_time_of_day_effect")
 # Run MCMC with cmdstanr
 mod_Net <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
+nchains = 8
 fit_Net <- mod_Net$sample(
   data = stan_data,
   seed = 123,                 # or your preferred seed
   refresh = 100,
-  chains = 4,
-  parallel_chains = 4, 
+  chains = nchains,
+  parallel_chains = nchains, 
   iter_warmup = 2000,          # e.g. half of 1000
   iter_sampling = 2000,        # total 1000 draws
   adapt_delta = 0.95,
@@ -206,28 +208,29 @@ fit_Net <- mod_Net$sample(
   }
 ); gc()
 # Save output.
-fit_Net$save_output_files("/Datas", basename = "3VAR_CF_prior", timestamp = T, random = F)
+fit_Net$save_output_files("/LocalData/lintusak/TriTheoryTests/Datas/", basename = "3VAR_CF_prior", timestamp = T, random = F)
 
 # Read data
 if(F){
-fit_Net <- as_cmdstan_fit(files = paste0("Datas/fit_net_3var_output-202501290753-",1:8,"-5996ed.csv") ); gc()
-draws_data <- as_draws_df(fit_Net$draws(variables = c(inference_vars_regex, "lp__") )); gc(); rm(fit_Net); gc()
-saveRDS(draws_data, "Datas/3VAR_draws.RDS"); gc()
-draws_data <- readRDS(file = "Datas/3VAR_draws.RDS")
+fit_Net <- as_cmdstan_fit(files = paste0("Datas/3VAR_CF_prior-202502031318-",1:nchains,".csv") ); gc()
+draws_data <- as_draws_df(fit_Net$draws(variables = c(inference_vars_regex_alpha, "lp__") ), .nhcains = nchains ); gc(); rm(fit_Net); gc()
 }
 # Diagnostics and posterior distribution marignal plots. 
-plotnams <- c("A", "Omega", "cutpoints","time_of_day_intercept");pdf(file = paste0("Datas/Bayespots_",format(Sys.time(), "%Y-%m-%d"), ".pdf"))
-for(i in plotnams){print(  mcmc_trace(draws_data[ , grep(i, names(draws_data))]) );print(  mcmc_areas_ridges(draws_data[ , grep(i, names(draws_data))]) );
+plotnams <- inference_vars_regex_alpha;pdf(file = paste0("Datas/Bayespots_",format(Sys.time(), "%Y-%m-%d"), ".pdf"));color_scheme_set("viridis")
+for(i in plotnams){print(  mcmc_trace(draws_data, regex_pars = i ));print(  mcmc_areas_ridges(draws_data[ , grep(i, names(draws_data))]) );
   }; gc(); dev.off()
 
 # Extract posterior means as the VAR parameters:
 A <- matrix( unlist(colMeans(draws_data[,grep("A", names(draws_data))])), ncol = K, nrow = K);
 Z <- matrix( unlist(colMeans(draws_data[,grep("Omega", names(draws_data))])), ncol = K, nrow = K)
+source("Supplementary Appendix R -script civ_find.R");closest <- civ_find(A,Z)
+ #Plot VAR
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()
+ #Plot closest VAR
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A);qgraph(input = closest$Z);dev.off();par(mfrow=c(1,1));gc()
+A - closest$A; Z - closest$Z
 
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_MAP_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"))
-qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()
-
-# 4. Inference -------
+# 4. Inference OUTDATED 3.2.2025 -------
 
 # Find the closest indistinguishable model, and compare
 source("Supplementary Appendix R -script civ_find.R")
@@ -296,8 +299,6 @@ RMSEA = sqrt( max(c(chisq_stat - DF)) / (DF*(N-1)))
 sqrt( max( c(chisq_stat - DF, 0) ) / ( DF*(N-1) ) );
 source("Yuan 2016.R"); Yuan_2016(DF,N) # Suggests good fit.
 
-# Scenario 3.: Direct Bayesian analysis.
-# Whiten the parameter posterior draws:
 
   ## Second analysis: More symptoms -----
 

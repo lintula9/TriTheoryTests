@@ -251,5 +251,24 @@ rationale derived from the analytical section.
   20:28 Sampling! Looks good, 2h until this point, hopefully faster onwards.
   21:43 Chain 4 Iteration: 2500 / 4000 [ 62%]  (Sampling) 
   Chain 4 seems stuck, not good.
+  21:57 All chains, but 4, 100%. 4 at 67%.
+  
+3.2.2025
+10:59 After checking in, the problem might be that L_ has no identifiable scale.
+-> Remove L_corr, change to L_. I.e., removed the standardization, L_
+can now also scale (the parameterization did not make sense.).
+-> More chains for certainty.
+-> 0.01 prior might be unreasonable...
+-> Prior not changed, maybe nxt iteration.
+
+13:35 The model was fit well, no divergence, good mixing, etc.
+- Priors are probably too tight to allow any deviation from the DCF model.
+- Seems that we can indeed leave L_corr out (though still written in for
+compatibility).
+
+13:37 A good time to do another run, this time with looser priors.
+-> only change 0.01 variance in priors to 0.1.
+
+  11:55 20% in to warmups, looks good.
 
 

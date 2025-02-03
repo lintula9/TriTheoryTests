@@ -87,7 +87,9 @@ transformed parameters {
   }
       // Compute L_corr
   matrix[K,K] L_corr;
-  L_corr = diag_matrix(1.0 ./ sqrt(diagonal(L_*L_'))) * L_;
+  // L_corr = diag_matrix(1.0 ./ sqrt(diagonal(L_*L_'))) * L_;
+  // For compatibility, simply declare
+  L_corr = L_;
   
   // 1. Create A.
   matrix[K,K] A_effective;
@@ -128,7 +130,7 @@ model {
   // thus the condition is stronger.
   // Using this knowledge, we present the prior as follows:
   psi ~ normal(0,0.5);              // CF autoregression prior.
-  to_vector(A) ~ normal(0,0.01);    // As per our prior belief, we set a strict prior for A parameters, outside of the diagonal psi.
+  to_vector(A) ~ normal(0,0.1);    // As per our prior belief, we set a strict prior for A parameters, outside of the diagonal psi.
   // To finalize, the computation: A_effective = A + psi * I is conducted in transformed parameters.
   // Effectively, using non-centralized parameterizatoin, psi will denote the location of the diagonal, and deviations from
   // psi * I are punished by our prior belief heavily. Strong prior should also identify our model.
@@ -136,8 +138,8 @@ model {
   // Prior for innovation covariance.
   // COMMENT: Set to 1 for identification. Lambda_first ~ normal(0.5,0.5);         // Prior, assuming that the factor loadings are non-negligible.        
   Lambda_rest ~ normal(0.5,0.5);          
-  L_rest_diag ~ normal(0,0.01);           // Tight prior - our prior is that the true model is CF model.
-  L_rest_offdiag ~ normal(0,0.01); 
+  L_rest_diag ~ normal(0,0.1);           // Tight prior - our prior is that the true model is CF model.
+  L_rest_offdiag ~ normal(0,0.1); 
   
   // Prior for the white noise innovatoins, afterwards transformed to correlated innovations.
   to_vector(X_star_innovation) ~ std_normal();
@@ -166,7 +168,7 @@ model {
   // time_of_day -> CF -> Lambda_i * X_i. This will be reflected on our priors as well.
   ref_time_of_day_effect ~ std_normal();
   for(i in 1:nbeeps){
-  specific_time_of_day_effect[i] ~ normal(0,0.01); // Strong prior, as our belief is that they are all the same.
+  specific_time_of_day_effect[i] ~ normal(0,0.1); // Strong prior, as our belief is that they are all the same.
   }
   // 6. Model target likelihood.
   for (k in 1:K){
