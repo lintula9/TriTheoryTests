@@ -208,12 +208,12 @@ fit_Net <- mod_Net$sample(
   }
 ); gc()
 # Save output.
-fit_Net$save_output_files("/LocalData/lintusak/TriTheoryTests/Datas/", basename = "3VAR_CF_prior", timestamp = T, random = F)
+fit_Net$save_output_files("/LocalData/lintusak/TriTheoryTests/Datas/", basename = "3VAR_CF_relaxedpriors", timestamp = T, random = F)
 
 # Read data
 if(F){
-fit_Net <- as_cmdstan_fit(files = paste0("Datas/3VAR_CF_prior-202502031318-",1:nchains,".csv") ); gc()
-draws_data <- as_draws_df(fit_Net$draws(variables = c(inference_vars_regex_alpha, "lp__") ), .nhcains = nchains ); gc(); rm(fit_Net); gc()
+fit_Net <- as_cmdstan_fit(files = paste0("Datas/3VAR_CF_relaxedpriors-202502031854-",1:nchains,".csv") ); gc()
+draws_data <- as_draws_df(fit_Net$draws(variables = c(inference_vars_regex_alpha) ), .nhcains = nchains ); gc(); rm(fit_Net); gc()
 }
 # Diagnostics and posterior distribution marignal plots. 
 plotnams <- inference_vars_regex_alpha;pdf(file = paste0("Datas/Bayespots_",format(Sys.time(), "%Y-%m-%d"), ".pdf"));color_scheme_set("viridis")
