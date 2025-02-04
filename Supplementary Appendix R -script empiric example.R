@@ -402,30 +402,35 @@ fit_Net_7 <- mod_Net_7$sample(
   data = stan_data,
   seed = 123,                 # or your preferred seed
   refresh = 100,
-  chains = 8,
-  parallel_chains = 8, 
+  chains = nchains,
+  parallel_chains = nchains, 
   iter_warmup = 2000,          # e.g. half of 1000
   iter_sampling = 2000,        # total 1000 draws
   adapt_delta = 0.95,
   init = function(chain_id) {
     list(
       A = diag(rep(0, stan_data$K)),
+      psi = 0.5,
+      Lambda_rest = rep(0.5,times=K-1),
+      L_rest_diag = rep(0.01, times = K-1),
+      L_rest_offdiag = rep(0.01, times = (K*(K-1)%/%2)),
       L_corr = diag(rep(1, stan_data$K)),
       subject_intercept_raw = matrix(0, stan_data$S, stan_data$K),
       subject_intercept_sd = rep(1, stan_data$S),
       X_star_innovation = matrix(0, stan_data$K, stan_data$N),
       X_star_zero = matrix(0, stan_data$K, stan_data$S),
-      cutpoints = matrix(
-        rep(stan_data$cutpoint_prior_locations,
-            times = stan_data$K),
-        nrow  = stan_data$K,
-        byrow = TRUE
+      cutpoints = matrix(rep(stan_data$cutpoint_prior_locations,
+                             times = stan_data$K),
+                         ncol  = stan_data$K,
+                         byrow = TRUE
       ),
-      time_of_day_intercept = replicate(
-        stan_data$nbeeps,
-        rep(0, stan_data$K),
-        simplify = FALSE
-      )
+      ref_time_of_day_effect = rep(0, times =nbeeps),
+      specific_time_of_day_effect = 
+        replicate(
+          stan_data$nbeeps,
+          rep(0, stan_data$K -1),
+          simplify = FALSE
+        )
     )
   }
 ); gc()

@@ -177,7 +177,6 @@ model {
        // Note, that X is N times K, whereas X_star is K times N.
        target += ordered_probit_lpmf( X[n,k] | X_star[k,n], cutpoints[k]);
         }}}
-
   }
 
 generated quantities {

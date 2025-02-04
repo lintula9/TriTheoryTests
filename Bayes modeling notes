@@ -285,4 +285,10 @@ Checking diagnostics...
 SUCCESS!!!
 3VAR MODEL ESTIMATED! RESULT: INDISTINGUISHABLE!!!
 
-Next, 7 variable scenario.
+Next, 7 variable scenario. Also, switch alpha to stable or new rstan file.
+
+
+4.2.2025
+- 1. Compute LOO, and check posterior predictives. Then:
+- Compute the 7 variables case.
+
