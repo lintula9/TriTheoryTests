@@ -15,11 +15,10 @@ required_packages <- c(
 
 # Function to check and install missing packages
 for (pkg in required_packages) {
-    if (!requireNamespace(pkg, quietly = TRUE)) {
-      install.packages(pkg)
-    }
+      if(!requireNamespace(pkg, quietly = T)) {install.packages(pkg)}
     library(pkg, character.only = TRUE)
-  }
+}
+
 
 # --------------- 2. Estimation -----------------------------
 
@@ -356,10 +355,6 @@ source("Yuan 2016.R"); Yuan_2016(DF,N) # Suggests good fit.
   }
   
   # Cutpoint settings:
-  cutpoint_prior_locations <- rowMeans(qnorm((sapply(Data5b %>% select(Relax, Worry, Nervous),
-                                                     function(x) cumsum(prop.table(table(na.omit(x))))))))
-  cutpoint_prior_locations <- cutpoint_prior_locations[-length(cutpoint_prior_locations)]
-  cutpoint_count <- length(cutpoint_prior_locations)
   cutpoint_prior_locations <- c(-0.6, 1, 2.2)
   cutpoint_count <- length(cutpoint_prior_locations)
   
@@ -398,6 +393,7 @@ stan_data <- list(
 
 # Run MCMC with cmdstanr
 mod_Net_7 <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
+nchains = 8
 fit_Net_7 <- mod_Net_7$sample(
   data = stan_data,
   seed = 123,                 # or your preferred seed
@@ -421,7 +417,7 @@ fit_Net_7 <- mod_Net_7$sample(
       X_star_zero = matrix(0, stan_data$K, stan_data$S),
       cutpoints = matrix(rep(stan_data$cutpoint_prior_locations,
                              times = stan_data$K),
-                         ncol  = stan_data$K,
+                         nrow  = stan_data$K,
                          byrow = TRUE
       ),
       ref_time_of_day_effect = rep(0, times =nbeeps),
