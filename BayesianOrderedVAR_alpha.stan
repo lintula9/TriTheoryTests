@@ -136,8 +136,8 @@ model {
   // psi * I are punished by our prior belief heavily. Strong prior should also identify our model.
   
   // Prior for innovation covariance.
-  // COMMENT: Set to 1 for identification. Lambda_first ~ normal(0.5,0.5);         // Prior, assuming that the factor loadings are non-negligible.        
-  Lambda_rest ~ normal(0.5,0.5);          
+  // COMMENT: Set to 1 for identification. Lambda_first ~ normal(0.5,0.5);     
+  Lambda_rest ~ normal(0.5,0.5);         // Factor loadings as the first column of Cholesky factor
   L_rest_diag ~ normal(0,0.1);           // Tight prior - our prior is that the true model is CF model.
   L_rest_offdiag ~ normal(0,0.1); 
   
