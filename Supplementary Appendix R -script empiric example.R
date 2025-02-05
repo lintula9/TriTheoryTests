@@ -15,7 +15,7 @@ required_packages <- c(
 
 # Function to check and install missing packages
 for (pkg in required_packages) {
-      if(!requireNamespace(pkg, quietly = T)) {install.packages(pkg)}
+      if(!requireNamespace(pkg, quietly = T)) {install.packages(pkg, dependencies = T)}
     library(pkg, character.only = TRUE)
 }
 
@@ -435,17 +435,19 @@ fit_Net_7$save_output_files("Datas/",basename = "BVAR_7_variables_30_01")
 # Read data
 if(F){
   fit_Net_7 <- as_cmdstan_fit(files = paste0("Datas/BVAR_7_variables_30_01-202501301454-",1:8,"-904f20.csv") ); gc()
-  draws_data_7 <- as_draws_data(fit_Net_7$draws(variables = c(inference_vars_regex, "lp__") )); gc(); rm(fit_Net_7); gc()
+  draws_data_7 <- as_draws_df(fit_Net_7$draws(variables = c(inference_vars_regex_alpha, "lp__") )); gc(); rm(fit_Net_7); gc()
 }
 # Diagnostics and posterior distribution marignal plots. 
-plotnams <- c("A", "Omega", "cutpoints","time_of_day_intercept"); #pdf(file = paste0("Datas/Bayespots_7vars_",format(Sys.time(), "%Y-%m-%d"), ".pdf"))
-for(i in plotnams){
-  dev.new();print(  mcmc_trace( draws_data_7[ , grep(i, names(draws_data_7))]) );
-  # dev.new();print(  mcmc_areas_ridges(draws_data_7[ , grep(i, names(draws_data_7))]) );
-}; gc();# dev.off()
-# Extract posterior means as the VAR parameters:
-A <- matrix( unlist(colMeans(draws_data[,grep("A", names(draws_data))])), ncol = K, nrow = K);
-Z <- matrix( unlist(colMeans(draws_data[map_index,grep("Omega", names(draws_data))])), ncol = K, nrow = K)
+plotnams <- inference_vars_regex_alpha;pdf(file = paste0("Datas/Bayespots_7VAR_",format(Sys.time(), "%Y-%m-%d"), ".pdf"));color_scheme_set("viridis")
+for(i in plotnams){print(  mcmc_trace(draws_data_7, regex_pars = i ));print(  mcmc_areas_ridges(draws_data_7[ , grep(i, names(draws_data_7))]) );
+}; gc(); dev.off()
 
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_MAP_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"))
-qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()
+# Extract posterior means as the VAR parameters:
+A <- matrix( unlist(colMeans(draws_data_7[,grep("A", names(draws_data_7))])), ncol = K, nrow = K);
+Z <- matrix( unlist(colMeans(draws_data_7[,grep("Omega", names(draws_data_7))])), ncol = K, nrow = K)
+source("Supplementary Appendix R -script civ_find.R");closest <- civ_find(A,Z)
+#Plot VAR
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()
+#Plot closest VAR
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A);qgraph(input = closest$Z);dev.off();par(mfrow=c(1,1));gc()
+A - closest$A; Z - closest$Z

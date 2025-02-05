@@ -32,7 +32,7 @@ parameters {
 transformed parameters {
   
   // 1. Create the covariance matrix.
-  matrix[K, K] Omega;
+  matrix[K, K] Omega;--------
   Omega = multiply_lower_tri_self_transpose(L_Omega) .* (sigma * sigma');
 
   // 2. Handle missing data by constructing a complete data matrix X_full.
