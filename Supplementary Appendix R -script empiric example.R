@@ -223,11 +223,12 @@ for(i in plotnams){print(  mcmc_trace(draws_data, regex_pars = i ));print(  mcmc
 A <- matrix( unlist(colMeans(draws_data[,grep("A", names(draws_data))])), ncol = K, nrow = K);
 Z <- matrix( unlist(colMeans(draws_data[,grep("Omega", names(draws_data))])), ncol = K, nrow = K)
 source("Supplementary Appendix R -script civ_find.R");closest <- civ_find(A,Z)
- #Plot VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()
+  #Plot prior VAR
+
+  #Plot VAR
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A, labels = varLabs);qgraph(input = Z, labels = varLabs);dev.off();par(mfrow=c(1,1));gc()
  #Plot closest VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A);qgraph(input = closest$Z);dev.off();par(mfrow=c(1,1));gc()
-A - closest$A; Z - closest$Z
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A, labels = varLabs);qgraph(input = closest$Z, labels = varLabs);dev.off();par(mfrow=c(1,1));gc()
 
 # 4. Inference OUTDATED 3.2.2025 -------
 
@@ -447,7 +448,6 @@ A <- matrix( unlist(colMeans(draws_data_7[,grep("A", names(draws_data_7))])), nc
 Z <- matrix( unlist(colMeans(draws_data_7[,grep("Omega", names(draws_data_7))])), ncol = K, nrow = K)
 source("Supplementary Appendix R -script civ_find.R");closest <- civ_find(A,Z)
 #Plot VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A);qgraph(input = Z);dev.off();par(mfrow=c(1,1));gc()
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A, labels = varLabs2);qgraph(input = Z, labels = varLabs2);dev.off();par(mfrow=c(1,1));gc()
 #Plot closest VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A);qgraph(input = closest$Z);dev.off();par(mfrow=c(1,1));gc()
-A - closest$A; Z - closest$Z
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A, labels = varLabs2);qgraph(input = closest$Z, labels = varLabs2);dev.off();par(mfrow=c(1,1));gc()
