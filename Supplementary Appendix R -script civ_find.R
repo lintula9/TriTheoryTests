@@ -16,7 +16,6 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
   
   
   loss_function <- function(pars, A = A, Z = Z) {
-    # Loss written differently than in above:
     z <- vech(Z)
     s <- c(vec(A),z)
     tilde_z = vech( (1-pars[K+1]^2) * (pars[1:K] %*% t(pars[1:K])) )
