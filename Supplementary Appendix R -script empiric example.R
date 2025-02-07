@@ -265,7 +265,6 @@ D_at_mean <- fastmatrix::Mahalanobis(matrix(c(vec(A),vech(Z)) - c(vec(closest$A)
                                             nrow = 1), center = rep(0, times = DF), 
                                      cov = cov(discrepancy_samples),inverted =F )
 
-
 # Mahalanobis distance based inference might not work since the correct S is unknown.
 # S is not the covariance of the differences, since, as they get small, so does the covariance.
 # -> We scale by S^-1 which leads to large chisquare statistics.
