@@ -1,9 +1,18 @@
 # Dependencies:
 if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
 
+# Helper function, cor the (cross-)covariance
+var_ccov <- function(A,Z,Delta) {
+  
+  return( covmat = (A %^% Delta) %*% matrix(Matrix::solve(diag(1,ncol=ncol(A)^2,nrow=nrow(A)^2) - Matrix::kronecker(A,A)) %*% 
+                                                  fastmatrix::vec(Z), ncol = ncol(A), nrow = nrow(A)))
+
+}
+
 civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6, 
                      W = NULL,
-                     random.init = F) {
+                     random.init = F,
+                     cov.difference = F) {
 
   K <- ncol(A)
   if(!random.init){
@@ -13,7 +22,6 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     Lambda <- rnorm(K,sd=sd(vec(A)))
     psi <- rnorm(1)
     }
-  
   
   loss_function <- function(pars, A = A, Z = Z) {
     z <- vech(Z)
@@ -52,16 +60,39 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
   
   gc(verbose = F)
 
+  if(cov.difference) {
+    # Population 2 times 2 block covariance matrix. (2K times 2K.)
+    S                      <- matrix(0,ncol=2*K,nrow=2*K)
+    S[1:K,1:K]             <- var_ccov(A,Z,Delta=0)
+    S[(K+1):2*K,(K+1):2*K] <- S[1:K,1:K]
+    S[1:K,(K+1):2*K]       <- var_ccov(A,Z,Delta=1)
+    
+    # CF implied 2 times 2 -||-.
+    S_implied                      <- matrix(0,ncol=2*K,nrow=2*K)
+    S_implied[1:K,1:K]             <- var_ccov(A_result,Z_result,Delta=0)
+    S_implied[(K+1):2*K,(K+1):2*K] <- S_implied[1:K,1:K]
+    S_implied[1:K,(K+1):2*K]       <- var_ccov(A_result,Z_result,Delta=1)
+    
+    # Maximum Likelihood statistic
+    F_ML = log(det(S_implied)) + sum(diag(solve(S)%*%S_implied)) - log(det(S)) - 2*K
+    
+    # Compute RMSEA
+    RMSEA = sqrt(max(0, F_ML - 2*K) / (2*K(N-1)))
+    
+  }
   
   # Return results
   return(list(
     "Loadings" = Lambda_opt, 
-    "psi" = psi_opt,
-    "A" = A_result,
-    "B" = B_result,
-    "C" = C_result,
-    "Z" = Z_result,
-    "Optim_Result" = optim_result
+    "psi"      = psi_opt,
+    "A"        = A_result,
+    "B"        = B_result,
+    "C"        = C_result,
+    "Z"        = Z_result,
+    "Optim_Result" = optim_result,
+    # If the cov.difference is computed.
+    "RMSEA" = if(exists("RMSEA")) RMSEA else NULL,
+    "F_ML"  = if(exists("F_ML")) F_ML else NULL
   ))
 }
 
