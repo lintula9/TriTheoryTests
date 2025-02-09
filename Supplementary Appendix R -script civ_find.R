@@ -12,7 +12,8 @@ var_ccov <- function(A,Z,Delta) {
 civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6, 
                      W = NULL,
                      random.init = F,
-                     cov.difference = F) {
+                     cov.difference = F,
+                     N = 1) {
 
   K <- ncol(A)
   if(!random.init){
@@ -66,7 +67,7 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     S[1:K,1:K]             <- var_ccov(A,Z,Delta=0)
     S[(K+1):(2*K),(K+1):(2*K)] <- S[1:K,1:K]
     S[1:K,(K+1):(2*K)]         <- var_ccov(A,Z,Delta=1)
-    S[(K+1):(2*K),(K+1):(2*K)] <- S[(K+1):(2*K),(K+1):(2*K)]
+    S[(K+1):(2*K),1:K]     <- S[1:K,(K+1):(2*K)]
     
     
     # CF implied 2 times 2 -||-.
@@ -74,16 +75,17 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     S_implied[1:K,1:K]                 <- var_ccov(A_result,Z_result,Delta=0)
     S_implied[(K+1):(2*K),(K+1):(2*K)] <- S_implied[1:K,1:K]
     S_implied[1:K,(K+1):(2*K)]         <- var_ccov(A_result,Z_result,Delta=1)
-    S_implied[(K+1):(2*K),(K+1):(2*K)] <- S_implied[1:K,(K+1):(2*K)]  
+    S_implied[(K+1):(2*K),1:K]         <- S_implied[1:K,(K+1):(2*K)]  
     
     
-    # Maximum Likelihood statistic
-    F_ML = log(det(S_implied)) + sum(diag(solve(S)%*%S_implied)) - log(det(S)) - 2*K
-    
+    # Maximum Likelihood statistic, with small perturbation to ensure invertiblity.
+    F_ML = log(det(S_implied )) + 
+      sum(diag(  S_implied %*% solve(S))) - log(det(S)) - 2*K
+    statistic = (N-1) * F_ML
     
     # Compute RMSEA
     DF = K + 1
-    RMSEA = sqrt(max(0, F_ML - DF) / (DF*(N-1)))
+    RMSEA = sqrt(max(0, statistic - DF) / (DF*(N-1)))
     
   }
   
@@ -98,7 +100,10 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     "Optim_Result" = optim_result,
     # If the cov.difference is computed.
     "RMSEA" = if(exists("RMSEA")) RMSEA else NULL,
-    "F_ML"  = if(exists("F_ML")) F_ML else NULL
+    "F_ML"  = if(exists("F_ML")) F_ML else NULL,
+    "Chisq" = if(exists("F_ML")) statistic else NULL,
+    "S"     =  if(exists("S")) S else NULL,
+    "S_implied" =  if(exists("S")) S_implied else NULL
   ))
 }
 
