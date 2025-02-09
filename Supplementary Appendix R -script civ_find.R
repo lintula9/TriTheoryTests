@@ -64,20 +64,26 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     # Population 2 times 2 block covariance matrix. (2K times 2K.)
     S                      <- matrix(0,ncol=2*K,nrow=2*K)
     S[1:K,1:K]             <- var_ccov(A,Z,Delta=0)
-    S[(K+1):2*K,(K+1):2*K] <- S[1:K,1:K]
-    S[1:K,(K+1):2*K]       <- var_ccov(A,Z,Delta=1)
+    S[(K+1):(2*K),(K+1):(2*K)] <- S[1:K,1:K]
+    S[1:K,(K+1):(2*K)]         <- var_ccov(A,Z,Delta=1)
+    S[(K+1):(2*K),(K+1):(2*K)] <- S[(K+1):(2*K),(K+1):(2*K)]
+    
     
     # CF implied 2 times 2 -||-.
-    S_implied                      <- matrix(0,ncol=2*K,nrow=2*K)
-    S_implied[1:K,1:K]             <- var_ccov(A_result,Z_result,Delta=0)
-    S_implied[(K+1):2*K,(K+1):2*K] <- S_implied[1:K,1:K]
-    S_implied[1:K,(K+1):2*K]       <- var_ccov(A_result,Z_result,Delta=1)
+    S_implied                          <- matrix(0,ncol=2*K,nrow=2*K)
+    S_implied[1:K,1:K]                 <- var_ccov(A_result,Z_result,Delta=0)
+    S_implied[(K+1):(2*K),(K+1):(2*K)] <- S_implied[1:K,1:K]
+    S_implied[1:K,(K+1):(2*K)]         <- var_ccov(A_result,Z_result,Delta=1)
+    S_implied[(K+1):(2*K),(K+1):(2*K)] <- S_implied[1:K,(K+1):(2*K)]  
+    
     
     # Maximum Likelihood statistic
     F_ML = log(det(S_implied)) + sum(diag(solve(S)%*%S_implied)) - log(det(S)) - 2*K
     
+    
     # Compute RMSEA
-    RMSEA = sqrt(max(0, F_ML - 2*K) / (2*K(N-1)))
+    DF = K + 1
+    RMSEA = sqrt(max(0, F_ML - DF) / (DF*(N-1)))
     
   }
   

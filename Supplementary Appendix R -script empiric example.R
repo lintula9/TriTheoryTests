@@ -223,6 +223,10 @@ for(i in plotnams){print(  mcmc_trace(draws_data, regex_pars = i ));print(  mcmc
 A <- matrix( unlist(colMeans(draws_data[,grep("A", names(draws_data))])), ncol = K, nrow = K);
 Z <- matrix( unlist(colMeans(draws_data[,grep("Omega", names(draws_data))])), ncol = K, nrow = K)
 source("Supplementary Appendix R -script civ_find.R");closest <- civ_find(A,Z)
+# Compute RMSEA, for the mean
+civ_find(A, Z, cov.difference = T)
+
+
   #Plot prior VAR
 
   #Plot VAR
