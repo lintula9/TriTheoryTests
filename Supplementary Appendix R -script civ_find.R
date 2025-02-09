@@ -77,10 +77,13 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     S_implied[1:K,(K+1):(2*K)]         <- var_ccov(A_result,Z_result,Delta=1)
     S_implied[(K+1):(2*K),1:K]         <- S_implied[1:K,(K+1):(2*K)]  
     
+    # Ensure positive definitiveness.
+    S_implied <- S_implied + diag(1e-6, ncol = 2*K, nrow = 2*K)
+    
     
     # Maximum Likelihood statistic, with small perturbation to ensure invertiblity.
     F_ML = log(det(S_implied )) + 
-      sum(diag(  S_implied %*% solve(S))) - log(det(S)) - 2*K
+      sum(diag(  solve(S_implied) %*% S)) - log(det(S)) - 2*K
     statistic = (N-1) * F_ML
     
     # Compute RMSEA
