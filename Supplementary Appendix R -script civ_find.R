@@ -1,19 +1,26 @@
 # Dependencies:
 if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
+if(!require(expm)) install.packages("expm"); library(expm)
+
 
 # Helper function, cor the (cross-)covariance
-var_ccov <- function(A,Z,Delta) {
+var_ccov <- function(coefmat,innocov,Delta) {
   
-  return( covmat = (A %^% Delta) %*% matrix(Matrix::solve(diag(1,ncol=ncol(A)^2,nrow=nrow(A)^2) - Matrix::kronecker(A,A)) %*% 
-                                                  fastmatrix::vec(Z), ncol = ncol(A), nrow = nrow(A)))
-
-}
+  if(any(Re(eigen(coefmat)$values) > 1)) print(simpleError("A is not stationary. Aborting."))
+  
+  return( covmat = (coefmat %^% Delta) %*% 
+            matrix(Matrix::solve(diag(1,ncol=ncol(coefmat)^2,nrow=nrow(coefmat)^2) - 
+                                                            Matrix::kronecker(coefmat,coefmat)) %*% 
+                                                  fastmatrix::vec(innocov), 
+                                            ncol = ncol(coefmat), nrow = nrow(coefmat)))
+   }
 
 civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6, 
                      W = NULL,
                      random.init = F,
                      cov.difference = F,
-                     N = 1) {
+                     N = NULL,
+                     error_ratio = 0.5) {
 
   K <- ncol(A)
   if(!random.init){
@@ -21,7 +28,7 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     Lambda <- Re(eigen(A)$vectors[,1])
     psi    <- Re(eigen(A)$values[1])} else {
     Lambda <- rnorm(K,sd=sd(vec(A)))
-    psi <- rnorm(1)
+    psi    <- rnorm(1)
     }
   
   loss_function <- function(pars, A = A, Z = Z) {
@@ -63,50 +70,49 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
 
   if(cov.difference) {
     # Population 2 times 2 block covariance matrix. (2K times 2K.)
-    S                      <- matrix(0,ncol=2*K,nrow=2*K)
-    S[1:K,1:K]             <- var_ccov(A,Z,Delta=0)
-    S[(K+1):(2*K),(K+1):(2*K)] <- S[1:K,1:K]
-    S[1:K,(K+1):(2*K)]         <- var_ccov(A,Z,Delta=1)
-    S[(K+1):(2*K),1:K]     <- S[1:K,(K+1):(2*K)]
-    
+    S                                  <- matrix(0,ncol=2*K,nrow=2*K)
+    S[1:K                ,1:K]         <- var_ccov(A,Z,Delta=0)
+    S[(K+1):(2*K)        ,(K+1):(2*K)] <- S[1:K,1:K]
+    S[1:K                ,(K+1):(2*K)] <- var_ccov(A,Z,Delta=1)
+    S[(K+1):(2*K)        ,1:K]         <- t(S[1:K,(K+1):(2*K)])
     
     # CF implied 2 times 2 -||-.
     S_implied                          <- matrix(0,ncol=2*K,nrow=2*K)
-    S_implied[1:K,1:K]                 <- var_ccov(A_result,Z_result,Delta=0)
+    S_implied[1:K        ,1:K]         <- var_ccov(A_result,Z_result,Delta=0)
     S_implied[(K+1):(2*K),(K+1):(2*K)] <- S_implied[1:K,1:K]
-    S_implied[1:K,(K+1):(2*K)]         <- var_ccov(A_result,Z_result,Delta=1)
-    S_implied[(K+1):(2*K),1:K]         <- S_implied[1:K,(K+1):(2*K)]  
+    S_implied[1:K        ,(K+1):(2*K)] <- var_ccov(A_result,Z_result,Delta=1)
+    S_implied[(K+1):(2*K),1:K]         <- t(S_implied[1:K,(K+1):(2*K)])  
     
     # Ensure positive definitiveness.
-    S_implied <- S_implied + diag(1e-6, ncol = 2*K, nrow = 2*K)
-    
+    error = diag(S) * (if(exists("error_ratio")) error_ratio else 1e-6)
+    S_implied <- S_implied + diag(max(1e-6,error), ncol = 2*K, nrow = 2*K)
+    S         <- S         + diag(max(1e-6,error), ncol = 2*K, nrow = 2*K)
     
     # Maximum Likelihood statistic, with small perturbation to ensure invertiblity.
-    F_ML = log(det(S_implied )) + 
-      sum(diag(  solve(S_implied) %*% S)) - log(det(S)) - 2*K
+    F_ML = log(det(S_implied)) + sum(diag( solve(S_implied) %*% S )) - log(det(S)) - 2*K
     statistic = (N-1) * F_ML
     
     # Compute RMSEA
-    DF = K + 1
-    RMSEA = sqrt(max(0, statistic - DF) / (DF*(N-1)))
+    DF = ((2*K*(2*K+1))/2) - (K + 1)
+    RMSEA = sqrt( max(0, statistic - DF) / (DF*(N-1)) )
     
   }
   
   # Return results
   return(list(
-    "Loadings" = Lambda_opt, 
-    "psi"      = psi_opt,
-    "A"        = A_result,
-    "B"        = B_result,
-    "C"        = C_result,
-    "Z"        = Z_result,
+      "Loadings" = Lambda_opt, 
+      "psi"      = psi_opt,
+      "A"        = A_result,
+      "B"        = B_result,
+      "C"        = C_result,
+      "Z"        = Z_result,
     "Optim_Result" = optim_result,
     # If the cov.difference is computed.
-    "RMSEA" = if(exists("RMSEA")) RMSEA else NULL,
-    "F_ML"  = if(exists("F_ML")) F_ML else NULL,
-    "Chisq" = if(exists("F_ML")) statistic else NULL,
-    "S"     =  if(exists("S")) S else NULL,
-    "S_implied" =  if(exists("S")) S_implied else NULL
+        "RMSEA"  = if(exists("RMSEA")) RMSEA else NULL,
+        "F_ML"   = if(exists("F_ML")) F_ML else NULL,
+        "Chisq"  = if(exists("F_ML")) statistic else NULL,
+        "S"      =  if(exists("S")) S else NULL,
+    "S_implied"  =  if(exists("S")) S_implied else NULL
   ))
-}
+  }
 

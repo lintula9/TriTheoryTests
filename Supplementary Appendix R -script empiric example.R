@@ -176,8 +176,8 @@ fit_Net <- mod_Net$sample(
   refresh = 100,
   chains = nchains,
   parallel_chains = nchains, 
-  iter_warmup = 2000,          # e.g. half of 1000
-  iter_sampling = 2000,        # total 1000 draws
+  iter_warmup = 2000,          
+  iter_sampling = 2000,        
   adapt_delta = 0.95,
   init = function(chain_id) {
     list(
@@ -230,9 +230,9 @@ civ_find(A, Z, cov.difference = T)
   #Plot prior VAR
 
   #Plot VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A, labels = varLabs);qgraph(input = Z, labels = varLabs);dev.off();par(mfrow=c(1,1));gc()
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A, labels = varLabs, layout = "circle");qgraph(input = Z, labels = varLabs, layout = "circle");dev.off();par(mfrow=c(1,1));gc()
  #Plot closest VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A, labels = varLabs);qgraph(input = closest$Z, labels = varLabs);dev.off();par(mfrow=c(1,1));gc()
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A, labels = varLabs, layout = "circle");qgraph(input = closest$Z, labels = varLabs, layout = "circle");dev.off();par(mfrow=c(1,1));gc()
 
 # 4. Inference OUTDATED 3.2.2025 -------
 
@@ -438,7 +438,8 @@ fit_Net_7 <- mod_Net_7$sample(
 fit_Net_7$save_output_files("Datas/",basename = "BVAR_7_variables_30_01")
 # Read data
 if(F){
-  fit_Net_7 <- as_cmdstan_fit(files = paste0("Datas/BVAR_7_variables_30_01-202501301454-",1:8,"-904f20.csv") ); gc()
+    ## CHECK THAT THIS IS THE CORRECT FILE
+  fit_Net_7    <- as_cmdstan_fit(files = paste0("Datas/BVAR_7_variables_30_01",1:8,"-904f20.csv") ); gc()
   draws_data_7 <- as_draws_df(fit_Net_7$draws(variables = c(inference_vars_regex_alpha, "lp__") )); gc(); rm(fit_Net_7); gc()
 }
 # Diagnostics and posterior distribution marignal plots. 
@@ -451,6 +452,6 @@ A <- matrix( unlist(colMeans(draws_data_7[,grep("A", names(draws_data_7))])), nc
 Z <- matrix( unlist(colMeans(draws_data_7[,grep("Omega", names(draws_data_7))])), ncol = K, nrow = K)
 source("Supplementary Appendix R -script civ_find.R");closest <- civ_find(A,Z)
 #Plot VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A, labels = varLabs2);qgraph(input = Z, labels = varLabs2);dev.off();par(mfrow=c(1,1));gc()
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A, labels = varLabs2, layout = "circle");qgraph(input = Z, labels = varLabs2, layout = "circle");dev.off();par(mfrow=c(1,1));gc()
 #Plot closest VAR
 par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A, labels = varLabs2);qgraph(input = closest$Z, labels = varLabs2);dev.off();par(mfrow=c(1,1));gc()
