@@ -1,3 +1,10 @@
+# Run the whole script, then civ_find takes the coefficient matrix,
+# innovation covariance as arguments. If you want to compute RMSEA, you also
+# need to give sample size N, and error_ratio. Error_ratio is by default 0.5
+# indicating that half of an observation is error (e.g., 0.7 factor loading relates
+# to 0.49 error proportion in a one factor model).
+
+
 # Dependencies:
 if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
 if(!require(expm)) install.packages("expm"); library(expm)
@@ -103,16 +110,11 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
       "Loadings" = Lambda_opt, 
       "psi"      = psi_opt,
       "A"        = A_result,
-      "B"        = B_result,
-      "C"        = C_result,
       "Z"        = Z_result,
     "Optim_Result" = optim_result,
     # If the cov.difference is computed.
         "RMSEA"  = if(exists("RMSEA")) RMSEA else NULL,
-        "F_ML"   = if(exists("F_ML")) F_ML else NULL,
-        "Chisq"  = if(exists("F_ML")) statistic else NULL,
-        "S"      =  if(exists("S")) S else NULL,
-    "S_implied"  =  if(exists("S")) S_implied else NULL
+        "Chisq.statistic"  = if(exists("statistic")) statistic else NULL,
   ))
   }
 
