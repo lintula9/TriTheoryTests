@@ -284,8 +284,12 @@ par(mfrow = c(1,1))
 ## Adjust slightly, and plot again. ###
 
 # Adjust the time-varying part from above, slightly, to create model 2.
-time_matrix_adj <- time_matrix
+time_matrix_adj       <- time_matrix
 time_matrix_adj[ 1, ] <- time_matrix[ 1, ] + runif(n = K_, 9,15) %*% (diag(1,nrow=K_,ncol=K_) - Lambda %*% solve(t(Lambda) %*% Lambda) %*% t(Lambda)) 
+time_matrix_adj[ 2, ] <- time_matrix[ 1, ] - runif(n = K_, 9,15) %*% (diag(1,nrow=K_,ncol=K_) - Lambda %*% solve(t(Lambda) %*% Lambda) %*% t(Lambda))
+time_matrix_adj[ 3, ] <- time_matrix[ 1, ] + runif(n = K_, 9,15) %*% (diag(1,nrow=K_,ncol=K_) - Lambda %*% solve(t(Lambda) %*% Lambda) %*% t(Lambda))
+time_matrix_adj[ 4, ] <- time_matrix[ 1, ] - runif(n = K_, 9,15) %*% (diag(1,nrow=K_,ncol=K_) - Lambda %*% solve(t(Lambda) %*% Lambda) %*% t(Lambda))
+time_matrix_adj[ 5, ] <- time_matrix[ 1, ] - runif(n = K_, 9,15) %*% (diag(1,nrow=K_,ncol=K_) - Lambda %*% solve(t(Lambda) %*% Lambda) %*% t(Lambda))
 
 # Adjust the time-varying A_t
 A_t_adj <- array(0, dim = c( K_, K_, T_ + 1))
@@ -307,7 +311,8 @@ custom_lty <- function(matrix) {
 
 
 
-
+tiff(file = "Schumacher_imitation.tiff", height = 12, width = 8, res = 600, units = "in")
+par(mfrow = c(3, 2), oma = c(0, 0, 0, 0)) # Adjust oma for outer margin to accommodate the title
 # Plot the Lagged effects at Time point 1 (A_t_adj)
 qgraph(A_t_adj[,,1], 
        title = "Model 1 and 2, time point 0",
@@ -369,7 +374,12 @@ qgraph(A_t[,,10],
        layout = "circle",
        labels = labels,      # Use the expression labels
        lty = custom_lty(A_t[,,5]) # Custom line types
-)
+); dev.off(); gc(); par(mfrow = c(1,1))
+
+
+
+
+
 
 
  ### Ascertain the covariance computations.

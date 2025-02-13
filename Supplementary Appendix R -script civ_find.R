@@ -114,7 +114,7 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     "Optim_Result" = optim_result,
     # If the cov.difference is computed.
         "RMSEA"  = if(exists("RMSEA")) RMSEA else NULL,
-        "Chisq.statistic"  = if(exists("statistic")) statistic else NULL,
+        "Chisq.statistic"  = if(exists("statistic")) statistic else NULL
   ))
   }
 
