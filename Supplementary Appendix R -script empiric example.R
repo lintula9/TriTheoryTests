@@ -456,5 +456,5 @@ par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates_7VAR",format(Sys.t
 #Plot closest VAR
 par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A, labels = varLabs2, layout = "circle");qgraph(input = closest$Z, labels = varLabs2, layout = "circle");dev.off();par(mfrow=c(1,1));gc()
 # RMSEA
-civ_find(A,Z, cov.difference = T, N = 4200, error_ratio = 0.5)
+civ_find(A,Z, cov.difference = T, N = 4200)
 source("Yuan 2016.R"); Yuan_2016(df = K + 1, N = 4200)

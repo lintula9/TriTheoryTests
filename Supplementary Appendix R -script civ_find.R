@@ -37,6 +37,7 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     Lambda <- rnorm(K,sd=sd(vec(A)))
     psi    <- rnorm(1)
     omega0 <- omega1 <- runif(K, 0.5, 1)
+    omega0 <- omega0 + runif(K, 0.5, 1)
     }
   
   if(!cov.difference){
@@ -111,18 +112,20 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
       S_implied[(K+1):(2*K),(K+1):(2*K)] <- S_implied[1:K,1:K]          
       S_implied[1:K        ,(K+1):(2*K)] <- psi * tcrossprod(Lambda)    + diag(omega1) #Cross-Cov(1)
       S_implied[(K+1):(2*K),1:K]         <- t(S_implied[1:K,(K+1):(2*K)])
-      S_implied <- S_implied + diag(1e-5, nrow = 2*K, ncol = 2*K)
-      
+
       # 3) Compute the discrepancy.
-      return(    F_ML = log(det(S_implied)) + sum(diag( solve(S_implied) %*% S )) - log(det(S)) - 2*K) #Note: 2*K, because we have 2K variables now.
+      return(F_ML=log(det(S_implied)) + sum(diag( solve(S_implied) %*% S )) - log(det(S)) - 2*K) #Note: 2*K, because we have 2K variables now.
     }
     
     # Maximum Likelihood statistic, with small perturbation to ensure invertiblity.
+    lower_bounds  <- c(-Inf, rep(-Inf, times = K), rep(1e-6, times = 2*K))
     F_ML = optim(
       par = c(psi, Lambda, omega0, omega1 ), 
       fn  = F_criterion,
       S = S,
-      K = K)
+      K = K, 
+      method = "L-BFGS-B", 
+      lower = lower_bounds )
     
     # Return T statistic, which is distributed ~ Chisq_DF(F_ML - DF)
     statistic = (N-1) * F_ML$result$value
@@ -133,35 +136,43 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     
     # Return results
     return(list(
-      F_ML
-          # "F_ML"   = F_ML$result$value,
-          # "psi"    = F_ML$result$par[1],
-          # "Lambda" = F_ML$result$par[2:K],
-          # "omega0" = F_ML$result$par[(K+2):(2*K+1)],
-          # "omega1" = F_ML$result$par[(2*K+2):(3*K+1)],
-          # "RMSEA"  = RMSEA,
-          # "statistic" = statistic
-          
-      #     "RMSEA"        = if(exists("RMSEA")) RMSEA else NULL,
-      # "Chisq.statistic"  = if(exists("statistic")) statistic else NULL,
+      F_ML,
+      RMSEA = RMSEA
     ))
     
   }
+
+}
+
+
+
+## Not run: test.
+
+if(F){
   
-<<<<<<< HEAD
+  K=7
+  A <- matrix(runif(K^2,-0.5,0.5), ncol = 7, nrow = 7)
+  Z <- cov(t(A %*% t(matrix(rep(rnorm(1000), each = K), ncol = 7))) %*% t(A))
+  civ_find(A,Z,cov.difference = T)
   
-=======
-  # Return results
-  return(list(
-      "Loadings" = Lambda_opt, 
-      "psi"      = psi_opt,
-      "A"        = A_result,
-      "Z"        = Z_result,
-    "Optim_Result" = optim_result,
-    # If the cov.difference is computed.
-        "RMSEA"  = if(exists("RMSEA")) RMSEA else NULL,
-        "Chisq.statistic"  = if(exists("statistic")) statistic else NULL
-  ))
->>>>>>> 3dadbdd86d045ccd3ede728ca5cc600bce3db7f9
-  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+}
+
+
 
