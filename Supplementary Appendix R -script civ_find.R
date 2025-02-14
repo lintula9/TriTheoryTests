@@ -98,6 +98,12 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     S[1:K                ,(K+1):(2*K)] <- var_ccov(A,Z,Delta=1)
     S[(K+1):(2*K)        ,1:K]         <- t(S[1:K,(K+1):(2*K)])
     
+    if(any(eigen(S)$values  < 1e-7)) {
+      message("The predicted covariance has near zero or negative eigenvals. Stopping.\n
+              This might be a sign of low rank structure in the predicted covariance. \n
+              Check eigen(var_ccov(A,Z,0))$values, for example, for low rank structure.")
+      stop()
+    }
     # Maximum likelihood estimate
     F_criterion <- function(theta, S, K){
       # 1) Parse the parameter vector:
