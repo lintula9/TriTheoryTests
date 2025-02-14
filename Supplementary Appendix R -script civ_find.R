@@ -85,18 +85,15 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
       "psi"      = psi_opt,
       "A"        = A_result,
       "Z"        = Z_result,
-      "Optim_Result" = optim_result,
+      "Optim_Result" = optim_result
     ))}
   
   
   
   if(cov.difference) {
     # Population 2 times 2 block covariance matrix. (2K times 2K.)
-    S                                  <- matrix(0,ncol=2*K,nrow=2*K)
-    S[1:K                ,1:K]         <- var_ccov(A,Z,Delta=0)
-    S[(K+1):(2*K)        ,(K+1):(2*K)] <- S[1:K,1:K]
-    S[1:K                ,(K+1):(2*K)] <- var_ccov(A,Z,Delta=1)
-    S[(K+1):(2*K)        ,1:K]         <- t(S[1:K,(K+1):(2*K)])
+    S  <- rbind( cbind(  var_ccov(A,Z,0),     var_ccov(A,Z,1)),
+                 cbind(t(var_ccov(A,Z,1)),    var_ccov(A,Z,0)) )
     
     if(any(eigen(S)$values  < 1e-7)) {
       message("The predicted covariance has near zero or negative eigenvals. Stopping.\n
@@ -113,17 +110,17 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
       omega1 <- theta[(2*K+2):(3*K+1)]     # length K
       
       # 2) Compute the implied covariance.
-      S_implied                          <- matrix(0,ncol=2*K,nrow=2*K) 
-      S_implied[1:K        ,1:K]         <- tcrossprod(Lambda)          + diag(omega0) #Within-Cov
-      S_implied[(K+1):(2*K),(K+1):(2*K)] <- S_implied[1:K,1:K]          
-      S_implied[1:K        ,(K+1):(2*K)] <- psi * tcrossprod(Lambda)    + diag(omega1) #Cross-Cov(1)
-      S_implied[(K+1):(2*K),1:K]         <- t(S_implied[1:K,(K+1):(2*K)])
+      S_implied <- rbind( cbind(tcrossprod(Lambda) + diag(omega0), psi * tcrossprod(Lambda)),
+                          cbind(t(psi * tcrossprod(Lambda)),       tcrossprod(Lambda) + diag(omega0))
+                           )
 
       # 3) Compute the discrepancy.
       return(F_ML=log(det(S_implied)) + sum(diag( solve(S_implied) %*% S )) - log(det(S)) - 2*K) #Note: 2*K, because we have 2K variables now.
     }
     
-    # Maximum Likelihood statistic, with small perturbation to ensure invertiblity.
+    # Maximum Likelihood statistic, with constraints:
+    # Error variances and serial covariances positive.
+    # The CF is implicitly assumed to have unit variance.
     lower_bounds  <- c(-Inf, rep(-Inf, times = K), rep(1e-6, times = 2*K))
     F_ML = optim(
       par = c(psi, Lambda, omega0, omega1 ), 
@@ -142,8 +139,13 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     
     # Return results
     return(list(
-      F_ML,
-      RMSEA = RMSEA
+      "ML_optimizer_result" = F_ML,
+      RMSEA      = RMSEA,
+      CF_ar_coef = F_ML$par[1],
+      Factor_loadings     = F_ML$par[2:(K+1)],
+      within_time_point_errorvars     = F_ML$par[(K+2):(2*K+1)],
+      serial_errorvars     = F_ML$par[(2*K+2):(3*K+1)]
+      
     ))
     
   }
