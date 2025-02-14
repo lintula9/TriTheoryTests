@@ -148,6 +148,20 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     
   }
   
+<<<<<<< HEAD
   
+=======
+  # Return results
+  return(list(
+      "Loadings" = Lambda_opt, 
+      "psi"      = psi_opt,
+      "A"        = A_result,
+      "Z"        = Z_result,
+    "Optim_Result" = optim_result,
+    # If the cov.difference is computed.
+        "RMSEA"  = if(exists("RMSEA")) RMSEA else NULL,
+        "Chisq.statistic"  = if(exists("statistic")) statistic else NULL
+  ))
+>>>>>>> 3dadbdd86d045ccd3ede728ca5cc600bce3db7f9
   }
 

@@ -439,7 +439,7 @@ fit_Net_7$save_output_files("Datas/",basename = "BVAR_7_variables_30_01")
 # Read data
 if(F){
     ## CHECK THAT THIS IS THE CORRECT FILE
-  fit_Net_7    <- as_cmdstan_fit(files = paste0("Datas/BVAR_7_variables_30_01",1:8,"-904f20.csv") ); gc()
+  fit_Net_7    <- as_cmdstan_fit(files = paste0("Datas/HOMEPC_VAR_7-202502050525-",1:8,".csv") ); gc()
   draws_data_7 <- as_draws_df(fit_Net_7$draws(variables = c(inference_vars_regex_alpha, "lp__") )); gc(); rm(fit_Net_7); gc()
 }
 # Diagnostics and posterior distribution marignal plots. 
@@ -454,4 +454,7 @@ source("Supplementary Appendix R -script civ_find.R");closest <- civ_find(A,Z)
 #Plot VAR
 par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A, labels = varLabs2, layout = "circle");qgraph(input = Z, labels = varLabs2, layout = "circle");dev.off();par(mfrow=c(1,1));gc()
 #Plot closest VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A, labels = varLabs2);qgraph(input = closest$Z, labels = varLabs2);dev.off();par(mfrow=c(1,1));gc()
+par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A, labels = varLabs2, layout = "circle");qgraph(input = closest$Z, labels = varLabs2, layout = "circle");dev.off();par(mfrow=c(1,1));gc()
+# RMSEA
+civ_find(A,Z, cov.difference = T, N = 4200, error_ratio = 0.5)
+source("Yuan 2016.R"); Yuan_2016(df = K + 1, N = 4200)
