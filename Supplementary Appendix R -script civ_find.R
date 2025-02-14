@@ -26,55 +26,69 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
                      W = NULL,
                      random.init = F,
                      cov.difference = F,
-                     N = NULL,
-                     error_ratio = 0.5) {
+                     N = NULL) {
 
   K <- ncol(A)
   if(!random.init){
     # Initial values are taken based on A.
     Lambda <- Re(eigen(A)$vectors[,1])
-    psi    <- Re(eigen(A)$values[1])} else {
+    psi    <- Re(eigen(A)$values[1])
+    omega0 <- omega1 <- runif(K, 0.5, 1)} else {
     Lambda <- rnorm(K,sd=sd(vec(A)))
     psi    <- rnorm(1)
+    omega0 <- omega1 <- runif(K, 0.5, 1)
     }
   
-  loss_function <- function(pars, A = A, Z = Z) {
-    z <- vech(Z)
-    s <- c(vec(A),z)
-    tilde_z = vech( (1-pars[K+1]^2) * (pars[1:K] %*% t(pars[1:K])) )
-    C = pars[K+1]*pars[1:K] %*% t(pars[1:K]) * sum(pars[1:K]^2)^-1
-    B = (A - C) %*% (diag(1, nrow = K, ncol = K) - pars[1:K] %*% t(pars[1:K]) * sum(pars[1:K]^2)^-1)
-    tilde_s = c(vec( C + B ), tilde_z)
-    if(is.null(W)) W = diag(1, nrow = length(s), ncol = length(s))
-    M = t(s-tilde_s) %*% W %*% (s-tilde_s)
-    return( as.numeric(M) )
-  }
+  if(!cov.difference){
   
-  gradient_function <- function(pars, A = A, Z = Z) {
-    numDeriv::grad(func = loss_function, x = pars, A = A, Z = Z)
-  }
+    loss_function <- function(pars, A = A, Z = Z) {
+      z <- vech(Z)
+      s <- c(vec(A),z)
+      tilde_z = vech( (1-pars[K+1]^2) * (pars[1:K] %*% t(pars[1:K])) )
+      C = pars[K+1]*pars[1:K] %*% t(pars[1:K]) * sum(pars[1:K]^2)^-1
+      B = (A - C) %*% (diag(1, nrow = K, ncol = K) - pars[1:K] %*% t(pars[1:K]) * sum(pars[1:K]^2)^-1)
+      tilde_s = c(vec( C + B ), tilde_z)
+      if(is.null(W)) W = diag(1, nrow = length(s), ncol = length(s))
+      M = t(s-tilde_s) %*% W %*% (s-tilde_s)
+      return( as.numeric(M) )
+    }
+    
+    gradient_function <- function(pars, A = A, Z = Z) {
+      numDeriv::grad(func = loss_function, x = pars, A = A, Z = Z)
+    }
+    
+    params = c(Lambda,psi)
+    names(params) <- c(paste0("Lambda", 1:K), "psi")
+    optim_result <- optim(par = params, 
+                          fn = loss_function, 
+                          gr = gradient_function, 
+                          method = "BFGS",
+                          control = list(abstol = tol, maxit = n.iter),
+                          A = A, Z = Z) 
+    
+    optimized_params <- optim_result$par
+    Lambda_opt <- optimized_params[1:K]
+    psi_opt    <- optimized_params[K + 1]
+    
+    C_result <- psi_opt * Lambda_opt %*% t(Lambda_opt) * (sum(Lambda_opt^2))^-1 
+    B_result <- (A - C_result) %*% (diag(1,ncol = ncol(A),nrow = nrow(A)) - 
+                                      Lambda_opt %*% t(Lambda_opt) * sum(Lambda_opt^2)^-1)
+    A_result <- C_result + B_result
+    Z_result <- (1 - psi_opt^2) * Lambda_opt %*% t(Lambda_opt)
+    
+    gc(verbose = F)
+    
+    # Return results
+    return(list(
+      "Loadings" = Lambda_opt, 
+      "psi"      = psi_opt,
+      "A"        = A_result,
+      "Z"        = Z_result,
+      "Optim_Result" = optim_result,
+    ))}
   
-  params = c(Lambda,psi)
-  names(params) <- c(paste0("Lambda", 1:K), "psi")
-  optim_result <- optim(par = params, 
-                        fn = loss_function, 
-                        gr = gradient_function, 
-                        method = "BFGS",
-                        control = list(abstol = tol, maxit = n.iter),
-                        A = A, Z = Z) 
   
-  optimized_params <- optim_result$par
-  Lambda_opt <- optimized_params[1:K]
-  psi_opt <- optimized_params[K + 1]
   
-  C_result <- psi_opt * Lambda_opt %*% t(Lambda_opt) * (sum(Lambda_opt^2))^-1 
-  B_result <- (A - C_result) %*% (diag(1,ncol = ncol(A),nrow = nrow(A)) - 
-                                    Lambda_opt %*% t(Lambda_opt) * sum(Lambda_opt^2)^-1)
-  A_result <- C_result + B_result
-  Z_result <- (1 - psi_opt^2) * Lambda_opt %*% t(Lambda_opt)
-  
-  gc(verbose = F)
-
   if(cov.difference) {
     # Population 2 times 2 block covariance matrix. (2K times 2K.)
     S                                  <- matrix(0,ncol=2*K,nrow=2*K)
@@ -83,38 +97,57 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     S[1:K                ,(K+1):(2*K)] <- var_ccov(A,Z,Delta=1)
     S[(K+1):(2*K)        ,1:K]         <- t(S[1:K,(K+1):(2*K)])
     
-    # CF implied 2 times 2 -||-.
-    S_implied                          <- matrix(0,ncol=2*K,nrow=2*K)
-    S_implied[1:K        ,1:K]         <- var_ccov(A_result,Z_result,Delta=0)
-    S_implied[(K+1):(2*K),(K+1):(2*K)] <- S_implied[1:K,1:K]
-    S_implied[1:K        ,(K+1):(2*K)] <- var_ccov(A_result,Z_result,Delta=1)
-    S_implied[(K+1):(2*K),1:K]         <- t(S_implied[1:K,(K+1):(2*K)])  
-    
-    # Ensure positive definitiveness.
-    error = diag(S) * (if(exists("error_ratio")) error_ratio else 1e-6)
-    S_implied <- S_implied + diag(max(1e-6,error), ncol = 2*K, nrow = 2*K)
-    S         <- S         + diag(max(1e-6,error), ncol = 2*K, nrow = 2*K)
+    # Maximum likelihood estimate
+    F_criterion <- function(theta, S, K){
+      # 1) Parse the parameter vector:
+      psi    <- theta[1]                   # scalar
+      Lambda <- theta[2:(K+1)]             # length K
+      omega0 <- theta[(K+2):(2*K+1)]       # length K
+      omega1 <- theta[(2*K+2):(3*K+1)]     # length K
+      
+      # 2) Compute the implied covariance.
+      S_implied                          <- matrix(0,ncol=2*K,nrow=2*K) 
+      S_implied[1:K        ,1:K]         <- tcrossprod(Lambda)          + diag(omega0) #Within-Cov
+      S_implied[(K+1):(2*K),(K+1):(2*K)] <- S_implied[1:K,1:K]          
+      S_implied[1:K        ,(K+1):(2*K)] <- psi * tcrossprod(Lambda)    + diag(omega1) #Cross-Cov(1)
+      S_implied[(K+1):(2*K),1:K]         <- t(S_implied[1:K,(K+1):(2*K)])
+      S_implied <- S_implied + diag(1e-5, nrow = 2*K, ncol = 2*K)
+      
+      # 3) Compute the discrepancy.
+      return(    F_ML = log(det(S_implied)) + sum(diag( solve(S_implied) %*% S )) - log(det(S)) - 2*K) #Note: 2*K, because we have 2K variables now.
+    }
     
     # Maximum Likelihood statistic, with small perturbation to ensure invertiblity.
-    F_ML = log(det(S_implied)) + sum(diag( solve(S_implied) %*% S )) - log(det(S)) - 2*K
-    statistic = (N-1) * F_ML
+    F_ML = optim(
+      par = c(psi, Lambda, omega0, omega1 ), 
+      fn  = F_criterion,
+      S = S,
+      K = K)
     
-    # Compute RMSEA
-    DF = ((2*K*(2*K+1))/2) - (K + 1)
+    # Return T statistic, which is distributed ~ Chisq_DF(F_ML - DF)
+    statistic = (N-1) * F_ML$result$value
+
+    # Compute degrees of freedom, RMSEA
+    DF = ((2*K*(2*K+1))/2) - (3*K + 1)
     RMSEA = sqrt( max(0, statistic - DF) / (DF*(N-1)) )
+    
+    # Return results
+    return(list(
+      F_ML
+          # "F_ML"   = F_ML$result$value,
+          # "psi"    = F_ML$result$par[1],
+          # "Lambda" = F_ML$result$par[2:K],
+          # "omega0" = F_ML$result$par[(K+2):(2*K+1)],
+          # "omega1" = F_ML$result$par[(2*K+2):(3*K+1)],
+          # "RMSEA"  = RMSEA,
+          # "statistic" = statistic
+          
+      #     "RMSEA"        = if(exists("RMSEA")) RMSEA else NULL,
+      # "Chisq.statistic"  = if(exists("statistic")) statistic else NULL,
+    ))
     
   }
   
-  # Return results
-  return(list(
-      "Loadings" = Lambda_opt, 
-      "psi"      = psi_opt,
-      "A"        = A_result,
-      "Z"        = Z_result,
-    "Optim_Result" = optim_result,
-    # If the cov.difference is computed.
-        "RMSEA"  = if(exists("RMSEA")) RMSEA else NULL,
-        "Chisq.statistic"  = if(exists("statistic")) statistic else NULL,
-  ))
+  
   }
 
