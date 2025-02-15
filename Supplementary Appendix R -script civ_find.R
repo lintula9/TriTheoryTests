@@ -1,4 +1,51 @@
 
+# Helper functions -------------
+# Dependencies:
+if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
+if(!require(expm)) install.packages("expm"); library(expm)
+
+# Helper function, for the (cross-)covariance
+var_ccov <- function(coefmat,innocov,Delta) {
+  # 
+  # if(any(Re(eigen(coefmat)$values) > 1)) {print(simpleError("A is not stationary. Aborting."))
+  #   stop()}
+  
+  # Yule-Walker equation solution for stationary A.
+  return( covmat = (coefmat %^% Delta) %*% 
+            matrix(Matrix::solve(diag(1,ncol=ncol(coefmat)^2,nrow=nrow(coefmat)^2) - 
+                                   Matrix::kronecker(coefmat,coefmat)) %*% 
+                     fastmatrix::vec(innocov), 
+                   ncol = ncol(coefmat), nrow = nrow(coefmat)))
+}
+
+# Helper function to form M times M block matrix, of the (cross-)covariances.
+var_ccov_Mblock <- function(A, Z, M) {
+  K <- nrow(A)      # dimension of each block (A is K x K)
+  big_dim <- M * K  # dimension of final matrix
+  S_big <- matrix(0, nrow = big_dim, ncol = big_dim)
+  
+  for (i in seq_len(M)) {
+    for (j in seq_len(M)) {
+      
+      delta <- abs(i - j)
+      
+      block_ij <- var_ccov(A, Z, Delta = delta)
+      
+      if (i > j) {
+        block_ij <- t(block_ij)
+      }
+      
+      row_idx <- ((i-1)*K + 1) : (i*K)
+      col_idx <- ((j-1)*K + 1) : (j*K)
+      
+      S_big[row_idx, col_idx] <- block_ij
+    }
+  }
+  
+  return(S_big)
+}
+
+                # Main function --------------
 
 # Closest VAR(1) model - indistinguishable from a dynamic common factor model. 
 
@@ -9,29 +56,15 @@
 # not solvable (because the implied covariance will be (in practice nearly) low rank).
 
 
-# Dependencies:
-if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
-if(!require(expm)) install.packages("expm"); library(expm)
-
-
-# Helper function, cor the (cross-)covariance
-var_ccov <- function(coefmat,innocov,Delta) {
-  
-  if(any(Re(eigen(coefmat)$values) > 1)) {print(simpleError("A is not stationary. Aborting."))
-    stop()}
-  
-  return( covmat = (coefmat %^% Delta) %*% 
-            matrix(Matrix::solve(diag(1,ncol=ncol(coefmat)^2,nrow=nrow(coefmat)^2) - 
-                                                            Matrix::kronecker(coefmat,coefmat)) %*% 
-                                                  fastmatrix::vec(innocov), 
-                                            ncol = ncol(coefmat), nrow = nrow(coefmat)))
-   }
-
-civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6, 
+civ_find <- function(A, Z, 
+                     n.iter = 2000, tol = 1e-6, 
                      W = NULL,
                      random.init = F,
-                     cov.difference = F,
+                     cov.difference = T,
+                     time_points = 2,
                      N = NULL) {
+  
+  if(time_points < 2) simpleError("time_points must be 2 or larger.")
 
   K <- ncol(A)
   if(!random.init){
@@ -44,7 +77,9 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
   omega0 <- rexp(K) 
 
   if(!cov.difference){
-  
+    
+  message("Minimizing distance in terms of parameters (not covariance), as cov.difference was set to False.")
+    
     loss_function <- function(pars, A = A, Z = Z) {
       z <- vech(Z)
       s <- c(vec(A),z)
@@ -95,8 +130,7 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
   
   if(cov.difference) {
     # Population 2 times 2 block covariance matrix. (2K times 2K.)
-    S  <- rbind( cbind(  var_ccov(A,Z,0),     var_ccov(A,Z,1)),
-                 cbind(t(var_ccov(A,Z,1)),    var_ccov(A,Z,0)) )
+    S  <- var_ccov_Mblock(A,Z,time_points)
     
     if(any(eigen(S)$values  < 1e-7)) {
       message("The VAR(1) predicted covariance has near zero or negative eigenvals. Stopping.\n
@@ -110,11 +144,12 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
       psi    <- theta[1]                   # scalar
       Lambda <- theta[2:(K+1)]             # length K
       omega0 <- theta[(K+2):(2*K+1)]       # length K
+      
+      A_indistinguishable = psi * diag(1,ncol(A),nrow(A))        # A_indistinguishable
+      Z_indistinguishable = (1-psi^2) * tcrossprod(Lambda)
 
       # 2) Compute the implied covariance.
-      S_implied <- rbind( cbind(tcrossprod(Lambda) + diag(omega0), psi * tcrossprod(Lambda)) ,
-                          cbind(t(psi * tcrossprod(Lambda))      , tcrossprod(Lambda) + diag(omega0))
-                           )
+      S_implied <- var_ccov_Mblock(A_indistinguishable, Z_indistinguishable, time_points) + diag(rep(omega0, times = time_points), time_points*K, time_points*K)
       
       if(return_cov) {return(S_implied)}
       
@@ -146,7 +181,7 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
     statistic = (N-1) * F_ML$value
 
     # Compute degrees of freedom, RMSEA
-    non_zero_params <- sum(abs(F_ML$par) > 1e-6 )
+    non_zero_params <- 1 + 2*K
     
       ### This is not correct: we
     DF    = length(fastmatrix::vech(Z)) + length(A) - non_zero_params
@@ -181,6 +216,18 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
 ## Not run: test.
 
 if(F){
+# Additional function to check how much additional time points increase RMSEA.
+
+RMSEA_check <- function(A,Z,N,max_time_points){
+  RMSEAs <- c()
+  for( i in 2:max_time_points){
+    RMSEAs[i] <- civ_find(A, Z, N, cov.difference = T, 
+                          random.init = T, time_points = i)$RMSEA}
+  return(RMSEAs)
+}}
+
+
+if(F){
   
   K=7
   A <- matrix(c(
@@ -200,41 +247,11 @@ if(F){
   Sigma[cbind(2:7, 1:6)] <- 0.2
   
   # The fit is bad.
-  result <- civ_find(A, Sigma, N = 4200, cov.difference = T, random.init = T)
-  civ_find(A,Sigma,cov.difference = F, random.init = T)
+  result <- civ_find(A, Sigma, N = 4200, cov.difference = T, random.init = T, time_points = 4)
+    civ_find(A,Sigma,cov.difference = F, random.init = T)
+    
+  # RMSEA check
+  rmseas <- RMSEA_check(A,Sigma,4200,5)
   
   }
-
-# Helper function to construct 2K times 2K covariance.
-var_ccov_2block <- function(A, Z) {
-  return( rbind( cbind(  var_ccov(A,Z,0),     var_ccov(A,Z,1)),
-               cbind(t(var_ccov(A,Z,1)),    var_ccov(A,Z,0)) ) )
-}
-
-var_ccov_Mblock <- function(A, Z, M) {
-  K <- nrow(A)      # dimension of each block (A is K x K)
-  big_dim <- M * K  # dimension of final matrix
-  S_big <- matrix(0, nrow = big_dim, ncol = big_dim)
-  
-  for (i in seq_len(M)) {
-    for (j in seq_len(M)) {
-      
-      delta <- abs(i - j)
-      
-      block_ij <- var_ccov(A, Z, Delta = delta)
-      
-      if (i > j) {
-        block_ij <- t(block_ij)
-      }
-      
-      row_idx <- ((i-1)*K + 1) : (i*K)
-      col_idx <- ((j-1)*K + 1) : (j*K)
-      
-      S_big[row_idx, col_idx] <- block_ij
-    }
-  }
-  
-  return(S_big)
-}
-
 
