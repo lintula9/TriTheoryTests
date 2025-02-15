@@ -1,8 +1,12 @@
+
+
+# Closest VAR(1) model - indistinguishable from a dynamic common factor model. 
+
 # Run the whole script, then civ_find takes the coefficient matrix,
 # innovation covariance as arguments. If you want to compute RMSEA, you also
-# need to give sample size N, and error_ratio. Error_ratio is by default 0.5
-# indicating that half of an observation is error (e.g., 0.7 factor loading relates
-# to 0.49 error proportion in a one factor model).
+# need to give sample size N and specify cov.difference = T. In this case, we need
+# diagonal errors to be allowed - otherwise the maximum likelihood criterion is
+# not solvable (because the implied covariance will be (in practice nearly) low rank).
 
 
 # Dependencies:
@@ -13,7 +17,8 @@ if(!require(expm)) install.packages("expm"); library(expm)
 # Helper function, cor the (cross-)covariance
 var_ccov <- function(coefmat,innocov,Delta) {
   
-  if(any(Re(eigen(coefmat)$values) > 1)) print(simpleError("A is not stationary. Aborting."))
+  if(any(Re(eigen(coefmat)$values) > 1)) {print(simpleError("A is not stationary. Aborting."))
+    stop()}
   
   return( covmat = (coefmat %^% Delta) %*% 
             matrix(Matrix::solve(diag(1,ncol=ncol(coefmat)^2,nrow=nrow(coefmat)^2) - 
@@ -32,14 +37,12 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
   if(!random.init){
     # Initial values are taken based on A.
     Lambda <- Re(eigen(A)$vectors[,1])
-    psi    <- Re(eigen(A)$values[1])
-    omega0 <- omega1 <- runif(K, 0.5, 1)} else {
+    psi    <- Re(eigen(A)$values[1])} else {
     Lambda <- rnorm(K,sd=sd(vec(A)))
-    psi    <- rnorm(1)
-    omega0 <- omega1 <- runif(K, 0.5, 1)
-    omega0 <- omega0 + runif(K, 0.5, 1)
-    }
+    psi    <- rnorm(1)    }
   
+  omega0 <- rexp(K) 
+
   if(!cov.difference){
   
     loss_function <- function(pars, A = A, Z = Z) {
@@ -96,56 +99,77 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
                  cbind(t(var_ccov(A,Z,1)),    var_ccov(A,Z,0)) )
     
     if(any(eigen(S)$values  < 1e-7)) {
-      message("The predicted covariance has near zero or negative eigenvals. Stopping.\n
+      message("The VAR(1) predicted covariance has near zero or negative eigenvals. Stopping.\n
               This might be a sign of low rank structure in the predicted covariance. \n
               Check eigen(var_ccov(A,Z,0))$values, for example, for low rank structure.")
       stop()
     }
-    # Maximum likelihood estimate
-    F_criterion <- function(theta, S, K){
+    # Maximum likelihood criterion
+    F_criterion <- function(theta, S, K, return_cov = F){
       # 1) Parse the parameter vector:
       psi    <- theta[1]                   # scalar
       Lambda <- theta[2:(K+1)]             # length K
       omega0 <- theta[(K+2):(2*K+1)]       # length K
-      omega1 <- theta[(2*K+2):(3*K+1)]     # length K
-      
+
       # 2) Compute the implied covariance.
-      S_implied <- rbind( cbind(tcrossprod(Lambda) + diag(omega0), psi * tcrossprod(Lambda)),
-                          cbind(t(psi * tcrossprod(Lambda)),       tcrossprod(Lambda) + diag(omega0))
+      S_implied <- rbind( cbind(tcrossprod(Lambda) + diag(omega0), psi * tcrossprod(Lambda)) ,
+                          cbind(t(psi * tcrossprod(Lambda))      , tcrossprod(Lambda) + diag(omega0))
                            )
+      
+      if(return_cov) {return(S_implied)}
+      
+      if(any(eigen(S_implied)$values < 1e-6)) {warning("Non positive-definite implied covariance.")}
 
       # 3) Compute the discrepancy.
-      return(F_ML=log(det(S_implied)) + sum(diag( solve(S_implied) %*% S )) - log(det(S)) - 2*K) #Note: 2*K, because we have 2K variables now.
+      return(F_ML = log(det(S_implied)) + 
+                    sum(diag( solve(S_implied) %*% S )) - 
+                    log(det(S)) - 
+                    2*K) 
+      #Note: 2*K, because we have 2K variables.
     }
     
     # Maximum Likelihood statistic, with constraints:
     # Error variances and serial covariances positive.
     # The CF is implicitly assumed to have unit variance.
-    lower_bounds  <- c(-Inf, rep(-Inf, times = K), rep(1e-6, times = 2*K))
+    lower_bounds  <- c(-Inf, rep(-Inf, times = K), rep(0, times = 2*K))
     F_ML = optim(
-      par = c(psi, Lambda, omega0, omega1 ), 
+      par = c(psi, Lambda, omega0 ), 
       fn  = F_criterion,
       S = S,
       K = K, 
       method = "L-BFGS-B", 
-      lower = lower_bounds )
+      lower = lower_bounds,
+      control = list(trace = 1, 
+                     maxit = n.iter))
     
     # Return T statistic, which is distributed ~ Chisq_DF(F_ML - DF)
-    statistic = (N-1) * F_ML$result$value
+    statistic = (N-1) * F_ML$value
 
     # Compute degrees of freedom, RMSEA
-    DF = ((2*K*(2*K+1))/2) - (3*K + 1)
+    non_zero_params <- sum(abs(F_ML$par) > 1e-6 )
+    
+      ### This is not correct: we
+    DF    = length(fastmatrix::vech(Z)) + length(A) - non_zero_params
     RMSEA = sqrt( max(0, statistic - DF) / (DF*(N-1)) )
+    
+    # Return implied covariancecovariance.
+    S_implied <- F_criterion(theta = F_ML$par, S = S, K = K, return_cov = T)
+    
+    # Warnings.
+    if(F_ML$value < 0) warning("Negative discrepancy observed. Likely the implied covariance was non-invertible.
+                               \n Results are not interpretable")
     
     # Return results
     return(list(
-      "ML_optimizer_result" = F_ML,
-      RMSEA      = RMSEA,
-      CF_ar_coef = F_ML$par[1],
-      Factor_loadings     = F_ML$par[2:(K+1)],
+      "ML_optimizer_result"           = F_ML,
+      T_statistic                     = statistic,
+      RMSEA                           = RMSEA,
+      CF_ar_coef                      = F_ML$par[1],
+      Factor_loadings                 = F_ML$par[2:(K+1)],
       within_time_point_errorvars     = F_ML$par[(K+2):(2*K+1)],
-      serial_errorvars     = F_ML$par[(2*K+2):(3*K+1)]
-      
+      DF                              = DF,
+      "Implied_covariance"            = S_implied,
+      "VAR_original_covariance"       = S
     ))
     
   }
@@ -159,28 +183,58 @@ civ_find <- function(A, Z, n.iter = 2000, tol = 1e-6,
 if(F){
   
   K=7
-  A <- matrix(runif(K^2,-0.5,0.5), ncol = 7, nrow = 7)
-  Z <- cov(t(A %*% t(matrix(rep(rnorm(1000), each = K), ncol = 7))) %*% t(A))
-  civ_find(A,Z,cov.difference = T)
+  A <- matrix(c(
+    0.5, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.4, 0.1, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.4, 0.1, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.5, 0.1, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.3, 0.1, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.1,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2
+  ), nrow = 7, byrow = TRUE)
   
   
+  # Identity on the diagonal; 0.2 for first off-diagonals
+  Sigma <- diag(7)
+  Sigma[cbind(1:6, 2:7)] <- 0.2
+  Sigma[cbind(2:7, 1:6)] <- 0.2
   
+  # The fit is bad.
+  result <- civ_find(A, Sigma, N = 4200, cov.difference = T, random.init = T)
+  civ_find(A,Sigma,cov.difference = F, random.init = T)
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  }
+
+# Helper function to construct 2K times 2K covariance.
+var_ccov_2block <- function(A, Z) {
+  return( rbind( cbind(  var_ccov(A,Z,0),     var_ccov(A,Z,1)),
+               cbind(t(var_ccov(A,Z,1)),    var_ccov(A,Z,0)) ) )
 }
 
+var_ccov_Mblock <- function(A, Z, M) {
+  K <- nrow(A)      # dimension of each block (A is K x K)
+  big_dim <- M * K  # dimension of final matrix
+  S_big <- matrix(0, nrow = big_dim, ncol = big_dim)
+  
+  for (i in seq_len(M)) {
+    for (j in seq_len(M)) {
+      
+      delta <- abs(i - j)
+      
+      block_ij <- var_ccov(A, Z, Delta = delta)
+      
+      if (i > j) {
+        block_ij <- t(block_ij)
+      }
+      
+      row_idx <- ((i-1)*K + 1) : (i*K)
+      col_idx <- ((j-1)*K + 1) : (j*K)
+      
+      S_big[row_idx, col_idx] <- block_ij
+    }
+  }
+  
+  return(S_big)
+}
 
 
