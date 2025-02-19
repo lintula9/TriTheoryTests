@@ -6,9 +6,9 @@ if(!require(expm)) install.packages("expm"); library(expm)
 
 # Helper function, for the (cross-)covariance
 var_ccov <- function(coefmat,innocov,Delta) {
-  # 
-  # if(any(Re(eigen(coefmat)$values) > 1)) {print(simpleError("A is not stationary. Aborting."))
-  #   stop()}
+
+  if(any(Re(eigen(coefmat)$values) > 1)) {print(simpleError("A is not stationary. Aborting."))
+    stop()}
   
   # Yule-Walker equation solution for stationary A.
   return( covmat = (coefmat %^% Delta) %*% 
@@ -255,3 +255,27 @@ if(F){
   
   }
 
+
+
+
+# CIV parallel --------------
+
+civ_parallel <- function(A,Z,time_points) {
+  
+  if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting. You can compute the covariance matrices manually using var_ccov.")
+  
+  comp        <- lapply(0:time_points,         function(d){return(eigen(var_ccov(A,Sigma,d)))})
+  all_sum     <- sapply(1:ncol(A), function(j){
+                        sum(sapply(1:(time_points+1), function(i) comp[[i]]$values[j]))})
+  total_sum   <- sum(sapply(1:(time_points+1), function(i) sum(comp[[i]]$values)))
+  cosine_i    <- sapply(1:ncol(A), function(j) {
+    sapply(1:time_points, function(i) abs(sum(comp[[i]]$vectors[,j]*comp[[i+1]]$vectors[,j])) )}, simplify = "matrix")
+
+  return(
+    list(
+      prop_explained                = all_sum / total_sum,
+      min_factor_congruency         = apply(cosine_i, min, MARGIN = 2),
+      all_factor_congruencies       = cosine_i
+      )
+    
+  ) }
