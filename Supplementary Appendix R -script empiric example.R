@@ -222,9 +222,30 @@ for(i in plotnams){print(  mcmc_trace(draws_data, regex_pars = i ));print(  mcmc
 # Extract posterior means as the VAR parameters:
 A <- matrix( unlist(colMeans(draws_data[,grep("A", names(draws_data))])), ncol = K, nrow = K);
 Z <- matrix( unlist(colMeans(draws_data[,grep("Omega", names(draws_data))])), ncol = K, nrow = K)
-source("Supplementary Appendix R -script civ_find.R");closest <- civ_find(A,Z)
+source("Supplementary Appendix R -script civ_find.R");
 # Compute RMSEA, for the mean
 civ_find(A, Z, cov.difference = T)
+civ_parallel(A, Z)
+# Compute RMSEA, distribution
+estimated_var_samples <- draws_data[,c( grep("A", names(draws_data)) , grep("Omega", names(draws_data)) )]; As <- grep("A_", names(estimated_var_samples)); Os <- grep("Omega", names(estimated_var_samples)); 
+var_samples <- pbapply::pblapply(1:nrow(draws_data),
+                                     FUN = function(i){
+                                       A_temp <- matrix( unlist(estimated_var_samples[i,As]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
+                                       Z_temp <- matrix( unlist(estimated_var_samples[i,Os]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
+                                       
+                                       return(list(A = A_temp, Z = Z_temp))
+                                     }); gc()
+rmseas <- pbapply::pbsapply(var_samples[sample(1:length(var_samples), size = 1000, replace = F)], FUN = function(x){
+  res <- try(civ_find(x$A,x$Z, cov.difference = T, N = nrow(Data5b))$RMSEA)
+  if(is.character(res)) {res <- NA; warning("Non-convergence")}
+  return(res) })
+
+props_explained <- pbapply::pbsapply(sample(1:length(var_samples), size = 1000, replace = F), FUN = function(x){
+  return(try(Re(civ_parallel(var_samples[[x]]$A,var_samples[[x]]$Z)$prop_explained[1])))
+})
+
+source("Yuan 2016.R"); Yuan_2016(  length(fastmatrix::vech(Z)) + length(A) - (1+3*ncol(A))
+                                     ,4135) 
 
 
   #Plot prior VAR
@@ -242,6 +263,7 @@ indices <- sample(1:nrow(draws_data),size = 1000L, replace = F)
 estimated_var_samples <- draws_data[,c( grep("A", names(draws_data)) , grep("Omega", names(draws_data)) )]; As <- grep("A", names(estimated_var_samples)); Os <- grep("Omega", names(estimated_var_samples)); 
 civ_var_samples <- pbapply::pbsapply(1:length(indices),
                   FUN = function(i){
+                    # Notes 28.02.2025: Check K!
                     A_temp <- matrix( unlist(estimated_var_samples[indices[i],As]), ncol = K, nrow = K);
                     Z_temp <- matrix( unlist(estimated_var_samples[indices[i],Os]), ncol = K, nrow = K);
                     closest <- civ_find(A_temp,Z_temp); 
@@ -300,7 +322,7 @@ RMSEA = sqrt( max(c(chisq_stat - DF)) / (DF*(N-1)))
 # The computations are provided by Yuan et al., 2016. DF is computed as the differnce between our
 # esimtated VAR(1) model parameters, and the null hypothesis parameter amount...
 sqrt( max( c(chisq_stat - DF, 0) ) / ( DF*(N-1) ) );
-source("Yuan 2016.R"); Yuan_2016(DF,N) # Suggests good fit.
+source("Yuan 2016.R"); Yuan_2016(DF,4135) # Suggests good fit.
 
 
   ## Second analysis: More symptoms -----

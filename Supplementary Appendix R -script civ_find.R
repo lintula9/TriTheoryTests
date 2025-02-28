@@ -59,10 +59,11 @@ var_ccov_Mblock <- function(A, Z, M) {
 civ_find <- function(A, Z, 
                      n.iter = 2000, tol = 1e-6, 
                      W = NULL,
-                     random.init = F,
+                     random.init    = T,
                      cov.difference = T,
                      time_points = 2,
-                     N = NULL) {
+                     N = NULL,
+                     error_ratio = 0.5) {
   
   if(time_points < 2) simpleError("time_points must be 2 or larger.")
 
@@ -72,7 +73,7 @@ civ_find <- function(A, Z,
     Lambda <- Re(eigen(A)$vectors[,1])
     psi    <- Re(eigen(A)$values[1])} else {
     Lambda <- rnorm(K,sd=sd(vec(A)))
-    psi    <- rnorm(1)    }
+    psi    <- min(rexp(1), 0.9)    }
   
   omega0 <- rexp(K) 
 
@@ -138,6 +139,9 @@ civ_find <- function(A, Z,
               Check eigen(var_ccov(A,Z,0))$values, for example, for low rank structure.")
       stop()
     }
+    
+    diag(S) <- diag(S) + (error_ratio * diag(S))
+    
     # Maximum likelihood criterion
     F_criterion <- function(theta, S, K, return_cov = F){
       # 1) Parse the parameter vector:
@@ -160,34 +164,35 @@ civ_find <- function(A, Z,
                     sum(diag( solve(S_implied) %*% S )) - 
                     log(det(S)) - 
                     2*K) 
-      #Note: 2*K, because we have 2K variables.
+    # Note: 2*K, because we have 2K variables.
     }
     
     # Maximum Likelihood statistic, with constraints:
     # Error variances and serial covariances positive.
     # The CF is implicitly assumed to have unit variance.
-    lower_bounds  <- c(-Inf, rep(-Inf, times = K), rep(0, times = 2*K))
-    F_ML = optim(
+    # DCF is constrained stationary.
+    lower_bounds  <- c(-1, rep(-Inf, times = K), rep(0,   times = K))
+    upper_bounds  <- c( 1, rep( Inf, times = K), rep(Inf, times = K))
+    F_ML  = optim(
       par = c(psi, Lambda, omega0 ), 
       fn  = F_criterion,
-      S = S,
-      K = K, 
+      S   = S,
+      K   = K, 
       method = "L-BFGS-B", 
-      lower = lower_bounds,
-      control = list(trace = 1, 
-                     maxit = n.iter))
+      lower  = lower_bounds,
+      upper  = upper_bounds,
+      control = list(maxit = n.iter))
     
     # Return T statistic, which is distributed ~ Chisq_DF(F_ML - DF)
     statistic = (N-1) * F_ML$value
 
-    # Compute degrees of freedom, RMSEA
-    non_zero_params <- 1 + 2*K
+    # Compute degree of freedom
+    DF    = length(fastmatrix::vech(Z)) + length(A) - length(F_ML$par)
     
-      ### This is not correct: we
-    DF    = length(fastmatrix::vech(Z)) + length(A) - non_zero_params
+    # Compute RMSEA
     RMSEA = sqrt( max(0, statistic - DF) / (DF*(N-1)) )
     
-    # Return implied covariancecovariance.
+    # Return implied covariance
     S_implied <- F_criterion(theta = F_ML$par, S = S, K = K, return_cov = T)
     
     # Warnings.
@@ -227,10 +232,12 @@ RMSEA_check <- function(A,Z,N,max_time_points){
 }}
 
 
+
+# Numerical examples -------------------------------
+
 if(F){
   
-  K=7
-  A <- matrix(c(
+  A_2 <- matrix(c(
     0.5, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.4, 0.1, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.4, 0.1, 0.0, 0.0, 0.0,
@@ -242,16 +249,15 @@ if(F){
   
   
   # Identity on the diagonal; 0.2 for first off-diagonals
-  Sigma <- diag(7)
-  Sigma[cbind(1:6, 2:7)] <- 0.2
-  Sigma[cbind(2:7, 1:6)] <- 0.2
+  Z_2 <- diag(7)
+  Z_2[cbind(1:6, 2:7)] <- 0.2
+  Z_2[cbind(2:7, 1:6)] <- 0.2
   
   # The fit is bad.
-  result <- civ_find(A, Sigma, N = 4200, cov.difference = T, random.init = T, time_points = 4)
-    civ_find(A,Sigma,cov.difference = F, random.init = T)
-    
-  # RMSEA check
-  rmseas <- RMSEA_check(A,Sigma,4200,5)
+  result <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 4)
+
+  # Proportion explained is not high, though factor congruency (for the first factor) remains decently large.
+  civ_parallel(A_2, Z_2)
   
   }
 
@@ -260,20 +266,23 @@ if(F){
 
 # CIV parallel --------------
 
-civ_parallel <- function(A,Z,time_points) {
+civ_parallel <- function(A,Z,time_points = 10) {
   
-  if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting. You can compute the covariance matrices manually using var_ccov.")
+  if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting.")
   
-  comp        <- lapply(0:time_points,         function(d){return(eigen(var_ccov(A,Sigma,d)))})
+  comp        <- lapply(0:time_points,         function(d){return(eigen(var_ccov(A,Z,d)))})
   all_sum     <- sapply(1:ncol(A), function(j){
                         sum(sapply(1:(time_points+1), function(i) comp[[i]]$values[j]))})
   total_sum   <- sum(sapply(1:(time_points+1), function(i) sum(comp[[i]]$values)))
   cosine_i    <- sapply(1:ncol(A), function(j) {
     sapply(1:time_points, function(i) abs(sum(comp[[i]]$vectors[,j]*comp[[i+1]]$vectors[,j])) )}, simplify = "matrix")
+  
+  prop_explained             = all_sum / total_sum
+  if(any(Im(prop_explained) != 0)) warning("Imaginary proportion explained found, use lower time_points.")
 
   return(
     list(
-      prop_explained                = all_sum / total_sum,
+      prop_explained                = prop_explained,
       min_factor_congruency         = apply(cosine_i, min, MARGIN = 2),
       all_factor_congruencies       = cosine_i
       )
