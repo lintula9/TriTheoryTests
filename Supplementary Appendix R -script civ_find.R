@@ -187,7 +187,7 @@ civ_find <- function(A, Z,
     statistic = (N-1) * F_ML$value
 
     # Compute degree of freedom
-    DF    = length(fastmatrix::vech(Z)) + length(A) - length(F_ML$par)
+    DF    = (time_points * K * (time_points * K + 1) / 2) - length(F_ML$par)
     
     # Compute RMSEA
     RMSEA = sqrt( max(0, statistic - DF) / (DF*(N-1)) )
@@ -233,10 +233,42 @@ RMSEA_check <- function(A,Z,N,max_time_points){
 
 
 
+
+
+
+
+# CIV parallel --------------
+
+civ_parallel <- function(A,Z,time_points = 10) {
+  
+  if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting.")
+  
+  comp        <- lapply(0:time_points,         function(d){return(eigen(var_ccov(A,Z,d)))})
+  all_sum     <- sapply(1:ncol(A), function(j){
+                        sum(sapply(1:(time_points+1), function(i) comp[[i]]$values[j]))})
+  total_sum   <- sum(sapply(1:(time_points+1), function(i) sum(comp[[i]]$values)))
+  cosine_i    <- sapply(1:(time_points+1), function(j) {
+    sapply(1:(time_points+1), function(i) abs(sum(comp[[i]]$vectors[,1]*comp[[j]]$vectors[,1])) )}, simplify = "matrix")
+  
+  prop_explained             = all_sum / total_sum
+  if(any(Im(prop_explained) != 0)) warning("Imaginary proportion explained found, 
+  likely due to the covariances being (close) to low rank. Use lower time_points.")
+
+  return(
+    list(
+      prop_explained                = prop_explained,
+      min_factor_congruency         = min(cosine_i),
+      all_factor_congruencies       = cosine_i
+      )
+    
+  ) }
+
+
 # Numerical examples -------------------------------
 
 if(F){
   
+  # When the fit is bad:
   A_2 <- matrix(c(
     0.5, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.4, 0.1, 0.0, 0.0, 0.0, 0.0,
@@ -255,37 +287,8 @@ if(F){
   
   # The fit is bad.
   result <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 4)
-
-  # Proportion explained is not high, though factor congruency (for the first factor) remains decently large.
+  
+  # Proportion explained is not high, and factor congruency (for the first factor) drops quickly suggesting non-invariant loadings.
   civ_parallel(A_2, Z_2)
   
-  }
-
-
-
-
-# CIV parallel --------------
-
-civ_parallel <- function(A,Z,time_points = 10) {
-  
-  if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting.")
-  
-  comp        <- lapply(0:time_points,         function(d){return(eigen(var_ccov(A,Z,d)))})
-  all_sum     <- sapply(1:ncol(A), function(j){
-                        sum(sapply(1:(time_points+1), function(i) comp[[i]]$values[j]))})
-  total_sum   <- sum(sapply(1:(time_points+1), function(i) sum(comp[[i]]$values)))
-  cosine_i    <- sapply(1:ncol(A), function(j) {
-    sapply(1:time_points, function(i) abs(sum(comp[[i]]$vectors[,j]*comp[[i+1]]$vectors[,j])) )}, simplify = "matrix")
-  
-  prop_explained             = all_sum / total_sum
-  if(any(Im(prop_explained) != 0)) warning("Imaginary proportion explained found, 
-  likely due to the covariances being (close) to low rank. Use lower time_points.")
-
-  return(
-    list(
-      prop_explained                = prop_explained,
-      min_factor_congruency         = apply(cosine_i, min, MARGIN = 2),
-      all_factor_congruencies       = cosine_i
-      )
-    
-  ) }
+}
