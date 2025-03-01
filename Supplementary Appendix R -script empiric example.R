@@ -235,10 +235,11 @@ var_samples <- pbapply::pblapply(1:nrow(draws_data),
                                        
                                        return(list(A = A_temp, Z = Z_temp))
                                      }); gc()
-rmseas <- pbapply::pbsapply(var_samples[sample(1:length(var_samples), size = 1000, replace = F)], FUN = function(x){
+rmseas <- pbapply::pbsapply(var_samples, FUN = function(x){
   res <- try(civ_find(x$A,x$Z, cov.difference = T, N = nrow(Data5b))$RMSEA)
   if(is.character(res)) {res <- NA; warning("Non-convergence")}
-  return(res) })
+  return(res) }); gc()
+saveRDS(rmseas, file = "Datas/rmseas_3vars.RDS");gc()
 
 props_explained <- pbapply::pbsapply(sample(1:length(var_samples), size = 1000, replace = F), FUN = function(x){
   return(try(Re(civ_parallel(var_samples[[x]]$A,var_samples[[x]]$Z)$prop_explained[1])))
