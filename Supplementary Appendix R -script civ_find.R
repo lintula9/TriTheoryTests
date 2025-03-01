@@ -278,7 +278,8 @@ civ_parallel <- function(A,Z,time_points = 10) {
     sapply(1:time_points, function(i) abs(sum(comp[[i]]$vectors[,j]*comp[[i+1]]$vectors[,j])) )}, simplify = "matrix")
   
   prop_explained             = all_sum / total_sum
-  if(any(Im(prop_explained) != 0)) warning("Imaginary proportion explained found, use lower time_points.")
+  if(any(Im(prop_explained) != 0)) warning("Imaginary proportion explained found, 
+  likely due to the covariances being (close) to low rank. Use lower time_points.")
 
   return(
     list(

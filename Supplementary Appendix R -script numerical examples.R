@@ -29,7 +29,7 @@ phi = 0.5
 
 Sigma_CF = Lambda %*% t(Lambda)
 A = phi *  Lambda %*% solve( t(Lambda) %*% Lambda ) %*% t(Lambda)
-Z = (psi - phi^2) * Sigma
+Z = (psi - phi^2) * Sigma_CF
 
 Sigma_VAR = matrix(solve(diag(1, nrow = 9, ncol = 9) - kronecker.prod(A)) %*% vec(Z), ncol = 3)
 Lambda %*% t(Lambda)
@@ -112,12 +112,44 @@ all(round(A%*%A%*%A%*%Sigma_VAR,10) == round(Sigma_CF * phi_^3,10))
 
   # Plot A to demonstrate how the Network looks like.
 qgraph(A, 
-       title = "VAR(1), indistinguishable from a dynamic CF model.",
+       title = "VAR(1) coefficient matrix, indistinguishable from a CF model.",
        title.cex = 1.5,  
        mar = c(4, 4, 6, 4)
-)
+); gc()
 
-dev.off()
+
+# Figure 1. in main text -----------
+library(Matrix); library(qgraph)
+
+tiff(filename = "Figure_1.tiff", width = 8, height = 6, units = "in", res = 480)
+lambda = c(1,2,3)
+A = lambda %*% t(lambda) * c(t(lambda) %*% lambda)^-1 + 
+  matrix(c(0,3,-2,
+           -2,1,0,
+           1,-0.5,0), ncol = 3, nrow = 3, byrow = T)
+Z = (1-0.5^2) * lambda %*% t(lambda)
+
+# Plot.
+labels <- expression(X[1], X[2], X[3])
+par(mfrow=c(1,2))
+coeflabs = expression(tilde(A), tilde(A)[adj.])
+qgraph(lambda %*% t(lambda) * c(t(lambda) %*% lambda)^-1,
+       mar = c(4, 4, 6, 4),
+       layout = "circle", 
+       labels = labels, # Use the expression labels
+       directed = T,
+       title = coeflabs[1],
+       title.cex = 1.5
+)
+qgraph(A,
+       mar = c(4, 4, 6, 4),
+       layout = "circle", 
+       labels = labels, # Use the expression labels
+       title = coeflabs[2],
+       title.cex = 1.5
+)
+par(mfrow=c(1,1));dev.off();gc()
+
 
 
 
@@ -189,7 +221,7 @@ all(round(K_2_VAR_adj, 10) == round(K_2_VAR, 10))
 # In this section of the script, we plot the Figure of a linearly time-varying VAR(1), which is indistinguishable from a dynamic
 # factor model.
 
-set.seed(21)
+set.seed(123); gc()
 
 # Number of dimensions and time points
 K_ = 9
@@ -233,52 +265,9 @@ par(mfrow = c(2, 2), oma = c(0, 0, 4, 0)) # Adjust oma for outer margin to accom
 
 expr_list <- lapply(1:K_, function(i) bquote(X[.(i)]))
 labels <- do.call(expression, expr_list)
+# Plot, if needed:
+if(F) {qgraph(Z_0, title = "'Contemporaneous' covariance",title.cex = 1.5,mar = c(4, 4, 6, 4),layout = "circle", labels = labels );qgraph(A_t[,,1], title = "Lagged effects\nTime point 1",title.cex = 1.5,  mar = c(4, 4, 6, 4),maximum = max_weight, edge.width = 3,   layout = "circle",labels = labels);qgraph(A_t[,,5], title = "\nTime point 5",title.cex = 1.5,  mar = c(4, 4, 6, 4),maximum = max_weight, edge.width = 3, layout = "circle",labels = labels  );qgraph(A_t[,,9], title = "\nTime point 9",title.cex = 1.5,  mar = c(4, 4, 6, 4),maximum = max_weight, edge.width = 3,layout = "circle",labels = labels);mtext("VAR(1) Network model indistinguishable from a dynamic CF model.", outer = TRUE, cex = 1.5, font = 2);par(mfrow = c(1,1))}
 
-# Plot the 'Contemporaneous' covariance graph
-qgraph(Z_0, 
-       title = "'Contemporaneous' covariance",
-       title.cex = 1.5,
-       mar = c(4, 4, 6, 4),
-       layout = "circle", 
-       labels = labels # Use the expression labels
-)
-
-# Plot the Lagged effects at Time point 1
-qgraph(A_t[,,1], 
-       title = "Lagged effects\nTime point 1",
-       title.cex = 1.5,  
-       mar = c(4, 4, 6, 4),
-       maximum = max_weight, # Consistent scale for edges
-       edge.width = 3,       # Adjust this value for larger edges
-       layout = "circle",
-       labels = labels       # Use the expression labels
-)
-
-# Plot at Time point 5
-qgraph(A_t[,,5], 
-       title = "\nTime point 5",
-       title.cex = 1.5,  
-       mar = c(4, 4, 6, 4),
-       maximum = max_weight, # Consistent scale for edges
-       edge.width = 3,       # Adjust this value for larger edges
-       layout = "circle",
-       labels = labels       # Use the expression labels
-)
-
-# Plot at Time point 9
-qgraph(A_t[,,9], 
-       title = "\nTime point 9",
-       title.cex = 1.5,  
-       mar = c(4, 4, 6, 4),
-       maximum = max_weight, # Consistent scale for edges
-       edge.width = 3,       # Adjust this value for larger edges
-       layout = "circle",
-       labels = labels       # Use the expression labels
-)
-
-mtext("VAR(1) Network model indistinguishable from a dynamic CF model.", outer = TRUE, cex = 1.5, font = 2)
-
-par(mfrow = c(1,1))
 
 
 ## Adjust slightly, and plot again. ###
@@ -302,16 +291,8 @@ max_weight <- max(sapply(1:5, function(t) max(abs((A_t_adj[,,t])))))
 
 par(mfrow = c(3, 2), oma = c(0, 0, 4, 0)) # Adjust oma for outer margin to accommodate the title
 
-# Function to create dashed lines for the first row
-custom_lty <- function(matrix) {
-  lty <- matrix(1, nrow = nrow(matrix), ncol = ncol(matrix)) # Default to solid lines
-  lty[1, ] <- 2  # Set dashed lines for the first row
-  return(lty)
-}
 
-
-
-tiff(file = "Schumacher_imitation.tiff", height = 12, width = 8, res = 600, units = "in")
+tiff(file = "Figure_2.tiff", height = 12, width = 8, res = 600, units = "in")
 par(mfrow = c(3, 2), oma = c(0, 0, 0, 0)) # Adjust oma for outer margin to accommodate the title
 # Plot the Lagged effects at Time point 1 (A_t_adj)
 qgraph(A_t_adj[,,1], 
@@ -336,8 +317,7 @@ qgraph(A_t_adj[,,6],
        maximum = max_weight, # Consistent scale for edges
        edge.width = 3,       # Adjust this value for larger edges
        layout = "circle",
-       labels = labels,      # Use the expression labels
-       lty = custom_lty(A_t_adj[,,2]) # Custom line types
+       labels = labels      # Use the expression labels
 )
 
 # Plot at Time point 5 (A_t)
@@ -348,8 +328,7 @@ qgraph(A_t[,,6],
        maximum = max_weight, # Consistent scale for edges
        edge.width = 3,       # Adjust this value for larger edges
        layout = "circle",
-       labels = labels,      # Use the expression labels
-       lty = custom_lty(A_t[,,2]) # Custom line types
+       labels = labels      # Use the expression labels
 )
 
 # Plot at Time point 9 (A_t_adj)
@@ -360,8 +339,7 @@ qgraph(A_t_adj[,,10],
        maximum = max_weight, # Consistent scale for edges
        edge.width = 3,       # Adjust this value for larger edges
        layout = "circle",
-       labels = labels,      # Use the expression labels
-       lty = custom_lty(A_t_adj[,,5]) # Custom line types
+       labels = labels      # Use the expression labels
 )
 
 # Plot at Time point 9 (A_t)
@@ -372,8 +350,7 @@ qgraph(A_t[,,10],
        maximum = max_weight, # Consistent scale for edges
        edge.width = 3,       # Adjust this value for larger edges
        layout = "circle",
-       labels = labels,      # Use the expression labels
-       lty = custom_lty(A_t[,,5]) # Custom line types
+       labels = labels      # Use the expression labels
 ); dev.off(); gc(); par(mfrow = c(1,1))
 
 
