@@ -234,7 +234,7 @@ RMSEA_check <- function(A,Z,N,max_time_points){
 
 # CIV parallel --------------
 
-civ_parallel <- function(A,Z,time_points = 100) {
+civ_parallel <- function(A,Z,time_points = 10) {
   
   if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting.")
   

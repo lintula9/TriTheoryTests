@@ -247,6 +247,12 @@ props_explained <- pbapply::pbsapply(sample(1:length(var_samples), size = 1000, 
 
 source("Yuan 2016.R"); Yuan_2016(  length(fastmatrix::vech(Z)) + length(A) - (1+3*ncol(A))
                                      ,4135) 
+# Congruency
+congruency <- pbapply::pbsapply(1:length(var_samples), FUN = function(x){
+  return(try(Re(civ_parallel(var_samples[[x]]$A,var_samples[[x]]$Z)$min_factor_congruency)))
+}); gc()
+saveRDS(congruency, file = "Datas/congruency_3vars.RDS"); gc()
+
 
 
   #Plot prior VAR
