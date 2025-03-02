@@ -256,75 +256,6 @@ par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates",format(Sys.time()
  #Plot closest VAR
 par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A, labels = varLabs, layout = "circle");qgraph(input = closest$Z, labels = varLabs, layout = "circle");dev.off();par(mfrow=c(1,1));gc()
 
-# 4. Inference OUTDATED 3.2.2025 -------
-
-# Find the closest indistinguishable model, and compare
-source("Supplementary Appendix R -script civ_find.R")
-indices <- sample(1:nrow(draws_data),size = 1000L, replace = F)
-estimated_var_samples <- draws_data[,c( grep("A", names(draws_data)) , grep("Omega", names(draws_data)) )]; As <- grep("A", names(estimated_var_samples)); Os <- grep("Omega", names(estimated_var_samples)); 
-civ_var_samples <- pbapply::pbsapply(1:length(indices),
-                  FUN = function(i){
-                    # Notes 28.02.2025: Check K!
-                    A_temp <- matrix( unlist(estimated_var_samples[indices[i],As]), ncol = K, nrow = K);
-                    Z_temp <- matrix( unlist(estimated_var_samples[indices[i],Os]), ncol = K, nrow = K);
-                    closest <- civ_find(A_temp,Z_temp); 
-                    A_ <- fastmatrix::vec(closest$A); 
-                    Z_ <- fastmatrix::vec(closest$Z); 
-                    theta_0 <- c(A_,Z_);
-                    return(theta_0)
-                    }, simplify = "matrix"); gc()
-civ_var_samples <- t(civ_var_samples); 
-discrepancy_samples <- estimated_var_samples[indices,] - civ_var_samples 
-# Remove the redundant parameters.
-red_pars <- c();for(j in 2:K){ red_pars <- c(red_pars,paste0("Omega",paste0("[",j:K,","), (j-1):(j-1), "]" )) }
-discrepancy_samples <- discrepancy_samples[ , !(names(discrepancy_samples) %in% red_pars) ]
-mcmc_areas(discrepancy_samples, regex_pars = "A" );Sys.sleep(1);dev.new();mcmc_areas(discrepancy_samples, regex_pars = "Omega" )
-# We'll check (feasibility of) the normality assumption at this point.
-for(i in 1:ncol(discrepancy_samples)) {dev.new();hist(discrepancy_samples[,i])}
-# Covariance is likely to not be invertible... A fix might not produce anything useful...
-
-# First option. We compute the Mahalanobist distances, presuming that the true distribution is around 0.
-D_squared_distribution <- fastmatrix::Mahalanobis(discrepancy_samples, 
-                                                  center = rep(0,times=DF), 
-                                          cov = cov(discrepancy_samples),inverted =F )
-closest <- civ_find(A,Z)
-D_at_mean <- fastmatrix::Mahalanobis(matrix(c(vec(A),vech(Z)) - c(vec(closest$A),vech(closest$Z)),
-                                            nrow = 1), center = rep(0, times = DF), 
-                                     cov = cov(discrepancy_samples),inverted =F )
-
-# Mahalanobis distance based inference might not work since the correct S is unknown.
-# S is not the covariance of the differences, since, as they get small, so does the covariance.
-# -> We scale by S^-1 which leads to large chisquare statistics.
-
-
-# Second option
-# discrepancy_samples_whitened <- fastmatrix::whitening(discrepancy_samples)
-# D_squared_distribution <- rowSums(discrepancy_samples_whitened^2)
-
-  # Approximate the distribution with non-centralized chisquare:
-DF = ncol(discrepancy_samples); N = nrow(Data5b)
-ncp_par_opt <- stats4::mle(minuslogl = function(lambda,DF=DF) {
-  -1*sum( dchisq(D_squared_distribution,DF,ncp = lambda,log = T) )
-  },  start = list("lambda" = mean(D_squared_distribution - DF)),  lower = list("lambda" = 0),  fixed = list("DF" = 12))
-  # Plot central chisq, mle estimate, and method of moments estimate.
-dev.new();ggplot() + geom_line(aes(x = seq(0,quantile(D_squared_distribution,0.90)), y =dchisq(seq(0,quantile(D_squared_distribution,0.90)), 12,ncp_par_opt@coef[1])), col = 1) +
-  geom_line(aes(x = seq(0,quantile(D_squared_distribution,0.90)), y =dchisq(seq(0,quantile(D_squared_distribution,0.90)), 12,0)), col = "darkorange") + 
-  geom_density(aes(D_squared_distribution), col = "purple4") + 
-  geom_line(aes(x = seq(0,quantile(D_squared_distribution,0.90)), y =dchisq(seq(0,quantile(D_squared_distribution,0.90)), 12,mean(D_squared_distribution) - DF)), col = 4) +
-  coord_cartesian(xlim=c(0,100))
-
-# SEM imitations: RMSEA computation.
-# Scenario 1.: Set discrepany = 0 as the null hypothesis, normal theory based inference:
-chisq_stat = mean(D_squared_distribution)
-1-pchisq(q = chisq_stat, df = DF, ncp = c(ncp_par_opt@coef, 0)) # P is large -> we cannot reject our null.
-RMSEA = sqrt( max(c(chisq_stat - DF)) / (DF*(N-1)))
-# Scenario 2.: Set discrepancy > epsilon as the null hypothesis, normal theory based inference:
-# Accept, say, RMSEA < 0.08. Find non-centrality parameter, if RMSEA = 0.08, alpha = 0.05.
-# The computations are provided by Yuan et al., 2016. DF is computed as the differnce between our
-# esimtated VAR(1) model parameters, and the null hypothesis parameter amount...
-sqrt( max( c(chisq_stat - DF, 0) ) / ( DF*(N-1) ) );
-source("Yuan 2016.R"); Yuan_2016(DF,4135) # Suggests good fit.
-
 
   ## Second analysis: More symptoms -----
 
@@ -470,14 +401,31 @@ plotnams <- inference_vars_regex_alpha;pdf(file = paste0("Datas/Bayespots_7VAR_"
 for(i in plotnams){print(  mcmc_trace(draws_data_7, regex_pars = i ));print(  mcmc_areas_ridges(draws_data_7[ , grep(i, names(draws_data_7))]) );
 }; gc(); dev.off()
 
-# Extract posterior means as the VAR parameters:
-A <- matrix( unlist(colMeans(draws_data_7[,grep("A", names(draws_data_7))])), ncol = K, nrow = K);
-Z <- matrix( unlist(colMeans(draws_data_7[,grep("Omega", names(draws_data_7))])), ncol = K, nrow = K)
-source("Supplementary Appendix R -script civ_find.R");closest <- civ_find(A,Z)
-#Plot VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A, labels = varLabs2, layout = "circle");qgraph(input = Z, labels = varLabs2, layout = "circle");dev.off();par(mfrow=c(1,1));gc()
-#Plot closest VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates_7VAR",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A, labels = varLabs2, layout = "circle");qgraph(input = closest$Z, labels = varLabs2, layout = "circle");dev.off();par(mfrow=c(1,1));gc()
-# RMSEA
-civ_find(A,Z, cov.difference = T, N = 4200)
-source("Yuan 2016.R"); Yuan_2016(df = K + 1, N = 4200)
+# Compute RMSEA, distribution
+estimated_var_samples_7 <- draws_data_7[,c( grep("A", names(draws_data_7)) , grep("Omega", names(draws_data_7)) )]; As <- grep("A_", names(estimated_var_samples_7)); Os <- grep("Omega", names(estimated_var_samples_7)); gc()
+var_samples_7 <- pbapply::pblapply(1:nrow(draws_data_7),
+                                 FUN = function(i){
+                                   A_temp <- matrix( unlist(estimated_var_samples_7[i,As]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
+                                   Z_temp <- matrix( unlist(estimated_var_samples_7[i,Os]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
+                                   return(list(A = A_temp, Z = Z_temp))
+                                 }); gc()
+rmseas_7 <- pbapply::pbsapply(var_samples_7, FUN = function(x){
+  res <- try(civ_find(x$A,x$Z, cov.difference = T, N = nrow(Data5b))$RMSEA)
+  if(is.character(res)) {res <- NA; warning("Non-convergence")}
+  return(res) }); gc()
+saveRDS(rmseas_7, file = "Datas/rmseas_7vars.RDS");gc()
+
+props_explained_7 <- pbapply::pbsapply(1:length(var_samples_7), FUN = function(x){
+  return(try(Re(civ_parallel(var_samples_7[[x]]$A,var_samples_7[[x]]$Z)$prop_explained[1])))
+}); gc()
+saveRDS(props_explained_7, file = "Datas/props_explained_7vars.RDS"); gc()
+
+source("Yuan 2016.R"); Yuan_2016(  (2*7*(2*7-1) / 2) - (1+7+14),4135) 
+
+  # Congruency
+congruency_7 <- pbapply::pbsapply(1:length(var_samples_7), FUN = function(x){
+  return(try(Re(civ_parallel(var_samples_7[[x]]$A,var_samples_7[[x]]$Z)$min_factor_congruency)))
+}); gc()
+saveRDS(congruency_7, file = "Datas/congruency_7vars.RDS"); gc()
+
+
