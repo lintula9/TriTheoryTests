@@ -6,12 +6,10 @@
 
 # --------------- 1. Loading packages & Data ------------------------------
 # List of required packages
-setwd("C:/LocalData/lintusak/TriTheoryTests/")
 required_packages <- c(
   "Matrix", "fastmatrix", "expm", "rstan",
   "qgraph", "tidyverse", 
-  "ggplot2", "rstantools", "loo", "bayesplot",
-  "shinystan", "cmdstanr", "posterior" )
+  "ggplot2", "rstantools", "bayesplot", "cmdstanr", "posterior" )
 
 # Function to check and install missing packages
 for (pkg in required_packages) {
