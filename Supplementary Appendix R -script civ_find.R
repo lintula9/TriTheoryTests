@@ -3,6 +3,8 @@
 # Dependencies:
 if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
 if(!require(expm)) install.packages("expm"); library(expm)
+if(!require(pbapply)) install.packages("pbapply"); library(expm)
+
 
 # Helper function, for the (cross-)covariance
 var_ccov <- function(coefmat,innocov,Delta) {
@@ -216,7 +218,66 @@ civ_find <- function(A, Z,
 
 }
 
+RMSEA_approx <- function(A, Z, N = NULL, error_ratios = seq(0.01, 1, length.out = 10), ...) {
+  rmsea_samples <- as.vector(pbapply::pbsapply(error_ratios, 
+                                               FUN = function(x) {
+                                                 rmsea <- try(civ_find(A, Z, error_ratio = x, 
+                                                                       N = N, time_points = 4,
+                                                                       cov.difference = T, ...)$RMSEA,
+                                                              silent = T)
+                                                 
+                                                 return(if(is.character(rmsea)) NA else rmsea)} ))
+  
+  # Fit an exponential regression model
+  exp_fit           <- try(nls(rmsea_samples ~ a * exp(-b * error_ratios), 
+                      start = list(a = max(rmsea_samples, na.rm = TRUE), b = 1),
+                      control = list(warnOnly = TRUE)), silent = TRUE)
+  
+  pred_error_ratios <- seq(0, max(error_ratios), length.out = 30)
+  exp_predicted     <- if (inherits(exp_fit, "try-error")) {
+    rep(NA, length(pred_error_ratios))  # Return NA if fitting fails
+  } else {
+    predict(exp_fit, newdata = list(error_ratios = pred_error_ratios))
+  }
+  
+  # Prepare result as a list
+  result <- list(RMSEA_approximation = exp_predicted[1],
+                 rmsea_samples       = rmsea_samples, 
+                 exp_predicted       = exp_predicted, 
+                 pred_error_ratios   = pred_error_ratios)
+  class(result)                 <- "rmsea_approximation"
+  attr( result, "error_ratios") <- error_ratios
+  
+  return(result)
+}
 
+plot.rmsea_approximation <- function(x, ...) {
+  if (!inherits(x, "rmsea_approximation")) {
+    stop("Input must be of class 'rmsea_approximation'.")
+  }
+  
+  error_ratios <- attr(x, "error_ratios")
+  rmsea_samples <- x$rmsea_samples
+  pred_error_ratios <- x$pred_error_ratios
+  exp_predicted <- x$exp_predicted
+  
+  # Create the plot
+  plot(error_ratios, rmsea_samples,
+       xlab = "Error Ratio", ylab = "RMSEA", 
+       main = "RMSEA vs. Error Ratio",
+       ylim = c(0,max(max(rmsea_samples, na.rm = T), 0.25)),
+       xlim = c(0,max(error_ratios)))
+  
+  # Add LOESS regression line
+  lines(pred_error_ratios, exp_predicted, lty = 2)
+  
+  # Add grid for better readability
+  grid()
+}
+
+rmsea_approximations <-   RMSEA_approx(A = A_2, Z = Z_2, N = 4200)
+
+plot(rmsea_approximations)
 
 ## Not run: test.
 
@@ -281,7 +342,15 @@ if(F){
   Z_2[cbind(2:7, 1:6)] <- 0.2
   
   # The fit is bad.
-  result <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 4)
+  result  <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 4, 
+                     error_ratio = 0.5)
+  result2 <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 4, 
+                      error_ratio = 0.6)
+  result3 <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 4, 
+                      error_ratio = 0.7)
+  
+  # Better approximation to RMSEA:
+  RMSEA_approx(A = A_2, Z = Z_2, N = 4200)
   
   # Proportion explained is not high, and factor congruency (for the first factor) drops quickly suggesting non-invariant loadings.
   civ_parallel(A_2, Z_2)
