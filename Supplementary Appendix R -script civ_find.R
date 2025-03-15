@@ -228,25 +228,23 @@ RMSEA_approx <- function(A, Z, N = NULL, error_ratios = seq(0.01, 1, length.out 
                                                  
                                                  return(if(is.character(rmsea)) NA else rmsea)} ))
   
-  # Fit an exponential regression model
-  exp_fit           <- try(nls(rmsea_samples ~ a * exp(-b * error_ratios), 
-                      start = list(a = max(rmsea_samples, na.rm = TRUE), b = 1),
-                      control = list(warnOnly = TRUE)), silent = TRUE)
+  # Fit a quadratic regression model
+  fit <- try(lm(rmsea_samples ~ error_ratios + I(error_ratios^2) + I(error_ratios^3)), silent = TRUE)
   
   pred_error_ratios <- seq(0, max(error_ratios), length.out = 30)
-  exp_predicted     <- if (inherits(exp_fit, "try-error")) {
+  predicted <- if (inherits(fit, "try-error")) {
     rep(NA, length(pred_error_ratios))  # Return NA if fitting fails
   } else {
-    predict(exp_fit, newdata = list(error_ratios = pred_error_ratios))
+    predict(fit, newdata = data.frame(error_ratios = pred_error_ratios))
   }
   
   # Prepare result as a list
-  result <- list(RMSEA_approximation = exp_predicted[1],
-                 rmsea_samples       = rmsea_samples, 
-                 exp_predicted       = exp_predicted, 
-                 pred_error_ratios   = pred_error_ratios)
-  class(result)                 <- "rmsea_approximation"
-  attr( result, "error_ratios") <- error_ratios
+  result <- list(RMSEA_approximation = predicted[1],
+                 rmsea_samples = rmsea_samples, 
+                 predicted = predicted, 
+                 pred_error_ratios = pred_error_ratios)
+  class(result) <- "rmsea_approximation"
+  attr(result, "error_ratios") <- error_ratios
   
   return(result)
 }
@@ -259,21 +257,27 @@ plot.rmsea_approximation <- function(x, ...) {
   error_ratios <- attr(x, "error_ratios")
   rmsea_samples <- x$rmsea_samples
   pred_error_ratios <- x$pred_error_ratios
-  exp_predicted <- x$exp_predicted
+  predicted <- x$predicted
   
   # Create the plot
   plot(error_ratios, rmsea_samples,
        xlab = "Error Ratio", ylab = "RMSEA", 
        main = "RMSEA vs. Error Ratio",
-       ylim = c(0,max(max(rmsea_samples, na.rm = T), 0.25)),
-       xlim = c(0,max(error_ratios)))
+       ylim = c(0, max(max(rmsea_samples, na.rm = TRUE), 0.25)),
+       xlim = c(0, max(error_ratios)),
+       pch = 19)
   
-  # Add LOESS regression line
-  lines(pred_error_ratios, exp_predicted, lty = 2)
+  # Add quadratic regression line
+  lines(pred_error_ratios, predicted, lty = 2)
+  
+  # Add RMSEA approximation text
+  text(0.2, max(max(rmsea_samples, na.rm = TRUE), 0.25) - 0.01, 
+       bquote(RMSEA %~~% .(round(predicted[1], 3))))
   
   # Add grid for better readability
   grid()
 }
+
 
 rmsea_approximations <-   RMSEA_approx(A = A_2, Z = Z_2, N = 4200)
 
