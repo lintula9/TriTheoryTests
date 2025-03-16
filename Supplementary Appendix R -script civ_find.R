@@ -189,6 +189,9 @@ civ_find <- function(A, Z,
     statistic = (N-1) * F_ML$value
 
     # Compute degree of freedom
+    
+    # NOTES 16.03.2025: This should be changed, 
+    # since we now are computing the approximation to RMSEA as errors go to 0.
     DF    = (time_points * K * (time_points * K + 1) / 2) - length(F_ML$par)
     
     # Compute RMSEA
@@ -240,9 +243,9 @@ RMSEA_approx <- function(A, Z, N = NULL, error_ratios = seq(0.01, 1, length.out 
   
   # Prepare result as a list
   result <- list(RMSEA_approximation = predicted[1],
-                 rmsea_samples = rmsea_samples, 
-                 predicted = predicted, 
-                 pred_error_ratios = pred_error_ratios)
+                 rmsea_samples       = rmsea_samples, 
+                 predicted           = predicted, 
+                 pred_error_ratios   = pred_error_ratios)
   class(result) <- "rmsea_approximation"
   attr(result, "error_ratios") <- error_ratios
   
