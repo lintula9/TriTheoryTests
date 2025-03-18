@@ -188,11 +188,8 @@ civ_find <- function(A, Z,
     # Return T statistic, which is distributed ~ Chisq_DF(F_ML - DF)
     statistic = (N-1) * F_ML$value
 
-    # Compute degree of freedom
-    
-    # NOTES 16.03.2025: This should be changed, 
-    # since we now are computing the approximation to RMSEA as errors go to 0.
-    DF    = (time_points * K * (time_points * K + 1) / 2) - length(F_ML$par)
+    # Compute degrees of freedom
+    DF    = K*K + length(fastmatrix::vech(Z)) - (K + 1)
     
     # Compute RMSEA
     RMSEA = sqrt( max(0, statistic - DF) / (DF*(N-1)) )
@@ -220,26 +217,31 @@ civ_find <- function(A, Z,
   }
 
 }
-
-RMSEA_approx <- function(A, Z, N = NULL, error_ratios = seq(0.01, 1, length.out = 10), ...) {
-  rmsea_samples <- as.vector(pbapply::pbsapply(error_ratios, 
-                                               FUN = function(x) {
-                                                 rmsea <- try(civ_find(A, Z, error_ratio = x, 
-                                                                       N = N, time_points = 4,
-                                                                       cov.difference = T, ...)$RMSEA,
-                                                              silent = T)
-                                                 
-                                                 return(if(is.character(rmsea)) NA else rmsea)} ))
+## 18.03.2025: Reset.......
+RMSEA_approx <- function(A, Z, N = NULL, error_ratios = seq(0.01, 1, length.out = 10), max_time_points = 5, ...) {
+  if(max_time_points < 3) simpleError("max_time_points must be larger than 2.")
+  rmsea_samples <- matrix(pbapply::pbsapply(2:max_time_points, 
+                                               FUN = function(t) {
+                                                 pbapply::pbsapply(error_ratios, 
+                                                   FUN = function(x) {
+                                                     rmsea <- try(civ_find(A, Z, error_ratio = x, 
+                                                                           N = N, time_points = t,
+                                                                           cov.difference = T, ...)$RMSEA,
+                                                                  silent = T)
+                                                     return(if(is.character(rmsea)) NA else rmsea)} )}),
+                             ncol = max_time_points - 2 + 1 )
   
   # Fit a quadratic regression model
-  fit <- try(lm(rmsea_samples ~ error_ratios + I(error_ratios^2) + I(error_ratios^3)), silent = TRUE)
+  fit <- pbapply::pblapply(1:ncol(rmsea_samples), FUN = function(col) {
+    try(lm(rmsea_samples[ , col , drop = T] ~ error_ratios + I(error_ratios^2) + I(error_ratios^3)), silent = TRUE)
+  })
   
   pred_error_ratios <- seq(0, max(error_ratios), length.out = 30)
-  predicted <- if (inherits(fit, "try-error")) {
-    rep(NA, length(pred_error_ratios))  # Return NA if fitting fails
-  } else {
-    predict(fit, newdata = data.frame(error_ratios = pred_error_ratios))
-  }
+  predicted <- pbapply::pbsapply(1:length(fit),
+                    function(i) {
+    predicted <- if (inherits(fit[[i]], "try-error")) {rep(NA, length(pred_error_ratios))  # Return NA if fitting fails
+    } else {predict(fit[[i]], newdata = data.frame(error_ratios = pred_error_ratios))}}
+  )
   
   # Prepare result as a list
   result <- list(RMSEA_approximation = predicted[1],
@@ -278,27 +280,8 @@ plot.rmsea_approximation <- function(x, ...) {
        bquote(RMSEA %~~% .(round(predicted[1], 3))))
   
   # Add grid for better readability
-  grid()
-}
-
-
-rmsea_approximations <-   RMSEA_approx(A = A_2, Z = Z_2, N = 4200)
-
-plot(rmsea_approximations)
-
-## Not run: test.
-
-if(F){
-# Additional function to check how much additional time points increase RMSEA.
-
-RMSEA_check <- function(A,Z,N,max_time_points){
-  RMSEAs <- c()
-  for( i in 2:max_time_points){
-    RMSEAs[i] <- civ_find(A, Z, N, cov.difference = T, 
-                          random.init = T, time_points = i)$RMSEA}
-  return(RMSEAs)
-}}
-
+  grid() 
+  }
 
 # CIV parallel --------------
 
@@ -351,13 +334,17 @@ if(F){
   # The fit is bad.
   result  <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 4, 
                      error_ratio = 0.5)
-  result2 <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 4, 
-                      error_ratio = 0.6)
-  result3 <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 4, 
-                      error_ratio = 0.7)
+  result2 <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 5, 
+                      error_ratio = 0.5)
+  result3 <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 6, 
+                      error_ratio = 0.5)
+  civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 7, 
+           error_ratio = 0.5)$RMSEA
   
   # Better approximation to RMSEA:
-  RMSEA_approx(A = A_2, Z = Z_2, N = 4200)
+  rmsea_approximations <-   RMSEA_approx(A = A_2, Z = Z_2, N = 4200)
+  
+  plot(rmsea_approximations)S
   
   # Proportion explained is not high, and factor congruency (for the first factor) drops quickly suggesting non-invariant loadings.
   civ_parallel(A_2, Z_2)
