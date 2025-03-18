@@ -1,3 +1,12 @@
+# Readme: 
+
+
+# Run the whole script, then civ_find takes the coefficient matrix,
+# innovation covariance as arguments. If you want to compute RMSEA, you also
+# need to give sample size N and specify cov.difference = T (default). In this case, we need
+# diagonal errors to be allowed - otherwise the maximum likelihood criterion is
+# not solvable (because the implied covariance will be (in practice nearly) low rank).
+
 
 # Helper functions -------------
 # Dependencies:
@@ -51,11 +60,6 @@ var_ccov_Mblock <- function(A, Z, M) {
 
 # Closest VAR(1) model - indistinguishable from a dynamic common factor model. 
 
-# Run the whole script, then civ_find takes the coefficient matrix,
-# innovation covariance as arguments. If you want to compute RMSEA, you also
-# need to give sample size N and specify cov.difference = T. In this case, we need
-# diagonal errors to be allowed - otherwise the maximum likelihood criterion is
-# not solvable (because the implied covariance will be (in practice nearly) low rank).
 
 
 civ_find <- function(A, Z, 
@@ -67,7 +71,7 @@ civ_find <- function(A, Z,
                      N = NULL,
                      error_ratio = 0.5) {
   
-  if(time_points < 2) simpleError("time_points must be 2 or larger.")
+  {if(time_points < 2) simpleError("time_points must be 2 or larger.")
 
   K <- ncol(A)
   if(!random.init){
@@ -130,9 +134,10 @@ civ_find <- function(A, Z,
     ))}
   
   
+  }
   
   if(cov.difference) {
-    # Population 2 times 2 block covariance matrix. (2K times 2K.)
+    # Population covariance.
     S  <- var_ccov_Mblock(A,Z,time_points)
     
     if(any(eigen(S)$values  < 1e-7)) {
@@ -217,31 +222,25 @@ civ_find <- function(A, Z,
   }
 
 }
-## 18.03.2025: Reset.......
-RMSEA_approx <- function(A, Z, N = NULL, error_ratios = seq(0.01, 1, length.out = 10), max_time_points = 5, ...) {
-  if(max_time_points < 3) simpleError("max_time_points must be larger than 2.")
-  rmsea_samples <- matrix(pbapply::pbsapply(2:max_time_points, 
-                                               FUN = function(t) {
-                                                 pbapply::pbsapply(error_ratios, 
+
+# RMSEA approximation for two subsequent time points.
+RMSEA_approx <- function(A, Z, N = NULL, error_ratios = seq(0.01, 1, length.out = 10), ...) {
+
+  rmsea_samples <- as.vector(pbapply::pbsapply(error_ratios, 
                                                    FUN = function(x) {
                                                      rmsea <- try(civ_find(A, Z, error_ratio = x, 
-                                                                           N = N, time_points = t,
+                                                                           N = N, time_points = 2,
                                                                            cov.difference = T, ...)$RMSEA,
                                                                   silent = T)
-                                                     return(if(is.character(rmsea)) NA else rmsea)} )}),
-                             ncol = max_time_points - 2 + 1 )
+                                                     return(if(is.character(rmsea)) NA else rmsea)}))
   
   # Fit a quadratic regression model
-  fit <- pbapply::pblapply(1:ncol(rmsea_samples), FUN = function(col) {
-    try(lm(rmsea_samples[ , col , drop = T] ~ error_ratios + I(error_ratios^2) + I(error_ratios^3)), silent = TRUE)
-  })
+  fit <- try(lm(rmsea_samples ~ error_ratios + I(error_ratios^2) + I(error_ratios^3)), silent = TRUE)
   
   pred_error_ratios <- seq(0, max(error_ratios), length.out = 30)
-  predicted <- pbapply::pbsapply(1:length(fit),
-                    function(i) {
-    predicted <- if (inherits(fit[[i]], "try-error")) {rep(NA, length(pred_error_ratios))  # Return NA if fitting fails
-    } else {predict(fit[[i]], newdata = data.frame(error_ratios = pred_error_ratios))}}
-  )
+  predicted <- if (inherits(fit, "try-error")) {rep(NA, length(pred_error_ratios))  # Return NA if fitting fails
+    } else {predict(fit, newdata = data.frame(error_ratios = pred_error_ratios))}
+  
   
   # Prepare result as a list
   result <- list(RMSEA_approximation = predicted[1],
@@ -252,17 +251,17 @@ RMSEA_approx <- function(A, Z, N = NULL, error_ratios = seq(0.01, 1, length.out 
   attr(result, "error_ratios") <- error_ratios
   
   return(result)
-}
+  }
 
 plot.rmsea_approximation <- function(x, ...) {
   if (!inherits(x, "rmsea_approximation")) {
     stop("Input must be of class 'rmsea_approximation'.")
   }
   
-  error_ratios <- attr(x, "error_ratios")
+  error_ratios  <- attr(x, "error_ratios")
   rmsea_samples <- x$rmsea_samples
   pred_error_ratios <- x$pred_error_ratios
-  predicted <- x$predicted
+  predicted     <- x$predicted
   
   # Create the plot
   plot(error_ratios, rmsea_samples,
@@ -325,26 +324,22 @@ if(F){
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2
   ), nrow = 7, byrow = TRUE)
   
-  
   # Identity on the diagonal; 0.2 for first off-diagonals
   Z_2 <- diag(7)
   Z_2[cbind(1:6, 2:7)] <- 0.2
   Z_2[cbind(2:7, 1:6)] <- 0.2
   
+  # Predicted covariance
+  var_ccov_Mblock(A_2, Z_2, M = 2)
+  
   # The fit is bad.
-  result  <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 4, 
+  result  <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 2, 
                      error_ratio = 0.5)
-  result2 <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 5, 
-                      error_ratio = 0.5)
-  result3 <- civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 6, 
-                      error_ratio = 0.5)
-  civ_find(A_2, Z_2, N = 4200, cov.difference = T, random.init = T, time_points = 7, 
-           error_ratio = 0.5)$RMSEA
   
   # Better approximation to RMSEA:
   rmsea_approximations <-   RMSEA_approx(A = A_2, Z = Z_2, N = 4200)
   
-  plot(rmsea_approximations)S
+  plot(rmsea_approximations)
   
   # Proportion explained is not high, and factor congruency (for the first factor) drops quickly suggesting non-invariant loadings.
   civ_parallel(A_2, Z_2)
