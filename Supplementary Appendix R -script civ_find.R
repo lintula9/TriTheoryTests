@@ -330,17 +330,27 @@ civ_parallel <- function(A,Z,time_points = 10) {
     sapply(1:(time_points+1), function(i) abs(sum(comp[[i]]$vectors[,1]*comp[[j]]$vectors[,1])) )}, simplify = "matrix")
   
   prop_explained             = all_sum / total_sum
-  if(any(Im(prop_explained) != 0)) warning("Imaginary proportion explained found, 
-  likely due to the covariances being (close) to low rank. Use lower time_points.")
-
-  return(
-    list(
-      prop_explained                = prop_explained,
-      min_factor_congruency         = min(cosine_i),
-      all_factor_congruencies       = cosine_i
-      )
+  if(any(Im(prop_explained) != 0)) warning("Imaginary proportion explained found. 
+  This means some of the cross-covariances are (due to numerical instability, or correctly so) 
+                                           not covariance matrices. Use lower time_points to obtain an approximation.")
+  eigenvals <- sapply(0:5, function(t) eigen(var_ccov(A,Z,t))$values)
+  
+  result <- list(
+    eigenvals                     = eigenvals,
+    prop_explained                = prop_explained,
+    min_factor_congruency         = min(cosine_i),
+    all_factor_congruencies       = cosine_i)
+  class(result) <- c("civ_parallel", "list")
+  
+  return(result)
     
-  ) }
+   }
+
+plot.civ_parallel <- function(x,...) {
+  answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies.")
+  if(answer == 1)  matplot(x$eigenvals, type = "b", ylab = "Eigenvalue"); grid()
+  if(answer == 2)  matplot(x$all_factor_congruencies[,1],  ylim = c(0.5,1) type = "b", ylab = "Congruency coefficient"); grid()
+}
 
 
 # Numerical examples -------------------------------
@@ -395,13 +405,31 @@ if(F){
   civ_parallel(A_3,Z_3)$prop_explained[1]
   plot(
     # To approximate, we only use real parts of the eigenvalues with 'Re'.
-    Re(civ_parallel(A_3,Z_3)$prop_explained), ylab = "proportion explained"); grid()
+    Re( civ_parallel(A_3,Z_3)$prop_explained), ylab = "proportion explained"); grid()
   
     # Also factor loading congruency is stable at > 0.95, suggesting invariant loadings (if a factor was present).
   plot( civ_parallel(A_3,Z_3)$all_factor_congruencies[,1] , ylim = c(0.5,1)); grid()
   
     # The RMSEA cannot be computed, since 
   rmsea_approximations_2 <- RMSEA_approx(A = A_3, Z = Z_3, N = 4200) 
-
-
+  
+  # Summary:
+    # Figure shown in main text:
+  tiff(filename = "Figure_3.tiff", width = 12, height = 6, units = "in", res = 480)
+  par(mfrow = c(2,2))
+  par(mar = c(2,2,2,2))
+  if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
+  matplot(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values), type = "b", ylab = "Eigenvalue", main = "Cross-covariance not explained well by the first component alone.",
+          col = cividis(6) ); grid()
+  matplot(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values), type = "b", ylab = "Eigenvalue", main = "Cross-covariance nearly perfectly explained by the first component.",
+          col = cividis(6)); grid()
+  
+  plot( civ_parallel(A_2, Z_2, time_points = 7)$all_factor_congruencies[,1], ylab = "Congruency coefficient", ylim = c(0,1), main = "Unstable factor loadings"); grid()
+  plot( civ_parallel(A_3,Z_3)$all_factor_congruencies[,1] , ylab = "Congruency coefficient", ylim = c(0,1), main = "Stable factor loadings"); grid()
+  
+    # NOTES 19.03.2025 add congruency plots for both below.
+  
+  dev.off(); par(mfrow=c(1,1));gc()
+    # NOTES 19.03.2025 add second figure of how RMSEA is approximated.
+  
   }

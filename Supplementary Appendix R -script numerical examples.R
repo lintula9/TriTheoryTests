@@ -1,8 +1,8 @@
 # Supplementary Appendix: R -script, Part 1.
 # Sakari Lintula, sakari.lintula@helsinki.fi
+# This R script includes all numerical computations, up to using the methods, which are not included.
 
 # Notes:
-# This part includes all else, except for the empiric example.
 # (1) Numerical instabilities are inevitable in these computations. Package 'Matrix' alleviate the problem to some extent.
 # Rounding is still necessary to obtain correct results in many cases.
 # (2) Object names mostly follows main text.
