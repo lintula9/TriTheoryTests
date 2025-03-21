@@ -349,7 +349,7 @@ civ_parallel <- function(A,Z,time_points = 10) {
 plot.civ_parallel <- function(x,...) {
   answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies.")
   if(answer == 1)  matplot(x$eigenvals, type = "b", ylab = "Eigenvalue"); grid()
-  if(answer == 2)  matplot(x$all_factor_congruencies[,1],  ylim = c(0.5,1) type = "b", ylab = "Congruency coefficient"); grid()
+  if(answer == 2)  matplot(x$all_factor_congruencies[,1],  ylim = c(0.5,1), type = "b", ylab = "Congruency coefficient"); grid()
 }
 
 
@@ -360,17 +360,17 @@ if(F){
   # When the fit is bad:
     # Create a VAR(1) model.
   A_2 <- matrix(c(
-    0.5, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.4, 0.1, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.4, 0.1, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.5, 0.1, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.3, 0.1, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.1,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2
+    0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.6, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1
   ), nrow = 7, byrow = TRUE)
   Z_2 <- diag(7)
-  Z_2[cbind(1:6, 2:7)] <- 0.2
-  Z_2[cbind(2:7, 1:6)] <- 0.2
+  # Z_2[cbind(1:6, 2:7)] <- 0.2
+  # Z_2[cbind(2:7, 1:6)] <- 0.2
   
     # Predicted covariance, up to one time point increment.
   var_ccov_Mblock(A_2, Z_2, M = 2)
@@ -392,8 +392,8 @@ if(F){
     # Create a VAR(1) model.
   set.seed(123)
   lambdas <- tcrossprod(rep(0.4, times = 7) + rnorm(7, sd = 0.1 ))
-  A_3 <- (0.5 *     lambdas ) + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
-  Z_3 <- tcrossprod(lambdas)  + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
+  A_3 <- (0.5 *     lambdas ) # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
+  Z_3 <- tcrossprod(lambdas)  # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
   
     # Predicted covariance, up to one time point increment.
   var_ccov_Mblock(A_3, Z_3, M = 2)
@@ -417,15 +417,24 @@ if(F){
     # Figure shown in main text:
   tiff(filename = "Figure_3.tiff", width = 12, height = 6, units = "in", res = 480)
   par(mfrow = c(2,2))
-  par(mar = c(2,2,2,2))
+  par(mar = c(4,4,2,2))
   if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
-  matplot(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values), type = "b", ylab = "Eigenvalue", main = "Cross-covariance not explained well by the first component alone.",
+  matplot(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values), type = "b", ylab = "Eigenvalue", 
+          main = "Distinguishable Cross-covariance",
           col = cividis(6) ); grid()
-  matplot(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values), type = "b", ylab = "Eigenvalue", main = "Cross-covariance nearly perfectly explained by the first component.",
+  matplot(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values), type = "b", 
+          ylab = "",
+          main = "Indistinguishable Cross-covariance",
           col = cividis(6)); grid()
   
-  plot( civ_parallel(A_2, Z_2, time_points = 7)$all_factor_congruencies[,1], ylab = "Congruency coefficient", ylim = c(0,1), main = "Unstable factor loadings"); grid()
-  plot( civ_parallel(A_3,Z_3)$all_factor_congruencies[,1] , ylab = "Congruency coefficient", ylim = c(0,1), main = "Stable factor loadings"); grid()
+  plot( civ_parallel(A_2, Z_2, time_points = 7)$all_factor_congruencies[,1],
+        xlab = expression(paste("Increment in time ", Delta, "T")),
+        ylab = "Congruency coefficient", ylim = c(0,1), main = "Unstable factor loadings",
+        ); grid()
+  plot( civ_parallel(A_3,Z_3)$all_factor_congruencies[,1] , 
+        ylab = "",
+        xlab = expression(paste("Increment in time ", Delta, "T")),
+        ylim = c(0,1), main = "Stable factor loadings"); grid()
   
     # NOTES 19.03.2025 add congruency plots for both below.
   
