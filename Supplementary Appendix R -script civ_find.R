@@ -360,13 +360,13 @@ if(F){
   # When the fit is bad:
     # Create a VAR(1) model.
   A_2 <- matrix(c(
-    0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.6, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1
+   0.7, -sin(20*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
+   sin(20*pi/180), 0.6, 0.0, 0.0, 0.0, 0.0, 0.0,
+   0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0,
+   0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0,
+   0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0,
+   0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.0,
+   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1
   ), nrow = 7, byrow = TRUE)
   Z_2 <- diag(7)
   # Z_2[cbind(1:6, 2:7)] <- 0.2
@@ -419,24 +419,26 @@ if(F){
   par(mfrow = c(2,2))
   par(mar = c(4,4,2,2))
   if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
-  matplot(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values), type = "b", ylab = "Eigenvalue", 
+  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values)), type = "b", ylab = "Eigenvalue", 
           main = "Distinguishable Cross-covariance",
           col = cividis(6) ); grid()
-  matplot(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values), type = "b", 
+  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values)), type = "b", 
           ylab = "",
-          main = "Indistinguishable Cross-covariance",
+          main = "Perfectly indistinguishable Cross-covariance",
           col = cividis(6)); grid()
   
-  plot( civ_parallel(A_2, Z_2, time_points = 7)$all_factor_congruencies[,1],
+  matplot( civ_parallel(A_2, Z_2, time_points = 7)$all_factor_congruencies,
         xlab = expression(paste("Increment in time ", Delta, "T")),
         ylab = "Congruency coefficient", ylim = c(0,1), main = "Unstable factor loadings",
+        type = "b",
+        col = cividis(6)
         ); grid()
-  plot( civ_parallel(A_3,Z_3)$all_factor_congruencies[,1] , 
+  matplot( civ_parallel(A_3,Z_3)$all_factor_congruencies , 
         ylab = "",
+        type = "b",
         xlab = expression(paste("Increment in time ", Delta, "T")),
-        ylim = c(0,1), main = "Stable factor loadings"); grid()
-  
-    # NOTES 19.03.2025 add congruency plots for both below.
+        ylim = c(0,1), main = "Perfectly stable factor loadings",
+        col = cividis(6)); grid()
   
   dev.off(); par(mfrow=c(1,1));gc()
     # NOTES 19.03.2025 add second figure of how RMSEA is approximated.
