@@ -427,13 +427,13 @@ if(F){
           main = "Perfectly indistinguishable Cross-covariance",
           col = cividis(6)); grid()
   
-  matplot( civ_parallel(A_2, Z_2, time_points = 7)$all_factor_congruencies,
+  matplot( civ_parallel(A_2, Z_2)$all_factor_congruencies[,1],
         xlab = expression(paste("Increment in time ", Delta, "T")),
         ylab = "Congruency coefficient", ylim = c(0,1), main = "Unstable factor loadings",
         type = "b",
         col = cividis(6)
         ); grid()
-  matplot( civ_parallel(A_3,Z_3)$all_factor_congruencies , 
+  matplot( civ_parallel(A_3,Z_3)$all_factor_congruencies[,1] , 
         ylab = "",
         type = "b",
         xlab = expression(paste("Increment in time ", Delta, "T")),
