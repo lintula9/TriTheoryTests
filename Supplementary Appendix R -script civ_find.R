@@ -358,16 +358,19 @@ plot.civ_parallel <- function(x,...) {
 if(F){
   
   # When the fit is bad:
-    # Create a VAR(1) model.
-  A_2 <- matrix(c(
-   0.7, -sin(20*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
-   sin(20*pi/180), 0.6, 0.0, 0.0, 0.0, 0.0, 0.0,
-   0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0,
-   0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0,
-   0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0,
-   0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.0,
-   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1
-  ), nrow = 7, byrow = TRUE)
+    # Create a VAR(1) model, which rotates and scales.
+    # Rotation violates indistinguishability.
+  Rotation <- matrix(c(
+   cos(90*pi/180), -sin(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
+    sin(90*pi/180), cos(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0), 
+     nrow = 7, byrow = T)
+  Scaling <- diag(seq(0.7,0.4,length.out = 7))
+  A_2 <- Rotation %*% Scaling
   Z_2 <- diag(7)
   # Z_2[cbind(1:6, 2:7)] <- 0.2
   # Z_2[cbind(2:7, 1:6)] <- 0.2
@@ -419,26 +422,43 @@ if(F){
   par(mfrow = c(2,2))
   par(mar = c(4,4,2,2))
   if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
-  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values)), type = "b", ylab = "Eigenvalue", 
+  
+  #A
+  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values)), type = "n", 
+          ylab = "Eigenvalue", 
           main = "Distinguishable Cross-covariance",
-          col = cividis(6) ); grid()
-  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values)), type = "b", 
+          col = cividis(6)); grid()
+  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values)), type = "b",
+          col = cividis(6), add = T )
+  
+  #B
+  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values)), type = "n", 
           ylab = "",
           main = "Perfectly indistinguishable Cross-covariance",
-          col = cividis(6)); grid()
+          col  = cividis(6)); grid()
+  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values)), type = "b", 
+          col  = cividis(6),
+          add = T)
   
-  matplot( civ_parallel(A_2, Z_2)$all_factor_congruencies[,1],
-        xlab = expression(paste("Increment in time ", Delta, "T")),
-        ylab = "Congruency coefficient", ylim = c(0,1), main = "Unstable factor loadings",
-        type = "b",
-        col = cividis(6)
-        ); grid()
-  matplot( civ_parallel(A_3,Z_3)$all_factor_congruencies[,1] , 
-        ylab = "",
-        type = "b",
-        xlab = expression(paste("Increment in time ", Delta, "T")),
-        ylim = c(0,1), main = "Perfectly stable factor loadings",
-        col = cividis(6)); grid()
+  #C
+  matplot( civ_parallel(A_2, Z_2, time_points = 6)$all_factor_congruencies[,1], type = "n",
+          ylab = "Congruency coefficient", xlab = expression(paste("Increment in time ", Delta, "T")),
+          ylim = c(0,1), main = "Unstable factor loadings"); grid()
+  matplot( civ_parallel(A_2, Z_2, time_points = 6)$all_factor_congruencies[,1],
+        type = "b", col = cividis(6), add = T
+        )
+  
+  #D
+  matplot( civ_parallel(A_3,Z_3, time_points = 6)$all_factor_congruencies[,1] , 
+           ylab = "",
+           type = "n",
+           xlab = expression(paste("Increment in time ", Delta, "T")),
+           ylim = c(0,1), main = "Perfectly stable factor loadings",
+           col = cividis(6)); grid()
+  matplot( civ_parallel(A_3,Z_3, time_points = 6)$all_factor_congruencies[,1],
+           type = "b",
+           add = T,
+           col = cividis(6))
   
   dev.off(); par(mfrow=c(1,1));gc()
     # NOTES 19.03.2025 add second figure of how RMSEA is approximated.
