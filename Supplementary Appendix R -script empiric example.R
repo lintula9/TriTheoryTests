@@ -209,7 +209,7 @@ fit_Net$save_output_files("/LocalData/lintusak/TriTheoryTests/Datas/", basename 
 
 # Read data
 if(F){
-fit_Net <- as_cmdstan_fit(files = paste0("Datas/3VAR_CF_relaxedpriors-202502031854-",1:nchains,".csv") ); gc()
+fit_Net    <- as_cmdstan_fit(files = paste0("Datas/3VAR_CF_relaxedpriors-202502031854-",1:nchains,".csv") ); gc()
 draws_data <- as_draws_df(fit_Net$draws(variables = c(inference_vars_regex_alpha) ), .nhcains = nchains ); gc(); rm(fit_Net); gc()
 }
 # Diagnostics and posterior distribution marignal plots. 
@@ -218,30 +218,80 @@ for(i in plotnams){print(  mcmc_trace(draws_data, regex_pars = i ));print(  mcmc
   }; gc(); dev.off()
 
 # Extract posterior means as the VAR parameters:
-A <- matrix( unlist(colMeans(draws_data[,grep("A", names(draws_data))])), ncol = K, nrow = K);
+A <- matrix( unlist(colMeans(draws_data[,grep("A", names(draws_data))])),     ncol = K, nrow = K);
 Z <- matrix( unlist(colMeans(draws_data[,grep("Omega", names(draws_data))])), ncol = K, nrow = K)
-source("Supplementary Appendix R -script civ_find.R");
-# Compute RMSEA, for the mean
-civ_find(A, Z, cov.difference = T)
-civ_parallel(A, Z)
-# Compute RMSEA, distribution
+# Obtain complete VAR(1) model samples:
 estimated_var_samples <- draws_data[,c( grep("A", names(draws_data)) , grep("Omega", names(draws_data)) )]; As <- grep("A_", names(estimated_var_samples)); Os <- grep("Omega", names(estimated_var_samples)); 
 var_samples <- pbapply::pblapply(1:nrow(draws_data),
-                                     FUN = function(i){
-                                       A_temp <- matrix( unlist(estimated_var_samples[i,As]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
-                                       Z_temp <- matrix( unlist(estimated_var_samples[i,Os]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
-                                       
-                                       return(list(A = A_temp, Z = Z_temp))
-                                     }); gc()
+                                 FUN = function(i){
+                                   A_temp <- matrix( unlist(estimated_var_samples[i,As]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
+                                   Z_temp <- matrix( unlist(estimated_var_samples[i,Os]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
+                                   return(list(A = A_temp, Z = Z_temp))
+                                 }); gc()
+# Source the methods.
+source("Supplementary Appendix R -script civ_find.R")
+
+# Figure 4 in main text ----
+  # Compute parallel analysis imitation and RMSEA, for the posterior mean.
+result_parallel <- civ_parallel(A, Z)
+if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
+if(!requireNamespace("tidyverse")) install.packages("tidyverse") else library(tidyverse)
+if(!requireNamespace("dplyr")) install.packages("dplyr") else library(dplyr)
+
+  # Compute credible intervals for eigenvalues, congruencies.
+eigen_congurency <- pbapply::pblapply(var_samples, FUN = function(x){
+              res  <- try(civ_parallel(x$A,x$Z))
+            eigens <- t(res$eigenvals)
+      congruencies <- res$all_factor_congruencies[1:6,1]
+    return(list(eigens = eigens, congruencies = congruencies)) }); gc()
+eigen_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function(x) cbind( x$eigens, 1:6 ) ))))
+
+upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.975))) ))
+lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
+
+tiff(filename = "Figure_4.tiff", width = 6, 
+     height   = 6, units = "in", res = 480)
+par(mfrow     = c(2,1) )
+par(mar       = c(4,4,2,2) )
+matplot(t(result_parallel$eigenvals), type = "n",
+        ylab = "Eigenvalues", 
+        xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
+for( i in 2:ncol(upper)) {
+  polygon(x = c(upper[,1], rev(lower[,1])), y = c(upper[,i], rev(lower[,i])),
+          col = adjustcolor(cividis(i-1), alpha.f = 0.3))
+}
+matplot(t(result_parallel$eigenvals), type = "b",
+        col  = cividis(6), add = T)
+
+cong_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function(x) cbind( x$congruencies, 1:6 ) ))))
+upper_c  <- as.matrix(cong_dat %>% group_by(X2) %>% 
+                        reframe( quantile(X1, 0.975) ))
+lower_c  <- as.matrix(cong_dat %>% group_by(X2) %>% 
+                        reframe( quantile(X1, 0.025) ))
+
+matplot(result_parallel$all_factor_congruencies[1:6,1], type = "n",
+        ylim = c(0,1),
+        ylab = "Congruency coefficient", 
+        xlab = "Cross-covariance pair",
+        xaxt = "n"); grid()
+ # NOTE: this is omitted since it only brings clutter. polygon(x = c(upper_c[,1], rev(upper_c[,1])), y=c(upper_c[,2], rev(lower_c[,2])) )
+axis(1, labels = paste0("(", 0:5,", ", 1:6,")"),
+     at = 1:6)
+matplot(result_parallel$all_factor_congruencies[,1], type = "b",
+        col = cividis(6), add = T)
+
+
+dev.off();gc();par(mfrow = c(1,1))
+
+# Compute RMSEA, distribution
+  # mean
+plot(RMSEA_approx(A,Z,error_ratios = seq(0.001,0.1, length.out = 20),N = nrow(Data5b)))
+
 rmseas <- pbapply::pbsapply(var_samples, FUN = function(x){
-  res <- try(civ_find(x$A,x$Z, cov.difference = T, N = nrow(Data5b))$RMSEA)
+  res <- try(RMSEA_approx(x$A,x$Z, N = nrow(Data5b))$RMSEA_approximation)
   if(is.character(res)) {res <- NA; warning("Non-convergence")}
   return(res) }); gc()
 saveRDS(rmseas, file = "Datas/rmseas_3vars.RDS");gc()
-
-props_explained <- pbapply::pbsapply(sample(1:length(var_samples), size = 1000, replace = F), FUN = function(x){
-  return(try(Re(civ_parallel(var_samples[[x]]$A,var_samples[[x]]$Z)$prop_explained[1])))
-})
 
 source("Yuan 2016.R"); Yuan_2016(  length(fastmatrix::vech(Z)) + length(A) - (1+3*ncol(A))
                                      ,4135) 
@@ -250,16 +300,6 @@ congruency <- pbapply::pbsapply(1:length(var_samples), FUN = function(x){
   return(try(Re(civ_parallel(var_samples[[x]]$A,var_samples[[x]]$Z)$min_factor_congruency)))
 }); gc()
 saveRDS(congruency, file = "Datas/congruency_3vars.RDS"); gc()
-
-
-
-  #Plot prior VAR
-
-  #Plot VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = A, labels = varLabs, layout = "circle");qgraph(input = Z, labels = varLabs, layout = "circle");dev.off();par(mfrow=c(1,1));gc()
- #Plot closest VAR
-par(mfrow=c(1,2)); pdf(file = paste0("Datas/Bayes_closest_AZestimates",format(Sys.time(), "%Y-%m-%d"), ".pdf"));qgraph(input = closest$A, labels = varLabs, layout = "circle");qgraph(input = closest$Z, labels = varLabs, layout = "circle");dev.off();par(mfrow=c(1,1));gc()
-
 
   ## Second analysis: More symptoms -----
 

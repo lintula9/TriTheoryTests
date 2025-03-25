@@ -348,18 +348,20 @@ civ_parallel <- function(A,Z,time_points = 10) {
 
 plot.civ_parallel <- function(x,...) {
   answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies.")
-  if(answer == 1)  matplot(x$eigenvals, type = "b", ylab = "Eigenvalue"); grid()
-  if(answer == 2)  matplot(x$all_factor_congruencies[,1],  ylim = c(0.5,1), type = "b", ylab = "Congruency coefficient"); grid()
+  if(answer == 1)  matplot(t(x$eigenvals), type = "b", ylab = "Eigenvalue", 
+                           xlab = expression(paste("Increment in time ", Delta, "T")))
+  if(answer == 2)  matplot(x$all_factor_congruencies[,1],  ylim = c(0,1), type = "b", ylab = "Congruency coefficient", 
+                           xlab = "T, T+1")
 }
 
 
-# Numerical examples -------------------------------
+# Numerical examples, also used in main text. -------------------------------
 
 if(F){
   
   # When the fit is bad:
     # Create a VAR(1) model, which rotates and scales.
-    # Rotation violates indistinguishability.
+    # Rotation violates indistinguishability conditions.
   Rotation <- matrix(c(
    cos(90*pi/180), -sin(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
     sin(90*pi/180), cos(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -390,11 +392,10 @@ if(F){
     # Also factor loading congruency (for the first factor) drops quickly, suggesting non-invariant loadings (if a factor was present).
   plot( civ_parallel(A_2, Z_2)$all_factor_congruencies[,1] ); grid()
   
-  
   # When the fit is good:
     # Create a VAR(1) model.
-  set.seed(123)
-  lambdas <- tcrossprod(rep(0.4, times = 7) + rnorm(7, sd = 0.1 ))
+
+  lambdas <- tcrossprod(seq(0.1,0.7,length.out = 7))
   A_3 <- (0.5 *     lambdas ) # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
   Z_3 <- tcrossprod(lambdas)  # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
   
@@ -418,47 +419,58 @@ if(F){
   
   # Summary:
     # Figure shown in main text:
-  tiff(filename = "Figure_3.tiff", width = 12, height = 6, units = "in", res = 480)
+  tiff(filename = "Figure_3.tiff", width = 12, 
+       height   = 6, units = "in", res = 480)
   par(mfrow = c(2,2))
-  par(mar = c(4,4,2,2))
+  par(mar   = c(4,4,2,2))
   if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
   
   #A
   matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values)), type = "n", 
           ylab = "Eigenvalue", 
           main = "Distinguishable Cross-covariance",
-          col = cividis(6)); grid()
+          col  = cividis(7),
+          xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
   matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values)), type = "b",
-          col = cividis(6), add = T )
+          col  = cividis(7), add = T )
   
   #B
   matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values)), type = "n", 
           ylab = "",
           main = "Perfectly indistinguishable Cross-covariance",
-          col  = cividis(6)); grid()
+          col  = cividis(7),
+          xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
   matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values)), type = "b", 
           col  = cividis(6),
-          add = T)
+          add  = T)
   
   #C
   matplot( civ_parallel(A_2, Z_2, time_points = 6)$all_factor_congruencies[,1], type = "n",
-          ylab = "Congruency coefficient", xlab = expression(paste("Increment in time ", Delta, "T")),
-          ylim = c(0,1), main = "Unstable factor loadings"); grid()
+          ylab = "Congruency coefficient", 
+          xlab = paste("Cross-covariance pair"),
+          ylim = c(0,1), 
+          main = "Unstable factor loadings",
+          xaxt = "n"); grid()
+  axis(1, labels = paste0("(", 0:6,", ", 1:7,")"),
+          at = 1:7)
   matplot( civ_parallel(A_2, Z_2, time_points = 6)$all_factor_congruencies[,1],
-        type = "b", col = cividis(6), add = T
+        type   = "b", col = cividis(6), add = T
         )
   
   #D
   matplot( civ_parallel(A_3,Z_3, time_points = 6)$all_factor_congruencies[,1] , 
            ylab = "",
+           xlab = paste("Cross-covariance pair"),
            type = "n",
-           xlab = expression(paste("Increment in time ", Delta, "T")),
            ylim = c(0,1), main = "Perfectly stable factor loadings",
-           col = cividis(6)); grid()
+           col  = cividis(6),
+           xaxt = "n"); grid()
+  axis(1, labels = paste0("(", 0:6,", ", 1:7,")"),
+       at = 1:7)
   matplot( civ_parallel(A_3,Z_3, time_points = 6)$all_factor_congruencies[,1],
            type = "b",
-           add = T,
-           col = cividis(6))
+           add  = T,
+           col  = cividis(6))
   
   dev.off(); par(mfrow=c(1,1));gc()
     # NOTES 19.03.2025 add second figure of how RMSEA is approximated.
