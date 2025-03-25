@@ -194,7 +194,8 @@ civ_find <- function(A, Z,
       Z_indistinguishable = (1-psi^2) * tcrossprod(Lambda)
 
       # 2) Compute the implied covariance.
-      S_implied <- dcf_ccov_Mblock(Lambda, psi, time_points) + diag(rep(omega0, times = time_points), time_points*K, time_points*K)
+      S_implied <- dcf_ccov_Mblock(Lambda, psi, time_points) + 
+        diag(rep(omega0, times = time_points), time_points*K, time_points*K)
       
       if(return_cov) {return(S_implied)}
       
@@ -414,7 +415,7 @@ if(F){
     # Also factor loading congruency is stable at > 0.95, suggesting invariant loadings (if a factor was present).
   plot( civ_parallel(A_3,Z_3)$all_factor_congruencies[,1] , ylim = c(0.5,1)); grid()
   
-    # The RMSEA cannot be computed, since 
+    # RMSEA approximations fail consistently...
   rmsea_approximations_2 <- RMSEA_approx(A = A_3, Z = Z_3, N = 4200) 
   
   # Summary:

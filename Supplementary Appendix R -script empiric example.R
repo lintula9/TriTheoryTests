@@ -222,7 +222,7 @@ A <- matrix( unlist(colMeans(draws_data[,grep("A", names(draws_data))])),     nc
 Z <- matrix( unlist(colMeans(draws_data[,grep("Omega", names(draws_data))])), ncol = K, nrow = K)
 # Obtain complete VAR(1) model samples:
 estimated_var_samples <- draws_data[,c( grep("A", names(draws_data)) , grep("Omega", names(draws_data)) )]; As <- grep("A_", names(estimated_var_samples)); Os <- grep("Omega", names(estimated_var_samples)); 
-var_samples <- pbapply::pblapply(1:nrow(draws_data),
+var_samples           <- pbapply::pblapply(1:nrow(draws_data),
                                  FUN = function(i){
                                    A_temp <- matrix( unlist(estimated_var_samples[i,As]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
                                    Z_temp <- matrix( unlist(estimated_var_samples[i,Os]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
