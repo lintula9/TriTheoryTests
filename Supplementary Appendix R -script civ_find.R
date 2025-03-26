@@ -349,7 +349,7 @@ civ_parallel <- function(A,Z,time_points = 10) {
 
 plot.civ_parallel <- function(x,...) {
   answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies.")
-  if(answer == 1)  matplot(t(x$eigenvals), type = "b", ylab = "Eigenvalue", 
+  if(answer == 1)  matplot(sort(abs(t(x$eigenvals)), decreasing = T), type = "b", ylab = "Eigenvalue", 
                            xlab = expression(paste("Increment in time ", Delta, "T")))
   if(answer == 2)  matplot(x$all_factor_congruencies[,1],  ylim = c(0,1), type = "b", ylab = "Congruency coefficient", 
                            xlab = "T, T+1")
@@ -373,8 +373,8 @@ if(F){
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0), 
      nrow = 7, byrow = T)
   Scaling <- diag(seq(0.7,0.4,length.out = 7))
-  A_2 <- Rotation %*% Scaling
-  Z_2 <- diag(7)
+  A_2     <- Rotation %*% Scaling
+  Z_2     <- diag(7)
   # Z_2[cbind(1:6, 2:7)] <- 0.2
   # Z_2[cbind(2:7, 1:6)] <- 0.2
   
@@ -397,14 +397,14 @@ if(F){
     # Create a VAR(1) model.
 
   lambdas <- tcrossprod(seq(0.1,0.7,length.out = 7))
-  A_3 <- (0.5 *     lambdas ) # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
-  Z_3 <- tcrossprod(lambdas)  # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
+  A_3     <- (0.5 *     lambdas ) # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
+  Z_3     <- tcrossprod(lambdas)  # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
   
     # Predicted covariance, up to one time point increment.
   var_ccov_Mblock(A_3, Z_3, M = 2)
   
     # There is a significant jump in eigenvalues of the cross-covariances: The first one is dominant.
-  matplot(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values), type =  "b", ylab = "Eigenvalues"); grid()
+  matplot(sapply(0:5, function(t) abs(eigen(var_ccov(A_3,Z_3,t)))$values), type =  "b", ylab = "Eigenvalues"); grid()
   
     # Consequently, the proportion explained index is near perfect (1). (A warning might occur, noting that eigenvalues become imaginary.)
   civ_parallel(A_3,Z_3)$prop_explained[1]
@@ -421,27 +421,27 @@ if(F){
   # Summary:
     # Figure shown in main text:
   tiff(filename = "Figure_3.tiff", width = 12, 
-       height   = 6, units = "in", res = 480)
+       height   = 10, units = "in", res = 480)
   par(mfrow = c(2,2))
   par(mar   = c(4,4,2,2))
   if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
   
   #A
-  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values)), type = "n", 
+  matplot(t(sapply(0:5, function(t) sort(abs(eigen(var_ccov(A_2,Z_2,t))$values), decreasing = T))), type = "n", 
           ylab = "Eigenvalue", 
           main = "Distinguishable Cross-covariance",
           col  = cividis(7),
           xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
-  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values)), type = "b",
+  matplot(t(sapply(0:5, function(t) sort(abs(eigen(var_ccov(A_2,Z_2,t))$values), decreasing = T))), type = "b",
           col  = cividis(7), add = T )
   
   #B
-  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values)), type = "n", 
+  matplot(t(sapply(0:5, function(t) sort(abs(eigen(var_ccov(A_3,Z_3,t))$values), decreasing = T))), type = "n", 
           ylab = "",
           main = "Perfectly indistinguishable Cross-covariance",
           col  = cividis(7),
           xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
-  matplot(t(sapply(0:5, function(t) eigen(var_ccov(A_3,Z_3,t))$values)), type = "b", 
+  matplot(t(sapply(0:5, function(t) sort(abs(eigen(var_ccov(A_3,Z_3,t))$values), decreasing = T))), type = "b", 
           col  = cividis(6),
           add  = T)
   

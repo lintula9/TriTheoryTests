@@ -9,7 +9,8 @@
 required_packages <- c(
   "Matrix", "fastmatrix", "expm", "rstan",
   "qgraph", "tidyverse", 
-  "ggplot2", "rstantools", "bayesplot", "cmdstanr", "posterior" )
+  "ggplot2", "rstantools", "bayesplot", "cmdstanr", "posterior",
+  "viridisLite", "dplyr")
 
 # Function to check and install missing packages
 for (pkg in required_packages) {
@@ -209,9 +210,9 @@ fit_Net$save_output_files("/LocalData/lintusak/TriTheoryTests/Datas/", basename 
 
 # Read data
 if(F){
-fit_Net    <- as_cmdstan_fit(files = paste0("Datas/3VAR_CF_relaxedpriors-202502031854-",1:nchains,".csv") ); gc()
-draws_data <- as_draws_df(fit_Net$draws(variables = c(inference_vars_regex_alpha) ), .nhcains = nchains ); gc(); rm(fit_Net); gc()
-}
+  fit_Net    <- as_cmdstan_fit(files = paste0("Datas/3VAR_CF_relaxedpriors-202502031854-",1:nchains,".csv") ); gc()
+  draws_data <- as_draws_df(fit_Net$draws(variables = c(inference_vars_regex_alpha) ), .nhcains = nchains ); gc(); rm(fit_Net); gc()
+  }
 # Diagnostics and posterior distribution marignal plots. 
 plotnams <- inference_vars_regex_alpha;pdf(file = paste0("Datas/Bayespots_",format(Sys.time(), "%Y-%m-%d"), ".pdf"));color_scheme_set("viridis")
 for(i in plotnams){print(  mcmc_trace(draws_data, regex_pars = i ));print(  mcmc_areas_ridges(draws_data[ , grep(i, names(draws_data))]) );
@@ -220,6 +221,7 @@ for(i in plotnams){print(  mcmc_trace(draws_data, regex_pars = i ));print(  mcmc
 # Extract posterior means as the VAR parameters:
 A <- matrix( unlist(colMeans(draws_data[,grep("A", names(draws_data))])),     ncol = K, nrow = K);
 Z <- matrix( unlist(colMeans(draws_data[,grep("Omega", names(draws_data))])), ncol = K, nrow = K)
+
 # Obtain complete VAR(1) model samples:
 estimated_var_samples <- draws_data[,c( grep("A", names(draws_data)) , grep("Omega", names(draws_data)) )]; As <- grep("A_", names(estimated_var_samples)); Os <- grep("Omega", names(estimated_var_samples)); 
 var_samples           <- pbapply::pblapply(1:nrow(draws_data),
@@ -234,14 +236,11 @@ source("Supplementary Appendix R -script civ_find.R")
 # Figure 4 in main text ----
   # Compute parallel analysis imitation and RMSEA, for the posterior mean.
 result_parallel <- civ_parallel(A, Z)
-if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
-if(!requireNamespace("tidyverse")) install.packages("tidyverse") else library(tidyverse)
-if(!requireNamespace("dplyr")) install.packages("dplyr") else library(dplyr)
 
   # Compute credible intervals for eigenvalues, congruencies.
 eigen_congurency <- pbapply::pblapply(var_samples, FUN = function(x){
               res  <- try(civ_parallel(x$A,x$Z))
-            eigens <- t(res$eigenvals)
+            eigens <- t(abs(res$eigenvals))
       congruencies <- res$all_factor_congruencies[1:6,1]
     return(list(eigens = eigens, congruencies = congruencies)) }); gc()
 eigen_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function(x) cbind( x$eigens, 1:6 ) ))))
@@ -249,13 +248,14 @@ eigen_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function
 upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.975))) ))
 lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
 
-tiff(filename = "Figure_4.tiff", width = 6, 
-     height   = 6, units = "in", res = 480)
-par(mfrow     = c(2,1) )
+tiff(filename = "Figure_4.tiff", width = 12, 
+     height   = 10, units = "in", res = 480)
+par(mfrow     = c(2,2) )
 par(mar       = c(4,4,2,2) )
 matplot(t(result_parallel$eigenvals), type = "n",
         ylab = "Eigenvalues", 
-        xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
+        xlab = expression(paste("Increment in time ", Delta, "T")),
+        main = "Eigenvalues over cross-covariance increments"); grid()
 for( i in 2:ncol(upper)) {
   polygon(x = c(upper[,1], rev(lower[,1])), y = c(upper[,i], rev(lower[,i])),
           col = adjustcolor(cividis(i-1), alpha.f = 0.3))
@@ -273,15 +273,19 @@ matplot(result_parallel$all_factor_congruencies[1:6,1], type = "n",
         ylim = c(0,1),
         ylab = "Congruency coefficient", 
         xlab = "Cross-covariance pair",
-        xaxt = "n"); grid()
+        xaxt = "n",
+        main = "Congruency for cross-covariance pairs"); grid()
  # NOTE: this is omitted since it only brings clutter. polygon(x = c(upper_c[,1], rev(upper_c[,1])), y=c(upper_c[,2], rev(lower_c[,2])) )
 axis(1, labels = paste0("(", 0:5,", ", 1:6,")"),
-     at = 1:6)
+     at = 1:6 )
 matplot(result_parallel$all_factor_congruencies[,1], type = "b",
-        col = cividis(6), add = T)
+        col = cividis(6), add = T )
+qgraph( A, layout = "circle", 
+        labels = varLabs, title = "Coefficient matrix", mar = c(5,5,5,5) )
+qgraph( Z, layout = "circle", 
+        labels = varLabs, title = "Innovation covariance", mar = c(5,5,5,5) )
 
-
-dev.off();gc();par(mfrow = c(1,1))
+dev.off();gc();par(mfrow = c(1,1) )
 
 # Compute RMSEA, distribution
   # mean
