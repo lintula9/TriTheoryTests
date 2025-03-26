@@ -329,12 +329,13 @@ civ_parallel <- function(A,Z,time_points = 10) {
   total_sum   <- sum(sapply(1:(time_points+1), function(i) sum(comp[[i]]$values)))
   cosine_i    <- sapply(1:(time_points+1), function(j) {
     sapply(1:(time_points+1), function(i) abs(sum(comp[[i]]$vectors[,1]*comp[[j]]$vectors[,1])) )}, simplify = "matrix")
-  
+
   prop_explained             = all_sum / total_sum
-  if(any(Im(prop_explained) != 0)) warning("Imaginary proportion explained found. 
+  if(any(Im(prop_explained) != 0)) warning("Complex valued proportion explained found. 
   This means some of the cross-covariances are (due to numerical instability, or correctly so) 
                                            not covariance matrices. Use lower time_points to obtain an approximation.")
-  eigenvals <- sapply(0:5, function(t) eigen(var_ccov(A,Z,t))$values)
+  eigenvals <- sapply(0:time_points, function(t) eigen(var_ccov(A,Z,t))$values)
+  colnames(eigenvals) <- paste("Increment ",0:time_points)
   
   result <- list(
     eigenvals                     = eigenvals,
@@ -347,12 +348,15 @@ civ_parallel <- function(A,Z,time_points = 10) {
     
    }
 
-plot.civ_parallel <- function(x,...) {
+  plot.civ_parallel <- function(x,...) {
   answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies.")
-  if(answer == 1)  matplot(sort(abs(t(x$eigenvals)), decreasing = T), type = "b", ylab = "Eigenvalue", 
-                           xlab = expression(paste("Increment in time ", Delta, "T")))
+  if(answer == 1)  {matplot(abs(t(x$eigenvals)), type = "b", ylab = "Eigenvalue", 
+                           xlab = expression(paste("Increment in time ", Delta, "T")),
+                           xaxt = "n", ...)
+    axis(1, at  = 1:length(x$eigenvals), 
+         labels = 0:(length(x$eigenvals)-1) )}
   if(answer == 2)  matplot(x$all_factor_congruencies[,1],  ylim = c(0,1), type = "b", ylab = "Congruency coefficient", 
-                           xlab = "T, T+1")
+                           xlab = "T, T+1", ...)
 }
 
 
@@ -420,55 +424,56 @@ if(F){
   
   # Summary:
     # Figure shown in main text:
-  tiff(filename = "Figure_3.tiff", width = 12, 
-       height   = 10, units = "in", res = 480)
+  tiff(filename = "Figure_3.tiff", width = 14, 
+       height   = 14, units = "in", res = 480)
+  
   par(mfrow = c(2,2))
   par(mar   = c(4,4,2,2))
   if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
   
   #A
-  matplot(t(sapply(0:5, function(t) sort(abs(eigen(var_ccov(A_2,Z_2,t))$values), decreasing = T))), type = "n", 
+  matplot(t(sapply(0:10, function(t) sort(abs(eigen(var_ccov(A_2,Z_2,t))$values), decreasing = T))), type = "n", 
           ylab = "Eigenvalue", 
           main = "Distinguishable Cross-covariance",
           col  = cividis(7),
           xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
-  matplot(t(sapply(0:5, function(t) sort(abs(eigen(var_ccov(A_2,Z_2,t))$values), decreasing = T))), type = "b",
+  matplot(t(sapply(0:10, function(t) sort(abs(eigen(var_ccov(A_2,Z_2,t))$values), decreasing = T))), type = "b",
           col  = cividis(7), add = T )
   
   #B
-  matplot(t(sapply(0:5, function(t) sort(abs(eigen(var_ccov(A_3,Z_3,t))$values), decreasing = T))), type = "n", 
+  matplot(t(sapply(0:10, function(t) sort(abs(eigen(var_ccov(A_3,Z_3,t))$values), decreasing = T))), type = "n", 
           ylab = "",
           main = "Perfectly indistinguishable Cross-covariance",
           col  = cividis(7),
           xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
-  matplot(t(sapply(0:5, function(t) sort(abs(eigen(var_ccov(A_3,Z_3,t))$values), decreasing = T))), type = "b", 
+  matplot(t(sapply(0:10, function(t) sort(abs(eigen(var_ccov(A_3,Z_3,t))$values), decreasing = T))), type = "b", 
           col  = cividis(6),
           add  = T)
   
   #C
-  matplot( civ_parallel(A_2, Z_2, time_points = 6)$all_factor_congruencies[,1], type = "n",
+  matplot( civ_parallel(A_2, Z_2, time_points = 10)$all_factor_congruencies[,1], type = "n",
           ylab = "Congruency coefficient", 
           xlab = paste("Cross-covariance pair"),
           ylim = c(0,1), 
           main = "Unstable factor loadings",
           xaxt = "n"); grid()
-  axis(1, labels = paste0("(", 0:6,", ", 1:7,")"),
-          at = 1:7)
-  matplot( civ_parallel(A_2, Z_2, time_points = 6)$all_factor_congruencies[,1],
+  axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
+          at = 1:11)
+  matplot( civ_parallel(A_2, Z_2, time_points = 10)$all_factor_congruencies[,1],
         type   = "b", col = cividis(6), add = T
         )
   
   #D
-  matplot( civ_parallel(A_3,Z_3, time_points = 6)$all_factor_congruencies[,1] , 
+  matplot( civ_parallel(A_3,Z_3, time_points = 10)$all_factor_congruencies[,1] , 
            ylab = "",
            xlab = paste("Cross-covariance pair"),
            type = "n",
            ylim = c(0,1), main = "Perfectly stable factor loadings",
            col  = cividis(6),
            xaxt = "n"); grid()
-  axis(1, labels = paste0("(", 0:6,", ", 1:7,")"),
-       at = 1:7)
-  matplot( civ_parallel(A_3,Z_3, time_points = 6)$all_factor_congruencies[,1],
+  axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
+       at = 1:11)
+  matplot( civ_parallel(A_3,Z_3, time_points = 10)$all_factor_congruencies[,1],
            type = "b",
            add  = T,
            col  = cividis(6))

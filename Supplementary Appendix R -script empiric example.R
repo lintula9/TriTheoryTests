@@ -241,26 +241,33 @@ result_parallel <- civ_parallel(A, Z)
 eigen_congurency <- pbapply::pblapply(var_samples, FUN = function(x){
               res  <- try(civ_parallel(x$A,x$Z))
             eigens <- t(abs(res$eigenvals))
-      congruencies <- res$all_factor_congruencies[1:6,1]
+      congruencies <- res$all_factor_congruencies[,1]
     return(list(eigens = eigens, congruencies = congruencies)) }); gc()
-eigen_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function(x) cbind( x$eigens, 1:6 ) ))))
+eigen_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function(x) cbind( x$eigens, 1:11 ) ))))
 
 upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.975))) ))
 lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
 
-tiff(filename = "Figure_4.tiff", width = 12, 
-     height   = 10, units = "in", res = 480)
+tiff(filename = "Figure_4.tiff", 
+        width = 14, 
+     height   = 14, 
+        units = "in", 
+          res = 480)
 par(mfrow     = c(2,2) )
 par(mar       = c(4,4,2,2) )
-matplot(t(result_parallel$eigenvals), type = "n",
+matplot(t(result_parallel$eigenvals),
+        type = "n",
         ylab = "Eigenvalues", 
         xlab = expression(paste("Increment in time ", Delta, "T")),
+        xaxt = "n",
         main = "Eigenvalues over cross-covariance increments"); grid()
+axis(side = 1, at = 1:(ncol(result_parallel$eigenvals)), labels = 0:(ncol(result_parallel$eigenvals) - 1))
 for( i in 2:ncol(upper)) {
   polygon(x = c(upper[,1], rev(lower[,1])), y = c(upper[,i], rev(lower[,i])),
           col = adjustcolor(cividis(i-1), alpha.f = 0.3))
 }
-matplot(t(result_parallel$eigenvals), type = "b",
+matplot(t(result_parallel$eigenvals), 
+        type = "b",
         col  = cividis(6), add = T)
 
 cong_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function(x) cbind( x$congruencies, 1:6 ) ))))
@@ -269,15 +276,15 @@ upper_c  <- as.matrix(cong_dat %>% group_by(X2) %>%
 lower_c  <- as.matrix(cong_dat %>% group_by(X2) %>% 
                         reframe( quantile(X1, 0.025) ))
 
-matplot(result_parallel$all_factor_congruencies[1:6,1], type = "n",
+matplot(result_parallel$all_factor_congruencies[,1], type = "n",
         ylim = c(0,1),
         ylab = "Congruency coefficient", 
         xlab = "Cross-covariance pair",
         xaxt = "n",
         main = "Congruency for cross-covariance pairs"); grid()
  # NOTE: this is omitted since it only brings clutter. polygon(x = c(upper_c[,1], rev(upper_c[,1])), y=c(upper_c[,2], rev(lower_c[,2])) )
-axis(1, labels = paste0("(", 0:5,", ", 1:6,")"),
-     at = 1:6 )
+axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
+     at = 1:11 )
 matplot(result_parallel$all_factor_congruencies[,1], type = "b",
         col = cividis(6), add = T )
 qgraph( A, layout = "circle", 
