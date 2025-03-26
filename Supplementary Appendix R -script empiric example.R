@@ -264,7 +264,7 @@ matplot(t(result_parallel$eigenvals),
 axis(side = 1, at = 1:(ncol(result_parallel$eigenvals)), labels = 0:(ncol(result_parallel$eigenvals) - 1))
 for( i in 2:ncol(upper)) {
   polygon(x = c(upper[,1], rev(lower[,1])), y = c(upper[,i], rev(lower[,i])),
-          col = adjustcolor(cividis(i-1), alpha.f = 0.3))
+          col = adjustcolor(cividis(i-1), alpha.f = 0.15))
 }
 matplot(t(result_parallel$eigenvals), 
         type = "b",

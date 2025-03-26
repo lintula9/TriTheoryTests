@@ -319,7 +319,7 @@ plot.rmsea_approximation <- function(x, ...) {
 
 # CIV parallel --------------
 
-civ_parallel <- function(A,Z,time_points = 10) {
+civ_parallel <- function(A,Z,time_points = 10, threshold_proportions = 0.90) {
   
   if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting.")
   
@@ -330,6 +330,7 @@ civ_parallel <- function(A,Z,time_points = 10) {
   cosine_i    <- sapply(1:(time_points+1), function(j) {
     sapply(1:(time_points+1), function(i) abs(sum(comp[[i]]$vectors[,1]*comp[[j]]$vectors[,1])) )}, simplify = "matrix")
 
+  # NOTES 26.03.2025: Remove prop explained?
   prop_explained             = all_sum / total_sum
   if(any(Im(prop_explained) != 0)) warning("Complex valued proportion explained found. 
   This means some of the cross-covariances are (due to numerical instability, or correctly so) 
@@ -337,27 +338,42 @@ civ_parallel <- function(A,Z,time_points = 10) {
   eigenvals <- sapply(0:time_points, function(t) eigen(var_ccov(A,Z,t))$values)
   colnames(eigenvals) <- paste("Increment ",0:time_points)
   
+  # Compute threshold for threshold proportions:
+  eigen_sums <- sapply(comp, function(x) sum(abs(x$values)), simplify = "vector" )
+  thresholds <- sapply(threshold_proportions, function(x) eigen_sums * x, simplify = "matrix")
+  
   result <- list(
     eigenvals                     = eigenvals,
-    prop_explained                = prop_explained,
+    eigen_sums                    = eigen_sums,
+    threshold                     = thresholds,
     min_factor_congruency         = min(cosine_i),
-    all_factor_congruencies       = cosine_i)
+    all_factor_congruencies       = cosine_i,
+  prop_explained_total            = prop_explained)
+  
   class(result) <- c("civ_parallel", "list")
   
   return(result)
     
    }
 
-  plot.civ_parallel <- function(x,...) {
+  plot.civ_parallel <- function(x, threshold = T, ...) {
   answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies.")
-  if(answer == 1)  {matplot(abs(t(x$eigenvals)), type = "b", ylab = "Eigenvalue", 
+  if(answer == 1)  {
+    matplot(abs(t(x$eigenvals)), type = "b", ylab = "Eigenvalue", 
                            xlab = expression(paste("Increment in time ", Delta, "T")),
-                           xaxt = "n", ...)
+                           xaxt = "n", 
+            ylim = c(0,max(x$threshold)),
+            ...)
     axis(1, at  = 1:length(x$eigenvals), 
-         labels = 0:(length(x$eigenvals)-1) )}
+         labels = 0:(length(x$eigenvals)-1) )
+    if(threshold){ 
+      matplot(y = x$threshold,
+              add = T, lty = 2, type = "l")
+      }
+    }
   if(answer == 2)  matplot(x$all_factor_congruencies[,1],  ylim = c(0,1), type = "b", ylab = "Congruency coefficient", 
                            xlab = "T, T+1", ...)
-}
+  }
 
 
 # Numerical examples, also used in main text. -------------------------------
@@ -382,45 +398,9 @@ if(F){
   # Z_2[cbind(1:6, 2:7)] <- 0.2
   # Z_2[cbind(2:7, 1:6)] <- 0.2
   
-    # Predicted covariance, up to one time point increment.
-  var_ccov_Mblock(A_2, Z_2, M = 2)
-  
-    # The fit is bad.
-  rmsea_approximations <-   RMSEA_approx(A = A_2, Z = Z_2, N = 4200) 
-  plot(rmsea_approximations) # Plot, if we want to assess if the RMSEA approximation worked nicely.
-
-    # There are no large jumps in eigenvalues of the cross-covariances: No eigenvalue is dominant...
-  matplot(sapply(0:5, function(t) eigen(var_ccov(A_2,Z_2,t))$values), type =  "b", ylab = "Eigenvalues"); grid()
-    # ... and, consequently, proportion explained index is not high. 
-  civ_parallel(A_2, Z_2)$prop_explained[1]
-  plot(civ_parallel(A_2, Z_2)$prop_explained, ylab = "proportion explained"); grid()
-    # Also factor loading congruency (for the first factor) drops quickly, suggesting non-invariant loadings (if a factor was present).
-  plot( civ_parallel(A_2, Z_2)$all_factor_congruencies[,1] ); grid()
-  
-  # When the fit is good:
-    # Create a VAR(1) model.
-
   lambdas <- tcrossprod(seq(0.1,0.7,length.out = 7))
   A_3     <- (0.5 *     lambdas ) # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
   Z_3     <- tcrossprod(lambdas)  # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
-  
-    # Predicted covariance, up to one time point increment.
-  var_ccov_Mblock(A_3, Z_3, M = 2)
-  
-    # There is a significant jump in eigenvalues of the cross-covariances: The first one is dominant.
-  matplot(sapply(0:5, function(t) abs(eigen(var_ccov(A_3,Z_3,t)))$values), type =  "b", ylab = "Eigenvalues"); grid()
-  
-    # Consequently, the proportion explained index is near perfect (1). (A warning might occur, noting that eigenvalues become imaginary.)
-  civ_parallel(A_3,Z_3)$prop_explained[1]
-  plot(
-    # To approximate, we only use real parts of the eigenvalues with 'Re'.
-    Re( civ_parallel(A_3,Z_3)$prop_explained), ylab = "proportion explained"); grid()
-  
-    # Also factor loading congruency is stable at > 0.95, suggesting invariant loadings (if a factor was present).
-  plot( civ_parallel(A_3,Z_3)$all_factor_congruencies[,1] , ylim = c(0.5,1)); grid()
-  
-    # RMSEA approximations fail consistently...
-  rmsea_approximations_2 <- RMSEA_approx(A = A_3, Z = Z_3, N = 4200) 
   
   # Summary:
     # Figure shown in main text:
@@ -432,26 +412,36 @@ if(F){
   if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
   
   #A
-  matplot(t(sapply(0:10, function(t) sort(abs(eigen(var_ccov(A_2,Z_2,t))$values), decreasing = T))), type = "n", 
+  parallel_A <- civ_parallel(A_2,Z_2)
+  matplot(t(abs(parallel_A$eigenvals)), type = "n", 
           ylab = "Eigenvalue", 
           main = "Distinguishable Cross-covariance",
           col  = cividis(7),
           xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
-  matplot(t(sapply(0:10, function(t) sort(abs(eigen(var_ccov(A_2,Z_2,t))$values), decreasing = T))), type = "b",
-          col  = cividis(7), add = T )
+  matplot(t(abs(parallel_A$eigenvals)), type = "b",
+          col  = cividis(7), add = T,
+          lty = 1)
+  matplot(y = parallel_A$threshold,
+          add = T, lty = 2, type = "l",
+          col = viridis(10))
   
   #B
-  matplot(t(sapply(0:10, function(t) sort(abs(eigen(var_ccov(A_3,Z_3,t))$values), decreasing = T))), type = "n", 
+  parallel_B <- civ_parallel(A_3, Z_3)
+  matplot(t(abs(parallel_B$eigenvals)), type = "n", 
           ylab = "",
           main = "Perfectly indistinguishable Cross-covariance",
           col  = cividis(7),
           xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
-  matplot(t(sapply(0:10, function(t) sort(abs(eigen(var_ccov(A_3,Z_3,t))$values), decreasing = T))), type = "b", 
+  matplot(t(abs(parallel_B$eigenvals)), type = "b", 
           col  = cividis(6),
-          add  = T)
+          add  = T,
+          lty = 1)
+  matplot(y = parallel_B$threshold,
+          add = T, lty = 2, type = "l",
+          col = viridis(10))
   
   #C
-  matplot( civ_parallel(A_2, Z_2, time_points = 10)$all_factor_congruencies[,1], type = "n",
+  matplot( parallel_A$all_factor_congruencies[,1], type = "n",
           ylab = "Congruency coefficient", 
           xlab = paste("Cross-covariance pair"),
           ylim = c(0,1), 
@@ -459,12 +449,12 @@ if(F){
           xaxt = "n"); grid()
   axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
           at = 1:11)
-  matplot( civ_parallel(A_2, Z_2, time_points = 10)$all_factor_congruencies[,1],
+  matplot( parallel_A$all_factor_congruencies[,1],
         type   = "b", col = cividis(6), add = T
         )
   
   #D
-  matplot( civ_parallel(A_3,Z_3, time_points = 10)$all_factor_congruencies[,1] , 
+  matplot( parallel_B$all_factor_congruencies[,1] , 
            ylab = "",
            xlab = paste("Cross-covariance pair"),
            type = "n",
@@ -473,7 +463,7 @@ if(F){
            xaxt = "n"); grid()
   axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
        at = 1:11)
-  matplot( civ_parallel(A_3,Z_3, time_points = 10)$all_factor_congruencies[,1],
+  matplot( parallel_B$all_factor_congruencies[,1],
            type = "b",
            add  = T,
            col  = cividis(6))
