@@ -380,7 +380,7 @@ civ_parallel <- function(A,Z,time_points = 10, threshold_proportions = 0.90) {
 
 if(F){
   
-  # When the fit is bad:
+  # VAR(1), distiguishable
     # Create a VAR(1) model, which rotates and scales.
     # Rotation violates indistinguishability conditions.
   Rotation <- matrix(c(
@@ -395,9 +395,8 @@ if(F){
   Scaling <- diag(seq(0.7,0.4,length.out = 7))
   A_2     <- Rotation %*% Scaling
   Z_2     <- diag(7)
-  # Z_2[cbind(1:6, 2:7)] <- 0.2
-  # Z_2[cbind(2:7, 1:6)] <- 0.2
   
+  # VAR(1), indistinsuighable
   lambdas <- tcrossprod(seq(0.1,0.7,length.out = 7))
   A_3     <- (0.5 *     lambdas ) # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
   Z_3     <- tcrossprod(lambdas)  # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
