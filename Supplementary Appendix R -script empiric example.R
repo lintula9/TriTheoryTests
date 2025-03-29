@@ -22,7 +22,7 @@ for (pkg in required_packages) {
 # Load data ------
 
 # load 
-load(file.path("TriTheoryTests/Fried_2022 data/clean_network.RData")); gc()
+load(file.path("Fried_2022 data/clean_network.RData")); gc()
 Data5b <- Data2
 
 # Variables to investigate:
@@ -297,18 +297,6 @@ qgraph( Z, layout = "circle",
 
 dev.off();gc();par(mfrow = c(1,1) )
 
-# # Compute RMSEA, distribution
-#   # mean
-# plot(RMSEA_approx(A,Z,error_ratios = seq(0.001,0.1, length.out = 20),N = nrow(Data5b)))
-# 
-# rmseas <- pbapply::pbsapply(var_samples, FUN = function(x){
-#   res <- try(RMSEA_approx(x$A,x$Z, N = nrow(Data5b))$RMSEA_approximation)
-#   if(is.character(res)) {res <- NA; warning("Non-convergence")}
-#   return(res) }); gc()
-# saveRDS(rmseas, file = "Datas/rmseas_3vars.RDS");gc()
-# 
-# source("Yuan 2016.R"); Yuan_2016(  length(fastmatrix::vech(Z)) + length(A) - (1+3*ncol(A))
-#                                      ,4135) 
 # Congruency
 congruency <- pbapply::pbsapply(1:length(var_samples), FUN = function(x){
   return(try(Re(civ_parallel(var_samples[[x]]$A,var_samples[[x]]$Z)$min_factor_congruency)))
@@ -459,31 +447,96 @@ plotnams <- inference_vars_regex_alpha;pdf(file = paste0("Datas/Bayespots_7VAR_"
 for(i in plotnams){print(  mcmc_trace(draws_data_7, regex_pars = i ));print(  mcmc_areas_ridges(draws_data_7[ , grep(i, names(draws_data_7))]) );
 }; gc(); dev.off()
 
-# Compute RMSEA, distribution
-estimated_var_samples_7 <- draws_data_7[,c( grep("A", names(draws_data_7)) , grep("Omega", names(draws_data_7)) )]; As <- grep("A_", names(estimated_var_samples_7)); Os <- grep("Omega", names(estimated_var_samples_7)); gc()
-var_samples_7 <- pbapply::pblapply(1:nrow(draws_data_7),
-                                 FUN = function(i){
-                                   A_temp <- matrix( unlist(estimated_var_samples_7[i,As]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
-                                   Z_temp <- matrix( unlist(estimated_var_samples_7[i,Os]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
-                                   return(list(A = A_temp, Z = Z_temp))
-                                 }); gc()
-rmseas_7 <- pbapply::pbsapply(var_samples_7, FUN = function(x){
-  res <- try(civ_find(x$A,x$Z, cov.difference = T, N = nrow(Data5b))$RMSEA)
-  if(is.character(res)) {res <- NA; warning("Non-convergence")}
-  return(res) }); gc()
-saveRDS(rmseas_7, file = "Datas/rmseas_7vars.RDS");gc()
 
-props_explained_7 <- pbapply::pbsapply(1:length(var_samples_7), FUN = function(x){
-  return(try(Re(civ_parallel(var_samples_7[[x]]$A,var_samples_7[[x]]$Z)$prop_explained[1])))
-}); gc()
-saveRDS(props_explained_7, file = "Datas/props_explained_7vars.RDS"); gc()
+# Extract posterior means as the VAR parameters:
+A_7 <- matrix( unlist(colMeans(draws_data_7[,grep("A", names(draws_data_7))])),     ncol = K, nrow = K);
+Z_7 <- matrix( unlist(colMeans(draws_data_7[,grep("Omega", names(draws_data_7))])), ncol = K, nrow = K)
 
-source("Yuan 2016.R"); Yuan_2016(  (2*7*(2*7-1) / 2) - (1+7+14),4135) 
+# Obtain complete VAR(1) model samples:
+estimated_var_samples_7 <- draws_data_7[,c( grep("A", names(draws_data_7)) , grep("Omega", names(draws_data_7)) )]; As <- grep("A_", names(estimated_var_samples_7)); Os <- grep("Omega", names(estimated_var_samples_7)); 
+var_samples_7           <- pbapply::pblapply(1:nrow(draws_data_7),
+                                           FUN = function(i){
+                                             A_temp <- matrix( unlist(estimated_var_samples_7[i,As]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
+                                             Z_temp <- matrix( unlist(estimated_var_samples_7[i,Os]), ncol = sqrt(length(As)), nrow = sqrt(length(Os)));
+                                             return(list(A = A_temp, Z = Z_temp))
+                                           }); gc()
+# Source the methods.
+source("Supplementary Appendix R -script civ_find.R")
 
-  # Congruency
-congruency_7 <- pbapply::pbsapply(1:length(var_samples_7), FUN = function(x){
-  return(try(Re(civ_parallel(var_samples_7[[x]]$A,var_samples_7[[x]]$Z)$min_factor_congruency)))
-}); gc()
-saveRDS(congruency_7, file = "Datas/congruency_7vars.RDS"); gc()
+# Figure 4 in main text ----
+# Compute parallel analysis imitation and RMSEA, for the posterior mean.
+result_parallel_7  <- civ_parallel(A_7, Z_7)
+
+# Compute credible intervals for eigenvalues, congruencies.
+eigen_congurency_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
+  res  <- try(civ_parallel(x$A,x$Z))
+  eigens <- t(abs(res$eigenvals))
+  congruencies <- res$all_factor_congruencies[,1]
+  return(list(eigens = eigens, congruencies = congruencies)) }); gc()
+
+# How many do not explain above 0.90?
+mean(unlist(lapply(eigen_congurency_7, function(x) any(0.90 > (x$eigens[ , 1] / (rowSums(x$eigens)))) )))
+# All.
+# How many congruencies not above 0.90?
+mean(unlist(lapply(eigen_congurency_7, function(x) any(0.90 > x$congruencies))))
+# 0.133.
+
+eigen_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, 
+                                                FUN = function(x) cbind( x$eigens, 1:11 ) ))))
+
+upper_7 <- as.matrix(eigen_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(eigen_dat_7)-1) ), ~ quantile(.x, c(.975))) ))
+lower_7 <- as.matrix(eigen_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(eigen_dat_7)-1) ), ~ quantile(.x, c(.025))) ))
+
+tiff(filename = "Figure_5.tiff", 
+     width = 14, 
+     height   = 14, 
+     units = "in", 
+     res = 480)
+par(mfrow     = c(2,2) )
+par(mar       = c(4,4,2,2) )
+matplot(t(result_parallel_7$eigenvals),
+        type = "n",
+        ylab = "Eigenvalues", 
+        xlab = expression(paste("Increment in time ", Delta, "T")),
+        xaxt = "n",
+        main = "Eigenvalues over cross-covariance increments"); grid()
+axis(side = 1, at = 1:(ncol(result_parallel_7$eigenvals)), labels = 0:(ncol(result_parallel_7$eigenvals) - 1))
+for( i in 2:ncol(upper_7)) {
+  polygon(x = c(upper_7[,1], rev(lower_7[,1])), y = c(upper_7[,i], rev(lower_7[,i])),
+          col = adjustcolor(cividis(begin = seq(0,1,length.out = ncol(upper_7)-1 )[i-1], n = 1), alpha.f = 0.15))
+}
+matplot(t(result_parallel_7$eigenvals), 
+        type = "b",
+        col  = cividis(1), add = T)
+cong_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, FUN = function(x) cbind( x$congruencies, 1:11 ) ))))
+upper_c_7  <- as.matrix(cong_dat_7 %>% group_by(X2) %>% 
+                        reframe( quantile(X1, 0.975) ))
+lower_c_7  <- as.matrix(cong_dat_7 %>% group_by(X2) %>% 
+                        reframe( quantile(X1, 0.025) ))
+matplot(result_parallel_7$all_factor_congruencies[,1], type = "n",
+        ylim = c(0,1),
+        ylab = "Congruency coefficient", 
+        xlab = expression(paste("Increment in time ", Delta, "T")),
+        xaxt = "n",
+        main = "Congruency over cross-covariance increments"); grid()
+polygon(x = c(upper_c_7[,1], rev(upper_c_7[,1])), y=c(upper_c_7[,2], rev(lower_c_7[,2])),
+        col = adjustcolor(cividis(1), alpha.f = 0.15) )
+axis(1, labels = paste0(0:10),
+     at = 1:11 )
+# axis(2, at = c(0.1,0.3,0.5,0.7,0.9) )
+matplot(result_parallel_7$all_factor_congruencies[,1], type = "b",
+        col = cividis(6), add = T )
+qgraph( A_7, layout = "circle", 
+        labels = varLabs2, title = "Coefficient matrix", mar = c(5,5,5,5) )
+qgraph( Z_7, layout = "circle", 
+        labels = varLabs2, title = "Innovation covariance", mar = c(5,5,5,5) )
+dev.off();gc();par(mfrow = c(1,1) )
 
 
+# Save for future use.
+if(F) {
+  
+  saveRDS(result_parallel_7, file = "parallel_7.RDS")
+  saveRDS(eigen_congurency_7, file = "eigen_congurency_7.RDS")
+  
+}
