@@ -416,7 +416,10 @@ if(F){
           ylab = "Eigenvalue", 
           main = "Distinguishable Cross-covariance",
           col  = cividis(7),
-          xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
+          xlab = expression(paste("Increment in time ", Delta, "T")),
+          xaxt = "n"); grid()
+  axis(1, labels = paste0(0:10),
+       at = 1:11)
   matplot(t(abs(parallel_A$eigenvals)), type = "b",
           col  = cividis(7), add = T,
           lty = 1)
@@ -430,7 +433,10 @@ if(F){
           ylab = "",
           main = "Perfectly indistinguishable Cross-covariance",
           col  = cividis(7),
-          xlab = expression(paste("Increment in time ", Delta, "T"))); grid()
+          xlab = expression(paste("Increment in time ", Delta, "T")),
+          xaxt = "n"); grid()
+  axis(1, labels = paste0(0:10),
+       at = 1:11)
   matplot(t(abs(parallel_B$eigenvals)), type = "b", 
           col  = cividis(6),
           add  = T,
@@ -442,11 +448,11 @@ if(F){
   #C
   matplot( parallel_A$all_factor_congruencies[,1], type = "n",
           ylab = "Congruency coefficient", 
-          xlab = paste("Cross-covariance pair"),
+          xlab = expression(paste("Increment in time ", Delta, "T")),
           ylim = c(0,1), 
           main = "Unstable factor loadings",
           xaxt = "n"); grid()
-  axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
+  axis(1, labels = paste0(0:10),
           at = 1:11)
   matplot( parallel_A$all_factor_congruencies[,1],
         type   = "b", col = cividis(6), add = T
@@ -455,12 +461,12 @@ if(F){
   #D
   matplot( parallel_B$all_factor_congruencies[,1] , 
            ylab = "",
-           xlab = paste("Cross-covariance pair"),
+           xlab = expression(paste("Increment in time ", Delta, "T")),
            type = "n",
            ylim = c(0,1), main = "Perfectly stable factor loadings",
            col  = cividis(6),
            xaxt = "n"); grid()
-  axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
+  axis(1, labels = paste0(0:10),
        at = 1:11)
   matplot( parallel_B$all_factor_congruencies[,1],
            type = "b",
