@@ -18,6 +18,8 @@
 if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
 if(!require(expm)) install.packages("expm"); library(expm)
 if(!require(pbapply)) install.packages("pbapply"); library(expm)
+if(!require(pbapply)) install.packages("mgcv"); library(expm)
+
 
 
 # Helper function, for the (cross-)covariance
@@ -328,13 +330,8 @@ civ_parallel <- function(A,Z,time_points = 10, threshold_proportions = 0.90) {
                         sum(sapply(1:(time_points+1), function(i) comp[[i]]$values[j]))})
   total_sum   <- sum(sapply(1:(time_points+1), function(i) sum(comp[[i]]$values)))
   cosine_i    <- sapply(1:(time_points+1), function(j) {
-    sapply(1:(time_points+1), function(i) abs(sum(comp[[i]]$vectors[,1]*comp[[j]]$vectors[,1])) )}, simplify = "matrix")
+    sapply(1:(time_points+1), function(i) abs( sum( comp[[i]]$vectors[,1] * comp[[j]]$vectors[,1] ) ) ) }, simplify = "matrix")
 
-  # NOTES 26.03.2025: Remove prop explained?
-  prop_explained             = all_sum / total_sum
-  if(any(Im(prop_explained) != 0)) warning("Complex valued proportion explained found. 
-  This means some of the cross-covariances are (due to numerical instability, or correctly so) 
-                                           not covariance matrices. Use lower time_points to obtain an approximation.")
   eigenvals <- sapply(0:time_points, function(t) eigen(var_ccov(A,Z,t))$values)
   colnames(eigenvals) <- paste("Increment ",0:time_points)
   
@@ -348,7 +345,7 @@ civ_parallel <- function(A,Z,time_points = 10, threshold_proportions = 0.90) {
     threshold                     = thresholds,
     min_factor_congruency         = min(cosine_i),
     all_factor_congruencies       = cosine_i,
-  prop_explained_total            = prop_explained)
+    subsequent_pair_congruencies   = mgcv::sdiag(cosine_i,1) )
   
   class(result) <- c("civ_parallel", "list")
   
@@ -371,7 +368,7 @@ civ_parallel <- function(A,Z,time_points = 10, threshold_proportions = 0.90) {
               add = T, lty = 2, type = "l")
       }
     }
-  if(answer == 2)  matplot(x$all_factor_congruencies[,1],  ylim = c(0,1), type = "b", ylab = "Congruency coefficient", 
+  if(answer == 2)  matplot(x$subsequent_pair_congruencies,  ylim = c(0,1), type = "b", ylab = "Congruency coefficient", 
                            xlab = "T, T+1", ...)
   }
 
@@ -446,29 +443,29 @@ if(F){
           col = viridis(10))
   
   #C
-  matplot( parallel_A$all_factor_congruencies[,1], type = "n",
+  matplot( parallel_A$subsequent_pair_congruencies, type = "n",
           ylab = "Congruency coefficient", 
-          xlab = expression(paste("Increment in time ", Delta, "T")),
+          xlab = expression(paste("Cross-covariance pair")),
           ylim = c(0,1), 
           main = "Unstable factor loadings",
           xaxt = "n"); grid()
-  axis(1, labels = paste0(0:10),
-          at = 1:11)
-  matplot( parallel_A$all_factor_congruencies[,1],
+  axis(1, labels = paste0("(",0:10,", ",1:11,")"),
+       at = 1:11)
+  matplot( parallel_A$subsequent_pair_congruencies,
         type   = "b", col = cividis(6), add = T
         )
   
   #D
-  matplot( parallel_B$all_factor_congruencies[,1] , 
+  matplot( parallel_B$subsequent_pair_congruencies , 
            ylab = "",
-           xlab = expression(paste("Increment in time ", Delta, "T")),
+           xlab = expression(paste("Cross-covariance pair")),
            type = "n",
            ylim = c(0,1), main = "Perfectly stable factor loadings",
            col  = cividis(6),
            xaxt = "n"); grid()
-  axis(1, labels = paste0(0:10),
+  axis(1, labels = paste0("(",0:10,", ",1:11,")"),
        at = 1:11)
-  matplot( parallel_B$all_factor_congruencies[,1],
+  matplot( parallel_B$subsequent_pair_congruencies,
            type = "b",
            add  = T,
            col  = cividis(6))

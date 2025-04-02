@@ -196,11 +196,11 @@ fit_Net <- mod_Net$sample(
   }
 ); gc()
 # Save output.
-fit_Net$save_output_files("TriTheoryTests/Datas/", basename = "3VAR_CF_relaxedpriors", timestamp = T, random = F)
+fit_Net$save_output_files("/Datas/", basename = "3VAR_CF_relaxedpriors", timestamp = T, random = F)
 
 # Read data
 if(F){
-  fit_Net    <- as_cmdstan_fit(files = paste0("TriTheoryTests/Datas/3VAR_CF_relaxedpriors-202502031854-",1:nchains,".csv") ); gc()
+    fit_Net    <- as_cmdstan_fit(files = paste0("Datas/3VAR_CF_relaxedpriors-202502031854-",1:nchains,".csv") ); gc()
   draws_data <- as_draws_df(fit_Net$draws(variables = c(inference_vars_regex_alpha) ), .nhcains = nchains ); gc(); rm(fit_Net); gc()
 }
 
@@ -233,8 +233,8 @@ result_parallel  <- civ_parallel(A, Z)
 eigen_congurency <- pbapply::pblapply(var_samples, FUN = function(x){
               res  <- try(civ_parallel(x$A,x$Z))
             eigens <- t(abs(res$eigenvals))
-      congruencies <- res$all_factor_congruencies[,1]
-    return(list(eigens = eigens, congruencies = congruencies, first_above_90_tresholds = first_above_90_tresholds)) }); gc()
+      congruencies <- res$subsequent_pair_congruencies
+    return(list(eigens = eigens, congruencies = congruencies)) }); gc()
 
     # How many explain above 0.90?
 mean(unlist(lapply(eigen_congurency, function(x) any(0.90 > (x$eigens[ , 1] / (rowSums(x$eigens)))) )))
@@ -243,8 +243,10 @@ mean(unlist(lapply(eigen_congurency, function(x) any(0.90 > (x$eigens[ , 1] / (r
 mean(unlist(lapply(eigen_congurency, function(x) any(0.90 > x$congruencies))))
     # All.
 
-eigen_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, 
-                                                FUN = function(x) cbind( x$eigens, 1:11 ) ))))
+eigen_dat <- data.frame(
+  Re(do.call(rbind,
+             lapply(eigen_congurency, 
+                    FUN = function(x) cbind( x$eigens, 1:11 ) ))))
 
 upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.975))) ))
 lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
@@ -272,13 +274,13 @@ matplot(t(result_parallel$eigenvals),
         col  = cividis(6), add = T)
 
 
-cong_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function(x) cbind( x$congruencies, 1:11 ) ))))
+cong_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function(x) cbind( x$congruencies, 1:10 ) ))))
 upper_c  <- as.matrix(cong_dat %>% group_by(X2) %>% 
                         reframe( quantile(X1, 0.975) ))
 lower_c  <- as.matrix(cong_dat %>% group_by(X2) %>% 
                         reframe( quantile(X1, 0.025) ))
 
-matplot(result_parallel$all_factor_congruencies[,1], type = "n",
+matplot(result_parallel$subsequent_pair_congruencies, type = "n",
         ylim = c(0,1),
         ylab = "Congruency coefficient", 
         xlab = "Cross-covariance pair",
@@ -288,7 +290,7 @@ polygon(x = c(upper_c[,1], rev(upper_c[,1])), y=c(upper_c[,2], rev(lower_c[,2]))
         col = adjustcolor(cividis(1), alpha.f = 0.15) )
 axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
      at = 1:11 )
-matplot(result_parallel$all_factor_congruencies[,1], type = "b",
+matplot(result_parallel$subsequent_pair_congruencies, type = "b",
         col = cividis(6), add = T )
 qgraph( A, layout = "circle", 
         labels = varLabs, title = "Coefficient matrix", mar = c(5,5,5,5) )
@@ -296,12 +298,6 @@ qgraph( Z, layout = "circle",
         labels = varLabs, title = "Innovation covariance", mar = c(5,5,5,5) )
 
 dev.off();gc();par(mfrow = c(1,1) )
-
-# Congruency
-congruency <- pbapply::pbsapply(1:length(var_samples), FUN = function(x){
-  return(try(Re(civ_parallel(var_samples[[x]]$A,var_samples[[x]]$Z)$min_factor_congruency)))
-}); gc()
-saveRDS(congruency, file = "Datas/congruency_3vars.RDS"); gc()
 
   ## Second analysis: More symptoms -----
 
