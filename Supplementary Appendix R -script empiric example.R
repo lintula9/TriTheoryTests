@@ -299,7 +299,7 @@ qgraph( Z, layout = "circle",
 
 dev.off();gc();par(mfrow = c(1,1) )
 
-  ## Second analysis: More symptoms -----
+# Second analysis: More symptoms -----
 
 # Data: OVERWRITTEN to not overflow the environment.
 {
@@ -459,7 +459,7 @@ var_samples_7           <- pbapply::pblapply(1:nrow(draws_data_7),
 # Source the methods.
 source("Supplementary Appendix R -script civ_find.R")
 
-# Figure 4 in main text ----
+# Figure 5 in main text ----
 # Compute parallel analysis imitation and RMSEA, for the posterior mean.
 result_parallel_7  <- civ_parallel(A_7, Z_7)
 
@@ -467,7 +467,7 @@ result_parallel_7  <- civ_parallel(A_7, Z_7)
 eigen_congurency_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
   res  <- try(civ_parallel(x$A,x$Z))
   eigens <- t(abs(res$eigenvals))
-  congruencies <- res$all_factor_congruencies[,1]
+  congruencies <- res$subsequent_pair_congruencies
   return(list(eigens = eigens, congruencies = congruencies)) }); gc()
 
 # How many do not explain above 0.90?
@@ -504,12 +504,12 @@ for( i in 2:ncol(upper_7)) {
 matplot(t(result_parallel_7$eigenvals), 
         type = "b",
         col  = cividis(1), add = T)
-cong_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, FUN = function(x) cbind( x$congruencies, 1:11 ) ))))
+cong_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, FUN = function(x) cbind( x$congruencies, 1:10 ) ))))
 upper_c_7  <- as.matrix(cong_dat_7 %>% group_by(X2) %>% 
                         reframe( quantile(X1, 0.975) ))
 lower_c_7  <- as.matrix(cong_dat_7 %>% group_by(X2) %>% 
                         reframe( quantile(X1, 0.025) ))
-matplot(result_parallel_7$all_factor_congruencies[,1], type = "n",
+matplot(result_parallel_7$subsequent_pair_congruencies, type = "n",
         ylim = c(0,1),
         ylab = "Congruency coefficient", 
         xlab = expression(paste("Increment in time ", Delta, "T")),
@@ -517,10 +517,10 @@ matplot(result_parallel_7$all_factor_congruencies[,1], type = "n",
         main = "Congruency over cross-covariance increments"); grid()
 polygon(x = c(upper_c_7[,1], rev(upper_c_7[,1])), y=c(upper_c_7[,2], rev(lower_c_7[,2])),
         col = adjustcolor(cividis(1), alpha.f = 0.15) )
-axis(1, labels = paste0(0:10),
+axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
      at = 1:11 )
 # axis(2, at = c(0.1,0.3,0.5,0.7,0.9) )
-matplot(result_parallel_7$all_factor_congruencies[,1], type = "b",
+matplot(result_parallel_7$subsequent_pair_congruencies, type = "b",
         col = cividis(6), add = T )
 qgraph( A_7, layout = "circle", 
         labels = varLabs2, title = "Coefficient matrix", mar = c(5,5,5,5) )
