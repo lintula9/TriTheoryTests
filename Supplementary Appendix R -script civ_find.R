@@ -2,11 +2,9 @@
 
 
 # First, run (source) the whole script. 
-# 1) civ_find takes the coefficient matrix and innovation covariance as arguments. 
-# If you want to compute RMSEA, you also
-# need to give sample size N and specify cov.difference = T (default). 
-# 2) civ_parallel takes the coefficient matrix and innovation covariance as arguments.
+# civ_parallel takes the coefficient matrix and innovation covariance as arguments.
 # You can define time_points used in the computation. 
+# RMSEA approximation function is also provided (experimental).
 
 #####################################################
 # See numerical examples at the end of this script! #
@@ -91,8 +89,6 @@ dcf_ccov_Mblock <- function(L, psi, M) {
                 # Main functions --------------
 
 # Closest VAR(1) model - indistinguishable from a dynamic common factor model. 
-
-
 
 civ_find <- function(A, Z, 
                      n.iter = 2000, tol = 1e-6, 
@@ -258,7 +254,7 @@ civ_find <- function(A, Z,
 
 }
 
-# RMSEA approximation for two subsequent time points.
+# Experimental: RMSEA approximation for two subsequent time points.
 RMSEA_approx <- function(A, Z, N = NULL, error_ratios = seq(0.01, 1, length.out = 10), ...) {
 
   rmsea_samples <- as.vector(pbapply::pbsapply(error_ratios, 
@@ -319,7 +315,7 @@ plot.rmsea_approximation <- function(x, ...) {
   grid() 
   }
 
-# CIV parallel --------------
+# Main function of article: CIV parallel --------------
 
 civ_parallel <- function(A,Z,time_points = 10, threshold_proportions = 0.90) {
   
@@ -377,7 +373,7 @@ civ_parallel <- function(A,Z,time_points = 10, threshold_proportions = 0.90) {
 
 if(F){
   
-  # VAR(1), distiguishable
+  # VAR(1), distinguishable
     # Create a VAR(1) model, which rotates and scales.
     # Rotation violates indistinguishability conditions.
   Rotation <- matrix(c(
@@ -393,7 +389,7 @@ if(F){
   A_2     <- Rotation %*% Scaling
   Z_2     <- diag(7)
   
-  # VAR(1), indistinsuighable
+  # VAR(1), indistinguighable
   lambdas <- tcrossprod(seq(0.1,0.7,length.out = 7))
   A_3     <- (0.5 *     lambdas ) # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
   Z_3     <- tcrossprod(lambdas)  # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
@@ -471,6 +467,5 @@ if(F){
            col  = cividis(6))
   
   dev.off(); par(mfrow=c(1,1));gc()
-    # NOTES 19.03.2025 add second figure of how RMSEA is approximated.
-  
+
   }
