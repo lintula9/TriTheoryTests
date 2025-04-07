@@ -38,8 +38,8 @@ for( i in 1:4){
   coefs <- coef(estimated_var)
   As[[i]] <- do.call(cbind, lapply(coefs, FUN = function(x) x[1:4,"Estimate"]))
 }
-par(mfrow = c(2,2))
 tiff(filename = "Figure_1.tiff", width = 8, height = 6, units = "in", res = 480)
+par(mfrow = c(2,2))
 qgraph(As[[1]], layout = "circle")
 qgraph(As[[2]], layout = "circle")
 qgraph(As[[3]], layout = "circle")
