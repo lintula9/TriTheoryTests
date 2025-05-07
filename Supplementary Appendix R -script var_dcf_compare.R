@@ -448,7 +448,7 @@ if(F){
           font.main = 1,
           xaxt = "n"); grid()
   axis(1, labels = paste0("(",0:10,", ",1:11,")"),
-       at = 1:11)
+       at = 1:11, cex.axis = 0.7)
   matplot( parallel_A$subsequent_pair_congruencies,
         type   = "b", col = cividis(6), add = T
         )
@@ -463,7 +463,7 @@ if(F){
            col  = cividis(6),
            xaxt = "n"); grid()
   axis(1, labels = paste0("(",0:10,", ",1:11,")"),
-       at = 1:11)
+       at = 1:11, cex.axis = 0.7)
   matplot( parallel_B$subsequent_pair_congruencies,
            type = "b",
            add  = T,
