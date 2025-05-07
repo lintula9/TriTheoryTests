@@ -1,9 +1,3 @@
-# Original code was created by Eiko Fried, Faidra Papanikolaou & Sascha Epskamp. 
-# This version of code was (heavily) edited in 29.11.2024 for reanalysis of Fried(2022)
-# Mental Health and Social Contact During the COVID-19 Pandemic: 
-# An Ecological Momentary Assessment Study.
-# For the original code and data, see https://osf.io/kj5zh
-
 # Packages -----
 # List of required packages
 required_packages <- c(
@@ -14,9 +8,11 @@ required_packages <- c(
 
 # Function to check and install missing packages
 for (pkg in required_packages) {
-      if(!requireNamespace(pkg, quietly = T)) {install.packages(pkg, dependencies = T)}
+  if(pkg == "cmdstanr" & !requireNamespace(pkg, quietly = T)) install.packages("cmdstanr", repos = c('https://stan-dev.r-universe.dev', getOption("repos"))) 
+  else if(!requireNamespace(pkg, quietly = T)) {install.packages(pkg, dependencies = T)}
     library(pkg, character.only = TRUE)
 }
+
 
 
 # Load data ------
@@ -157,8 +153,8 @@ inference_vars_regex <- c("A", "Omega", "cutpoints","time_of_day_intercept")
 inference_vars_regex_alpha <- c("A_effective","A","psi","Lambda", "Omega","L_", "cutpoints", "time_of_day_effect",
                                 "ref_time_of_day_effect", "specific_time_of_day_effect")
 # Run MCMC with cmdstanr
-mod_Net <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
 nchains = 8
+mod_Net <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
 fit_Net <- mod_Net$sample(
   data = stan_data,
   seed = 123,                 # or your preferred seed
@@ -223,15 +219,15 @@ var_samples           <- pbapply::pblapply(1:nrow(draws_data),
                                    return(list(A = A_temp, Z = Z_temp))
                                  }); gc()
 # Source the methods.
-source("Supplementary Appendix R -script civ_find.R")
+source("Supplementary Appendix R -script var_dcf_compare.R")
 
 # Figure 4 in main text ----
   # Compute parallel analysis imitation and RMSEA, for the posterior mean.
-result_parallel  <- civ_parallel(A, Z)
+result_parallel  <- var_dcf_compare(A, Z)
 
   # Compute credible intervals for eigenvalues, congruencies.
 eigen_congurency <- pbapply::pblapply(var_samples, FUN = function(x){
-              res  <- try(civ_parallel(x$A,x$Z))
+              res  <- try(var_dcf_compare(x$A,x$Z))
             eigens <- t(abs(res$eigenvals))
       congruencies <- res$subsequent_pair_congruencies
     return(list(eigens = eigens, congruencies = congruencies)) }); gc()
@@ -252,10 +248,11 @@ upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1
 lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
 
 tiff(filename = "Figure_4.tiff", 
-        width = 14, 
-     height   = 14, 
-        units = "in", 
-          res = 480)
+     width = 10, 
+     height   = 10 / ((1 + sqrt(5)) / 2), 
+     units = "in", 
+     res = 300,
+     pointsize = 12)
 par(mfrow     = c(2,2) )
 par(mar       = c(4,4,2,2) )
 matplot(t(result_parallel$eigenvals),
@@ -392,8 +389,8 @@ stan_data <- list(
 )
 
 # Run MCMC with cmdstanr
-mod_Net_7 <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
 nchains = 8
+mod_Net_7 <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
 fit_Net_7 <- mod_Net_7$sample(
   data = stan_data,
   seed = 123,                 # or your preferred seed
@@ -457,15 +454,15 @@ var_samples_7           <- pbapply::pblapply(1:nrow(draws_data_7),
                                              return(list(A = A_temp, Z = Z_temp))
                                            }); gc()
 # Source the methods.
-source("Supplementary Appendix R -script civ_find.R")
+source("Supplementary Appendix R -script var_dcf_compare.R")
 
 # Figure 5 in main text ----
 # Compute parallel analysis imitation and RMSEA, for the posterior mean.
-result_parallel_7  <- civ_parallel(A_7, Z_7)
+result_parallel_7  <- var_dcf_compare(A_7, Z_7)
 
 # Compute credible intervals for eigenvalues, congruencies.
 eigen_congurency_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
-  res  <- try(civ_parallel(x$A,x$Z))
+  res  <- try(var_dcf_compare(x$A,x$Z))
   eigens <- t(abs(res$eigenvals))
   congruencies <- res$subsequent_pair_congruencies
   return(list(eigens = eigens, congruencies = congruencies)) }); gc()
@@ -484,10 +481,11 @@ upper_7 <- as.matrix(eigen_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X
 lower_7 <- as.matrix(eigen_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(eigen_dat_7)-1) ), ~ quantile(.x, c(.025))) ))
 
 tiff(filename = "Figure_5.tiff", 
-     width = 14, 
-     height   = 14, 
+     width = 10, 
+     height   = 10 / ((1 + sqrt(5)) / 2), 
      units = "in", 
-     res = 480)
+     res = 300,
+     pointsize = 12)
 par(mfrow     = c(2,2) )
 par(mar       = c(4,4,2,2) )
 matplot(t(result_parallel_7$eigenvals),
@@ -534,5 +532,9 @@ if(F) {
   
   saveRDS(result_parallel_7, file = "parallel_7.RDS")
   saveRDS(eigen_congurency_7, file = "eigen_congurency_7.RDS")
+  saveRDS(A_7, file = "A_7.RDS"); saveRDS(Z_7, file = "Z_7.RDS")
   
+  
+  result_parallel_7  <- readRDS("parallel_7.RDS")
+  eigen_congurency_7 <- readRDS("eigen_congurency_7.RDS")
 }

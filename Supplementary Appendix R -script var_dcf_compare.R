@@ -15,8 +15,8 @@
 # Dependencies:
 if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
 if(!require(expm)) install.packages("expm"); library(expm)
-if(!require(pbapply)) install.packages("pbapply"); library(expm)
-if(!require(pbapply)) install.packages("mgcv"); library(expm)
+if(!require(pbapply)) install.packages("pbapply"); library(pbapply)
+if(!require(pbapply)) install.packages("mgcv"); library(mgcv)
 
 
 
@@ -401,7 +401,8 @@ if(F){
   
   par(mfrow = c(2,2))
   par(mar   = c(4,4,2,2))
-  if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
+  if(!requireNamespace("viridisLite")) {install.packages("viridisLite")
+    library(viridisLite) } else library(viridisLite)
   
   #A
   parallel_A <- var_dcf_compare(A_2,Z_2)
@@ -416,9 +417,6 @@ if(F){
   matplot(t(abs(parallel_A$eigenvals)), type = "b",
           col  = cividis(7), add = T,
           lty = 1)
-  matplot(y = parallel_A$threshold,
-          add = T, lty = 2, type = "l",
-          col = viridis(10))
   
   #B
   parallel_B <- var_dcf_compare(A_3, Z_3)
@@ -434,9 +432,6 @@ if(F){
           col  = cividis(6),
           add  = T,
           lty = 1)
-  matplot(y = parallel_B$threshold,
-          add = T, lty = 2, type = "l",
-          col = viridis(10))
   
   #C
   matplot( parallel_A$subsequent_pair_congruencies, type = "n",
