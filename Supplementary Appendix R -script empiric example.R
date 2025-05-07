@@ -247,7 +247,7 @@ eigen_dat <- data.frame(
 upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.975))) ))
 lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
 
-tiff(filename = "Figure_5.tiff", 
+tiff(filename = "Figure_3.tiff", 
      width    = 17, 
      height   = 19, 
      units    = "cm", 
@@ -255,20 +255,22 @@ tiff(filename = "Figure_5.tiff",
      pointsize = 10)
 par(mfrow     = c(2,2) )
 par(mar       = c(4,4,2,0.5) )
+colvec <- cividis(ncol(upper)-1) |> adjustcolor(alpha.f = 0.15)
 matplot(t(result_parallel$eigenvals),
         type = "n",
-        ylab = "Eigenvalues", 
+        ylab = "Absolute value of eigenvalue", 
         xlab = expression(paste("Increment in time ", Delta, "T")),
         xaxt = "n",
-        main = "Eigenvalues over cross-covariance increments"); grid()
+        main = "Cross-covariance eigenvalues",
+        font.main = 1); grid()
 axis(side = 1, at = 1:(ncol(result_parallel$eigenvals)), labels = 0:(ncol(result_parallel$eigenvals) - 1))
 for( i in 2:ncol(upper)) {
   polygon(x = c(upper[,1], rev(lower[,1])), y = c(upper[,i], rev(lower[,i])),
-          col = adjustcolor(cividis(i-1), alpha.f = 0.15))
+          col = colvec[i-1], border = F)
 }
 matplot(t(result_parallel$eigenvals), 
         type = "b",
-        col  = cividis(6), add = T)
+        col  = cividis(ncol(upper)-1), add = T)
 
 
 cong_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function(x) cbind( x$congruencies, 1:10 ) ))))
@@ -282,17 +284,24 @@ matplot(result_parallel$subsequent_pair_congruencies, type = "n",
         ylab = "Congruency coefficient", 
         xlab = "Cross-covariance pair",
         xaxt = "n",
-        main = "Congruency for cross-covariance pairs"); grid()
+        main = "Largest eigenvector congruency",
+        font.main = 1); grid()
 polygon(x = c(upper_c[,1], rev(upper_c[,1])), y=c(upper_c[,2], rev(lower_c[,2])),
-        col = adjustcolor(cividis(1), alpha.f = 0.15) )
+        col = colvec[1])
 axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
-     at = 1:11 )
+     at = 1:11, cex.axis = 0.7 )
 matplot(result_parallel$subsequent_pair_congruencies, type = "b",
         col = cividis(6), add = T )
 qgraph( A, layout = "circle", 
-        labels = varLabs, title = "Coefficient matrix", mar = c(5,5,5,5) )
+        labels = varLabs, mar = c(2,2,7,2))
+title("Coefficient matrix",
+      font.main = 1,
+      line     = -1)
 qgraph( Z, layout = "circle", 
-        labels = varLabs, title = "Innovation covariance", mar = c(5,5,5,5) )
+        labels = varLabs, mar = c(3,3,7,3))
+title("Innovation covariance",
+      font.main = 1,
+      line     = -1)
 
 dev.off();gc();par(mfrow = c(1,1) )
 
@@ -492,11 +501,11 @@ colvec <- cividis(ncol(upper_7)-1) |> adjustcolor(alpha.f = 0.15)
 matplot(t(result_parallel_7$eigenvals),
         col  = colvec,
         type = "n",
-        ylab = "Absolute value of eigenvalue ", 
+        ylab = "Absolute value of eigenvalue", 
         xlab = expression(paste("Increment in time ", Delta, "T")),
         xaxt = "n",
         main = "Cross-covariance eigenvalues",
-        font.main = 1,); grid()
+        font.main = 1); grid()
 axis(side = 1, at = 1:(ncol(result_parallel_7$eigenvals)), labels = 0:(ncol(result_parallel_7$eigenvals) - 1))
 
 matplot(t(result_parallel_7$eigenvals), 
@@ -519,7 +528,7 @@ matplot(result_parallel_7$subsequent_pair_congruencies, type = "n",
         xlab = "Cross-covariance pair",
         xaxt = "n",
         main = "Largest eigenvector congruency",
-        font.main = 1,); grid()
+        font.main = 1); grid()
 polygon(x = c(upper_c_7[,1], rev(upper_c_7[,1])), y=c(upper_c_7[,2], rev(lower_c_7[,2])),
         col = adjustcolor(cividis(1), alpha.f = 0.15), border = NA )
 axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),

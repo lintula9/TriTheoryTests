@@ -54,7 +54,11 @@ qgraph(As[[4]], layout = "circle")
 dev.off()
 par(mfrow = c(1,1))
 
-    # Below was removed from the main text: -----------
+
+
+
+
+    # Below was removed from the main text, but kept for completeness and transparency: -----------
 
   # Analytic results, Result 1 & 2. ####
   ## Main text, results Result 1 -section -----------
@@ -155,10 +159,8 @@ par(mfrow = c(1,1))
   ); gc()
   
   
-  # Figure 1. in main text -----------
   library(Matrix); library(qgraph)
   
-  tiff(filename = "Figure_1.tiff", width = 8, height = 6, units = "in", res = 480)
   lambda = c(1,2,3)
   A = lambda %*% t(lambda) * c(t(lambda) %*% lambda)^-1 + 
     matrix(c(0,3,-2,
@@ -185,7 +187,7 @@ par(mfrow = c(1,1))
          title = coeflabs[2],
          title.cex = 1.5
   )
-  par(mfrow=c(1,1));dev.off();gc()
+  par(mfrow=c(1,1))
   
   
   
@@ -327,13 +329,7 @@ par(mfrow = c(1,1))
   par(mfrow = c(3, 2), oma = c(0, 0, 4, 0)) # Adjust oma for outer margin to accommodate the title
   
   
-  tiff(filename = "Figure_2.tiff", 
-       width    = 17, 
-       height   = 19, 
-       units    = "cm", 
-       res      = 300,
-       pointsize = 10) 
-  
+
   par(mfrow = c(3, 2), oma = c(0, 0, 0, 0)) # Adjust oma for outer margin to accommodate the title
   # Plot the Lagged effects at Time point 1 (A_t_adj)
   qgraph(A_t_adj[,,1], 
@@ -391,7 +387,7 @@ par(mfrow = c(1,1))
          edge.width = 3,       # Adjust this value for larger edges
          layout = "circle",
          labels = labels      # Use the expression labels
-  ); dev.off(); gc(); par(mfrow = c(1,1))
+  ); gc(); par(mfrow = c(1,1))
   
 
    ### Ascertain the covariance computations.

@@ -396,7 +396,7 @@ if(F){
   
   # Summary:
     # Figure shown in main text:
-  tiff(filename = "Figure_3.tiff", 
+  tiff(filename = "Figure_2.tiff", 
        width    = 17, 
        height   = 19, 
        units    = "cm", 
