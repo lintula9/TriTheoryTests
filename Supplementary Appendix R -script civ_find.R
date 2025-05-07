@@ -2,7 +2,7 @@
 
 
 # First, run (source) the whole script. 
-# civ_parallel takes the coefficient matrix and innovation covariance as arguments.
+# var_dcf_compare takes the coefficient matrix and innovation covariance as arguments.
 # You can define time_points used in the computation. 
 # RMSEA approximation function is also provided (experimental).
 
@@ -317,7 +317,7 @@ plot.rmsea_approximation <- function(x, ...) {
 
 # Main function of article: CIV parallel --------------
 
-civ_parallel <- function(A,Z,time_points = 10, threshold_proportions = 0.90) {
+var_dcf_compare <- function(A,Z,time_points = 10, threshold_proportions = 0.90) {
   
   if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting.")
   
@@ -343,13 +343,13 @@ civ_parallel <- function(A,Z,time_points = 10, threshold_proportions = 0.90) {
     all_factor_congruencies       = cosine_i,
     subsequent_pair_congruencies   = mgcv::sdiag(cosine_i,1) )
   
-  class(result) <- c("civ_parallel", "list")
+  class(result) <- c("var_dcf_compare", "list")
   
   return(result)
     
    }
 
-  plot.civ_parallel <- function(x, threshold = T, ...) {
+  plot.var_dcf_compare <- function(x, threshold = T, ...) {
   answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies.")
   if(answer == 1)  {
     matplot(abs(t(x$eigenvals)), type = "b", ylab = "Eigenvalue", 
@@ -404,7 +404,7 @@ if(F){
   if(!requireNamespace("viridisLite")) install.packages("viridisLite") else library(viridisLite)
   
   #A
-  parallel_A <- civ_parallel(A_2,Z_2)
+  parallel_A <- var_dcf_compare(A_2,Z_2)
   matplot(t(abs(parallel_A$eigenvals)), type = "n", 
           ylab = "Eigenvalue", 
           main = "Distinguishable Cross-covariance",
@@ -421,7 +421,7 @@ if(F){
           col = viridis(10))
   
   #B
-  parallel_B <- civ_parallel(A_3, Z_3)
+  parallel_B <- var_dcf_compare(A_3, Z_3)
   matplot(t(abs(parallel_B$eigenvals)), type = "n", 
           ylab = "",
           main = "Perfectly indistinguishable Cross-covariance",
