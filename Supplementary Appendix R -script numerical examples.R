@@ -320,7 +320,13 @@ par(mfrow = c(1,1))
   par(mfrow = c(3, 2), oma = c(0, 0, 4, 0)) # Adjust oma for outer margin to accommodate the title
   
   
-  tiff(file = "Figure_2.tiff", height = 12, width = 8, res = 600, units = "in")
+  tiff(filename = "Figure_2.tiff", 
+       width    = 17, 
+       height   = 19, 
+       units    = "cm", 
+       res      = 300,
+       pointsize = 10) 
+  
   par(mfrow = c(3, 2), oma = c(0, 0, 0, 0)) # Adjust oma for outer margin to accommodate the title
   # Plot the Lagged effects at Time point 1 (A_t_adj)
   qgraph(A_t_adj[,,1], 

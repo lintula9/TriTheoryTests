@@ -396,11 +396,15 @@ if(F){
   
   # Summary:
     # Figure shown in main text:
-  tiff(filename = "Figure_3.tiff", width = 14, 
-       height   = 14, units = "in", res = 480)
+  tiff(filename = "Figure_3.tiff", 
+       width    = 17, 
+       height   = 19, 
+       units    = "cm", 
+       res      = 300,
+       pointsize = 10)
   
   par(mfrow = c(2,2))
-  par(mar   = c(4,4,2,2))
+  par(mar   = c(4,4,2,0.5))
   if(!requireNamespace("viridisLite")) {install.packages("viridisLite")
     library(viridisLite) } else library(viridisLite)
   
@@ -409,6 +413,7 @@ if(F){
   matplot(t(abs(parallel_A$eigenvals)), type = "n", 
           ylab = "Eigenvalue", 
           main = "Distinguishable Cross-covariance",
+          font.main = 1,
           col  = cividis(7),
           xlab = expression(paste("Increment in time ", Delta, "T")),
           xaxt = "n"); grid()
@@ -423,6 +428,7 @@ if(F){
   matplot(t(abs(parallel_B$eigenvals)), type = "n", 
           ylab = "",
           main = "Perfectly indistinguishable Cross-covariance",
+          font.main = 1,
           col  = cividis(7),
           xlab = expression(paste("Increment in time ", Delta, "T")),
           xaxt = "n"); grid()
@@ -439,6 +445,7 @@ if(F){
           xlab = expression(paste("Cross-covariance pair")),
           ylim = c(0,1), 
           main = "Unstable factor loadings",
+          font.main = 1,
           xaxt = "n"); grid()
   axis(1, labels = paste0("(",0:10,", ",1:11,")"),
        at = 1:11)
@@ -452,6 +459,7 @@ if(F){
            xlab = expression(paste("Cross-covariance pair")),
            type = "n",
            ylim = c(0,1), main = "Perfectly stable factor loadings",
+           font.main = 1,
            col  = cividis(6),
            xaxt = "n"); grid()
   axis(1, labels = paste0("(",0:10,", ",1:11,")"),

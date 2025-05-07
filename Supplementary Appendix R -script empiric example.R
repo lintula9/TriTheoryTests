@@ -247,14 +247,14 @@ eigen_dat <- data.frame(
 upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.975))) ))
 lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
 
-tiff(filename = "Figure_4.tiff", 
-     width = 10, 
-     height   = 10 / ((1 + sqrt(5)) / 2), 
-     units = "in", 
-     res = 300,
-     pointsize = 12)
+tiff(filename = "Figure_5.tiff", 
+     width    = 17, 
+     height   = 19, 
+     units    = "cm", 
+     res      = 300,
+     pointsize = 10)
 par(mfrow     = c(2,2) )
-par(mar       = c(4,4,2,2) )
+par(mar       = c(4,4,2,0.5) )
 matplot(t(result_parallel$eigenvals),
         type = "n",
         ylab = "Eigenvalues", 
@@ -481,27 +481,33 @@ upper_7 <- as.matrix(eigen_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X
 lower_7 <- as.matrix(eigen_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(eigen_dat_7)-1) ), ~ quantile(.x, c(.025))) ))
 
 tiff(filename = "Figure_5.tiff", 
-     width = 10, 
-     height   = 10 / ((1 + sqrt(5)) / 2), 
-     units = "in", 
-     res = 300,
-     pointsize = 12)
+     width    = 17, 
+     height   = 19, 
+     units    = "cm", 
+     res      = 300,
+     pointsize = 10)
 par(mfrow     = c(2,2) )
-par(mar       = c(4,4,2,2) )
+par(mar       = c(4,4,2,0.5) )
+colvec <- cividis(ncol(upper_7)-1) |> adjustcolor(alpha.f = 0.15)
 matplot(t(result_parallel_7$eigenvals),
+        col  = colvec,
         type = "n",
-        ylab = "Eigenvalues", 
+        ylab = "Absolute value of eigenvalue ", 
         xlab = expression(paste("Increment in time ", Delta, "T")),
         xaxt = "n",
-        main = "Eigenvalues over cross-covariance increments"); grid()
+        main = "Cross-covariance eigenvalues",
+        font.main = 1,); grid()
 axis(side = 1, at = 1:(ncol(result_parallel_7$eigenvals)), labels = 0:(ncol(result_parallel_7$eigenvals) - 1))
-for( i in 2:ncol(upper_7)) {
-  polygon(x = c(upper_7[,1], rev(lower_7[,1])), y = c(upper_7[,i], rev(lower_7[,i])),
-          col = adjustcolor(cividis(begin = seq(0,1,length.out = ncol(upper_7)-1 )[i-1], n = 1), alpha.f = 0.15))
-}
+
 matplot(t(result_parallel_7$eigenvals), 
         type = "b",
-        col  = cividis(1), add = T)
+        col  = cividis(ncol(upper_7)-1), add = T)
+for( i in 2:ncol(upper_7)) {
+  polygon(x = c(upper_7[,1], rev(lower_7[,1])), y = c(upper_7[,i], rev(lower_7[,i])),
+          col = colvec[i-1], 
+          border = NA)
+}
+
 cong_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, FUN = function(x) cbind( x$congruencies, 1:10 ) ))))
 upper_c_7  <- as.matrix(cong_dat_7 %>% group_by(X2) %>% 
                         reframe( quantile(X1, 0.975) ))
@@ -510,20 +516,26 @@ lower_c_7  <- as.matrix(cong_dat_7 %>% group_by(X2) %>%
 matplot(result_parallel_7$subsequent_pair_congruencies, type = "n",
         ylim = c(0,1),
         ylab = "Congruency coefficient", 
-        xlab = expression(paste("Increment in time ", Delta, "T")),
+        xlab = "Cross-covariance pair",
         xaxt = "n",
-        main = "Congruency over cross-covariance increments"); grid()
+        main = "Largest eigenvector congruency",
+        font.main = 1,); grid()
 polygon(x = c(upper_c_7[,1], rev(upper_c_7[,1])), y=c(upper_c_7[,2], rev(lower_c_7[,2])),
-        col = adjustcolor(cividis(1), alpha.f = 0.15) )
+        col = adjustcolor(cividis(1), alpha.f = 0.15), border = NA )
 axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
-     at = 1:11 )
-# axis(2, at = c(0.1,0.3,0.5,0.7,0.9) )
+     at = 1:11, cex.axis = 0.7 )
 matplot(result_parallel_7$subsequent_pair_congruencies, type = "b",
         col = cividis(6), add = T )
 qgraph( A_7, layout = "circle", 
-        labels = varLabs2, title = "Coefficient matrix", mar = c(5,5,5,5) )
+        labels = varLabs2, mar = c(2,2,7,2) )
+title("Coefficient matrix",
+      font.main = 1,
+      line     = -1)
 qgraph( Z_7, layout = "circle", 
-        labels = varLabs2, title = "Innovation covariance", mar = c(5,5,5,5) )
+        labels = varLabs2, mar = c(3,3,7,3))
+title("Innovation covariance",
+      font.main = 1,
+      line     = -1)
 dev.off();gc();par(mfrow = c(1,1) )
 
 
@@ -532,9 +544,9 @@ if(F) {
   
   saveRDS(result_parallel_7, file = "parallel_7.RDS")
   saveRDS(eigen_congurency_7, file = "eigen_congurency_7.RDS")
-  saveRDS(A_7, file = "A_7.RDS"); saveRDS(Z_7, file = "Z_7.RDS")
-  
+  saveRDS(draws_data_7, file = "draws_data_7.RDS"); gc()
   
   result_parallel_7  <- readRDS("parallel_7.RDS")
   eigen_congurency_7 <- readRDS("eigen_congurency_7.RDS")
-}
+  
+  }
