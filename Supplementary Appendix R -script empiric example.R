@@ -483,6 +483,21 @@ mean(unlist(lapply(eigen_congurency_7, function(x) any(0.90 > (x$eigens[ , 1] / 
 mean(unlist(lapply(eigen_congurency_7, function(x) any(0.90 > x$congruencies))))
 # 0.133.
 
+# Compute quantiles for eigenvalues.
+eigen_distributions_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
+  res  <- var_dcf_compare(x$A,x$Z)
+  eigens <- t((res$eigenvals))
+  return(list(eigens = eigens)) }); gc()
+
+eigen_distributions_7 |> 
+  lapply(FUN = function(x) cbind(Re(x$eigens), 0:10)) %>% 
+  do.call(rbind, args = .) |> 
+  as.data.frame() |> setNames(c(paste0("eigen",1:7),"Increment")) %>%
+  tibble() %>%
+  group_by(Increment) %>%
+  summarise_all( .funs = function(x) quantile(x, c(0.05, 0.025, 0.01, 0.001)) ) |>
+  print(n = 50)
+
 eigen_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, 
                                                 FUN = function(x) cbind( x$eigens, 1:11 ) ))))
 
@@ -557,5 +572,5 @@ if(F) {
   
   result_parallel_7  <- readRDS("parallel_7.RDS")
   eigen_congurency_7 <- readRDS("eigen_congurency_7.RDS")
-  
+  draws_data_7       <- readRDS("draws_data_7.RDS")
   }
