@@ -472,9 +472,10 @@ result_parallel_7  <- var_dcf_compare(A_7, Z_7)
 # Compute credible intervals for eigenvalues, congruencies.
 eigen_congurency_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
   res  <- try(var_dcf_compare(x$A,x$Z))
-  eigens <- t(abs(res$eigenvals))
+  eigens       <- t(abs(res$eigenvals))
+  singularvals <- t(res$singularvals)
   congruencies <- res$subsequent_pair_congruencies
-  return(list(eigens = eigens, congruencies = congruencies)) }); gc()
+  return(list(eigens = eigens, singularvals = singularvals, congruencies = congruencies)) }); gc()
 
 # How many do not explain above 0.90?
 mean(unlist(lapply(eigen_congurency_7, function(x) any(0.90 > (x$eigens[ , 1] / (rowSums(x$eigens)))) )))
@@ -485,8 +486,9 @@ mean(unlist(lapply(eigen_congurency_7, function(x) any(0.90 > x$congruencies))))
 
 # Compute quantiles for eigenvalues.
 eigen_distributions_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
-  res  <- var_dcf_compare(x$A,x$Z)
-  eigens <- t((res$eigenvals))
+  res          <- var_dcf_compare(x$A,x$Z)
+  eigens       <- t((res$eigenvals))
+  singularvals <- t((res$singularvals))
   return(list(eigens = eigens)) }); gc()
 
 eigen_distributions_7 |> 
@@ -498,13 +500,15 @@ eigen_distributions_7 |>
   summarise_all( .funs = function(x) quantile(x, c(0.05, 0.025, 0.01, 0.001)) ) |>
   print(n = 50)
 
-eigen_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, 
+eigen_dat_7    <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, 
                                                 FUN = function(x) cbind( x$eigens, 1:11 ) ))))
+singular_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, 
+                                                     FUN = function(x) cbind( x$singularvals, 1:11 ) ))))
 
-upper_7 <- as.matrix(eigen_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(eigen_dat_7)-1) ), ~ quantile(.x, c(.975))) ))
-lower_7 <- as.matrix(eigen_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(eigen_dat_7)-1) ), ~ quantile(.x, c(.025))) ))
+upper_7 <- as.matrix(singular_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(singular_dat_7)-1) ), ~ quantile(.x, c(.975))) ))
+lower_7 <- as.matrix(singular_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(singular_dat_7)-1) ), ~ quantile(.x, c(.025))) ))
 
-tiff(filename = "Figure_5.tiff", 
+tiff(filename = "Figure_4_tentative.tiff", 
      width    = 17, 
      height   = 19, 
      units    = "cm", 
@@ -513,17 +517,18 @@ tiff(filename = "Figure_5.tiff",
 par(mfrow     = c(2,2) )
 par(mar       = c(4,4,2,0.5) )
 colvec <- cividis(ncol(upper_7)-1) |> adjustcolor(alpha.f = 0.15)
-matplot(t(result_parallel_7$eigenvals),
+matplot(t(result_parallel_7$singularvals),
         col  = colvec,
         type = "n",
-        ylab = "Absolute value of eigenvalue", 
+        ylab = "Singular value", 
         xlab = expression(paste("Increment in time ", Delta, "T")),
         xaxt = "n",
-        main = "Cross-covariance eigenvalues",
+        main = "Cross-covariance singular values",
         font.main = 1); grid()
-axis(side = 1, at = 1:(ncol(result_parallel_7$eigenvals)), labels = 0:(ncol(result_parallel_7$eigenvals) - 1))
+axis(side = 1, at = 1:(ncol(result_parallel_7$singularvals)), 
+     labels = 0:(ncol(result_parallel_7$singularvals) - 1))
 
-matplot(t(result_parallel_7$eigenvals), 
+matplot(t(result_parallel_7$singularvals), 
         type = "b",
         col  = cividis(ncol(upper_7)-1), add = T)
 for( i in 2:ncol(upper_7)) {

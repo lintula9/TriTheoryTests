@@ -17,6 +17,8 @@ if(!require(fastmatrix)) install.packages("fastmatrix"); library(fastmatrix)
 if(!require(expm)) install.packages("expm"); library(expm)
 if(!require(pbapply)) install.packages("pbapply"); library(pbapply)
 if(!require(pbapply)) install.packages("mgcv"); library(mgcv)
+if(!require(pbapply)) install.packages("MASS"); library(MASS)
+
 
 
 
@@ -317,9 +319,10 @@ plot.rmsea_approximation <- function(x, ...) {
 
 # Main function of article: CIV parallel --------------
 
-var_dcf_compare <- function(A,Z,time_points = 10, threshold_proportions = 0.90) {
+var_dcf_compare <- function(A,Z,time_points = 10) {
   
   if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting.")
+  if(any(round(eigen(var_ccov(A,Z,0))$values, digits = 10) == 0)) simpleWarning("Near zero eigenvalues detected in predicted the within time point covariance. Generalized inverse used where needed.")
   
   comp        <- lapply(0:time_points,         function(d){return(eigen(var_ccov(A,Z,d)))})
   all_sum     <- sapply(1:ncol(A), function(j){
@@ -328,20 +331,21 @@ var_dcf_compare <- function(A,Z,time_points = 10, threshold_proportions = 0.90) 
   cosine_i    <- sapply(1:(time_points+1), function(j) {
     sapply(1:(time_points+1), function(i) abs( sum( comp[[i]]$vectors[,1] * comp[[j]]$vectors[,1] ) ) ) }, simplify = "matrix")
 
-  eigenvals <- sapply(0:time_points, function(t) eigen(var_ccov(A,Z,t))$values)
-  colnames(eigenvals) <- paste("Increment ",0:time_points)
+  eigenvals     <- sapply(0:time_points, function(t) eigen( var_ccov(A,Z,t) )$values)
+  singularvals  <- sapply(0:time_points, function(t) svd(   var_ccov(A,Z,t  ) )$d )
+  ccorrcoefs    <- sapply(0:time_points, function(t) svd( MASS::ginv(var_ccov(A,Z,0)) %*% var_ccov(A,Z,t) %*% MASS::ginv(t(var_ccov(A,Z,0))) )$d ) 
   
-  # Compute threshold for threshold proportions:
-  eigen_sums <- sapply(comp, function(x) sum(abs(x$values)), simplify = "vector" )
-  thresholds <- sapply(threshold_proportions, function(x) eigen_sums * x, simplify = "matrix")
-  
+  colnames(eigenvals)    <- paste("Increment ",0:time_points)
+  colnames(singularvals) <- paste("Increment ",0:time_points)
+  colnames(ccorrcoefs)   <- paste("Increment ",0:time_points)
+
   result <- list(
     eigenvals                     = eigenvals,
-    eigen_sums                    = eigen_sums,
-    threshold                     = thresholds,
+    singularvals                  = singularvals,
+    canonical_correlations        = ccorrcoefs,
     min_factor_congruency         = min(cosine_i),
     all_factor_congruencies       = cosine_i,
-    subsequent_pair_congruencies   = mgcv::sdiag(cosine_i,1) )
+    subsequent_pair_congruencies  = mgcv::sdiag(cosine_i,1) )
   
   class(result) <- c("var_dcf_compare", "list")
   
@@ -349,23 +353,34 @@ var_dcf_compare <- function(A,Z,time_points = 10, threshold_proportions = 0.90) 
     
    }
 
-  plot.var_dcf_compare <- function(x, threshold = T, ...) {
-  answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies.")
+  plot.var_dcf_compare <- function(x, ...) {
+  answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies, 3: singular values, 4: Canonical correlation.")
   if(answer == 1)  {
-    matplot(abs(t(x$eigenvals)), type = "b", ylab = "Eigenvalue", 
+    matplot((t(x$eigenvals)), type = "b", ylab = "Eigenvalue", 
                            xlab = expression(paste("Increment in time ", Delta, "T")),
                            xaxt = "n", 
-            ylim = c(0,max(x$threshold)),
             ...)
-    axis(1, at  = 1:length(x$eigenvals), 
+    axis(1, at  = 1: length(x$eigenvals), 
          labels = 0:(length(x$eigenvals)-1) )
-    if(threshold){ 
-      matplot(y = x$threshold,
-              add = T, lty = 2, type = "l")
-      }
     }
   if(answer == 2)  matplot(x$subsequent_pair_congruencies,  ylim = c(0,1), type = "b", ylab = "Congruency coefficient", 
                            xlab = "T, T+1", ...)
+  if(answer == 3)  {
+    matplot(t(x$singularvals), type = "b", ylab = "Singular value", 
+            xlab = expression(paste("Increment in time ", Delta, "T")),
+            xaxt = "n",
+            ...)
+    axis(1, at  = 1:length(x$singularvals), 
+         labels = 0:(length(x$singularvals)-1) )
+  }
+  if(answer == 4)  {
+    matplot(t(x$canonical_correlations), type = "b", ylab = "Canonical correlation coefficient", 
+            xlab = expression(paste("Increment in time ", Delta, "T")),
+            xaxt = "n",
+            ...)
+    axis(1, at  = 1:length( x$canonical_correlations), 
+         labels = 0:(length(x$canonical_correlations)-1) )
+  }
   }
 
 
@@ -396,7 +411,7 @@ if(F){
   
   # Summary:
     # Figure shown in main text:
-  tiff(filename = "Figure_2.tiff", 
+  tiff(filename = "Figure_2_tentative.tiff", 
        width    = 17, 
        height   = 19, 
        units    = "cm", 
@@ -410,8 +425,8 @@ if(F){
   
   #A
   parallel_A <- var_dcf_compare(A_2,Z_2)
-  matplot(t(abs(parallel_A$eigenvals)), type = "n", 
-          ylab = "Eigenvalue", 
+  matplot(t(parallel_A$singularvals), type = "n", 
+          ylab = "Singular value", 
           main = "Distinguishable Cross-covariance",
           font.main = 1,
           col  = cividis(7),
@@ -425,7 +440,7 @@ if(F){
   
   #B
   parallel_B <- var_dcf_compare(A_3, Z_3)
-  matplot(t(abs(parallel_B$eigenvals)), type = "n", 
+  matplot(t(parallel_B$singularvals), type = "n", 
           ylab = "",
           main = "Perfectly indistinguishable Cross-covariance",
           font.main = 1,
