@@ -329,7 +329,10 @@ par(mfrow = c(1,1))
   par(mfrow = c(3, 2), oma = c(0, 0, 4, 0)) # Adjust oma for outer margin to accommodate the title
   
   
-
+  # Example .tiff.
+  tiff(filename = "Example_for_pres.tiff",
+       height = 24, width = 16, res = 120, units = "in",
+       pointsize = 24)
   par(mfrow = c(3, 2), oma = c(0, 0, 0, 0)) # Adjust oma for outer margin to accommodate the title
   # Plot the Lagged effects at Time point 1 (A_t_adj)
   qgraph(A_t_adj[,,1], 
@@ -388,7 +391,7 @@ par(mfrow = c(1,1))
          layout = "circle",
          labels = labels      # Use the expression labels
   ); gc(); par(mfrow = c(1,1))
-  
+  dev.off()
 
    ### Ascertain the covariance computations.
     # Initialize with time point 0 covariance.
