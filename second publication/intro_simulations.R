@@ -108,7 +108,7 @@ stan_data <- list(
   p       = dim(Y_case1)[2]
   )
 
-# Initial values.
+# Initial values, if needed.
 init_fun <- function() {
   list(
     sigma       = rep(0.5, stan_data$p),
@@ -123,11 +123,13 @@ init_fun <- function() {
 }
 
 # Run the Stan model.
-library(cmdstanr)
-cmdstanr::install_cmdstan()
-stan_model       <- cmdstan_model(stan_file = list.files(path = ".", 
-                                                   pattern = "intro_simulations.stan", 
-                                                   recursive = TRUE, full.names = TRUE)
-                            ) ; invisible(gc())
-stan_diagnostics <- stan_model$diagnose(data = stan_data, 
-                                        init = init_fun) ; invisible(gc())
+library(rstan)
+stan_model       <- stan(
+  file = list.files(path = ".", pattern = "intro_simulations.stan", 
+  recursive = TRUE, full.names = TRUE), 
+  model_name = "basic_model",
+  cores = 4,
+  init = "random",
+  data = stan_data
+  )
+
