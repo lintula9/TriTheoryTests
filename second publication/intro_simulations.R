@@ -100,29 +100,16 @@ library(rstan)
 
 # Define the data list.
 stan_data <- list(
-  Y_case1 = Y_case1,
-  Y_case2 = Y_case2,
-  Y_case3 = Y_case3,
-  Y_case4 = Y_case4,
+  Y_case1 = scale(Y_case1),
+  Y_case2 = scale(Y_case2),
+  Y_case3 = scale(Y_case3),
+  Y_case4 = scale(Y_case4),
   N       = dim(Y_case1)[1],
   p       = dim(Y_case1)[2]
   )
 
-# Initial values, if needed.
-init_fun <- function() {
-  list(
-    sigma       = rep(0.5, stan_data$p),
-    residual_sd = rep(0.5, stan_data$p),
-    L_Omega     = diag(1, stan_data$p),
-    A           = matrix(0, stan_data$p, stan_data$p),
-    c           = rep(0, stan_data$p),
-    X_start     = rep(0, stan_data$p),
-    z           = replicate(stan_data$N-1, rep(0, stan_data$p), simplify = FALSE),
-    epsilon     = replicate(stan_data$N,   rep(0, stan_data$p), simplify = FALSE)
-  )
-}
 
-# Run the Stan model.
+## Run the Stan model. ----
 library(rstan)
 stan_model       <- stan(
   file = list.files(path = ".", pattern = "intro_simulations.stan", 
@@ -130,6 +117,7 @@ stan_model       <- stan(
   model_name = "basic_model",
   cores = 4,
   init = "random",
-  data = stan_data
+  data = stan_data,
   )
+
 
