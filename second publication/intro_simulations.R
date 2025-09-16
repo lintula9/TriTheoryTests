@@ -5,7 +5,10 @@
 
 # Install packages. ----
 pkgs <- c("MTS", "ggplot2", "gridExtra", "rstan")
-for (pkg in pkgs) if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg) else{library(pkg, character.only = T)}
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+      install.packages(pkg)}  else {
+      library(pkg, character.only = T)}}
 
 # Reproducibility seed. ----
 set.seed(42)  # global reproducibility
@@ -84,7 +87,7 @@ Theta_case4 <- hstack(Theta_blocks_case4)  # p x (p*L)
 simE4 <- VARMAsim(nobs = n_obs, malags = 1:L, theta = Theta_case4, sigma = diag(p), skip = 0)
 e4 <- simE4$series
 
-# Build observed data Y = X + scaled eps (so noise actually matters). ----
+# Build observed data Y = X + scaled noise ----
 e1s <- scale_noise_to_SNR(e1, X_case1, SNR)
 e2s <- scale_noise_to_SNR(e2, X_case2, SNR)
 e3s <- scale_noise_to_SNR(e3, X_case3, SNR)
@@ -94,30 +97,3 @@ Y_case1 <- X_case1 + e1s
 Y_case2 <- X_case2 + e2s
 Y_case3 <- X_case3 + e3s
 Y_case4 <- X_case4 + e4s
-
-# Stan model. ----
-library(rstan)
-
-# Define the data list.
-stan_data <- list(
-  Y_case1 = scale(Y_case1),
-  Y_case2 = scale(Y_case2),
-  Y_case3 = scale(Y_case3),
-  Y_case4 = scale(Y_case4),
-  N       = dim(Y_case1)[1],
-  p       = dim(Y_case1)[2]
-  )
-
-
-## Run the Stan model. ----
-library(rstan)
-stan_model       <- stan(
-  file = list.files(path = ".", pattern = "intro_simulations.stan", 
-  recursive = TRUE, full.names = TRUE), 
-  model_name = "basic_model",
-  cores = 4,
-  init = "random",
-  data = stan_data,
-  )
-
-
