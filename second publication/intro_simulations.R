@@ -97,3 +97,13 @@ Y_case1 <- X_case1 + e1s
 Y_case2 <- X_case2 + e2s
 Y_case3 <- X_case3 + e3s
 Y_case4 <- X_case4 + e4s
+
+# Define the data list.
+stan_data <- list(
+  # Y       = scale(Y_case1), # Diagonal VAR(10) noise.
+  Y = scale(Y_case2), # Diagonal VAR(1) noise.
+  # Y = scale(Y_case3), # White noise.
+  # Y = scale(Y_case4), # VMA(1) noise.
+  N       = dim(Y_case1)[1],
+  p       = dim(Y_case1)[2]
+)

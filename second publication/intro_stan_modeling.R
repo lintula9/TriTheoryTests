@@ -1,30 +1,31 @@
-# Source simulation
+# Source simulation and options.
 source("./second publication/intro_simulations.R")
+source("./stan_models/stan_options.R")
 
-# Stan model. ----
-library(rstan)
+# Run the Stan model. ----
+stan_file        <- list.files(path = ".", pattern = "intro_simulations.stan", 
+                               recursive = TRUE, full.names = TRUE)
+if(F){ # If modeling is needed to be reran.
+  stan_model       <- cmdstan_model(stan_file, dir = "./Datas/")
+  stan_fit <- stan_model$sample(
+    data = stan_data,
+    seed = 123,          # optional: set seed for reproducibility
+    chains = 4,
+    parallel_chains = 4, # same as cores in rstan
+    iter_warmup = 1000,  # rstan's iter = 4000 means 2000 warmup + 2000 sampling (default)
+    iter_sampling = 3000); gc()
+  stan_fit$sampler_diagnostics()
+  }
+# Done?.
+rm(list = ls()); gc()
 
-# Define the data list.
-stan_data <- list(
-  # Y       = scale(Y_case1), # Diagonal VAR(10) noise.
-  Y = scale(Y_case2), # Diagonal VAR(1) noise.
-  # Y = scale(Y_case3), # White noise.
-  # Y = scale(Y_case4), # VMA(1) noise.
-  N       = dim(Y_case1)[1],
-  p       = dim(Y_case1)[2]
-)
+## Posterior summaries. ----
+# Fetch model. 
+intro_csvs <- list.files("./Datas", pattern = "^intro_simulations-.*\\.csv$", full.names = TRUE)
+stan_fit   <- cmdstanr::as_cmdstan_fit(intro_csvs) ; gc()
 
-
-## Run the Stan model. ----
-library(rstan)
-stan_model       <- stan(
-  file = list.files(path = ".", pattern = "intro_simulations.stan", 
-                    recursive = TRUE, full.names = TRUE), 
-  model_name = "basic_model",
-  cores = 4, 
-  iter = 4000,
-  init = "random",
-  data = stan_data, 
-  include = T, 
-  pars = c("Sigma", "A", "A_eps", "c")
-)
+# Arbitrary statistic.
+stan_fit$summary("A[1,1]", pr_lt_half = ~ mean(. <= 0.5)) ; gc()
+# Plots.
+mcmc_hist(stan_fit$draws("A")) ; gc()
+mcmc_hist(stan_fit$draws("A_eps")) ; gc()
