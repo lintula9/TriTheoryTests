@@ -16,9 +16,9 @@ parameters {
 }
 transformed parameters {
   // Process prediction
-  matrix[N,p]          Y_hat;
+  matrix[N-1,p]          Y_hat;
   for(n in 2:N)
-    Y_hat[n, 1:p]      = (c + A * (Y[n-1, 1:p])')';
+    Y_hat[n-1, 1:p]    = (c + A * (Y[n-1, 1:p])')';
   // Likelihood covariance
   matrix[p, p] L_Sigma = diag_pre_multiply(sigma, L_Omega);
   // noise term (autocorrelated residual)
@@ -42,6 +42,7 @@ model {
   
   }
 generated quantities{
-  // 
+  // Residual covariance
+  matrix[p,p] Sigma   = L_Sigma * L_Sigma';
   
 }
