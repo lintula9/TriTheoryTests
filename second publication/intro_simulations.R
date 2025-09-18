@@ -10,9 +10,7 @@ set.seed(42)  # global reproducibility
 
 # Parameters.
 n_obs <- 10000       # kept observations
-L     <- 10          # "multiple lags" = 10
 burn  <- 200         # burn-in dropped by skip=
-SNR   <- 1.0         # signal-to-noise ratio per dimension (1.0 ≈ comparable scales)
 
 # Template VAR(1) coefficient matrix.
 A               <- matrix(0, nrow = 20, ncol = 20)
@@ -42,6 +40,7 @@ models      <- lapply(
       try({MTS::VARMA(da = frq, p = 1, q = 0); invisible(gc())})
     }) |> setNames(frq_names) 
     }) |> setNames(num_var_names)
+saveRDS(models, file = "./second publication/")
 
 # Eigen decomp each model implied within time point covariance matrix.
 # Yule-Walker:
@@ -54,6 +53,10 @@ yule_walker <- function(model) {
 eigen_decomps <- lapply(
   models, FUN = \(p) {
     lapply(p, FUN = \(frq){
-      yule_walker(frq) |> eigen(only.values = T)
+      e <- yule_walker(frq) |> eigen(only.values = T)
+      return(sum(round(e, digits = 8) != 0))
   }) |> setNames(frq_names) }) |> setNames(num_var_names)
 
+# Create table out of freq vs. number of variables.
+rank_df <- data.frame(eigen_decomps)
+saveRDS(rank_df, file = "./second publication/model_dimensions.rds")
