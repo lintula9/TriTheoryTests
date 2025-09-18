@@ -39,7 +39,7 @@ result      <- lapply(num_var,
 models      <- lapply(
   result, FUN = \(p) {
     lapply(p, FUN = \(frq){
-      try(MTS::VARMA(da = frq, p = 1, q = 0))
+      try({MTS::VARMA(da = frq, p = 1, q = 0); invisible(gc())})
     }) |> setNames(frq_names) 
     }) |> setNames(num_var_names)
 
@@ -57,12 +57,3 @@ eigen_decomps <- lapply(
       yule_walker(frq) |> eigen(only.values = T)
   }) |> setNames(frq_names) }) |> setNames(num_var_names)
 
-# Define the data list.
-stan_data <- list(
-  # Y       = scale(Y_case1), # Diagonal VAR(10) noise.
-  Y = scale(Y_case2), # Diagonal VAR(1) noise.
-  # Y = scale(Y_case3), # White noise.
-  # Y = scale(Y_case4), # VMA(1) noise.
-  N       = dim(Y_case1)[1],
-  p       = dim(Y_case1)[2]
-)
