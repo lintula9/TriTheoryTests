@@ -1,52 +1,52 @@
 # Install packages. ----
-pkgs <- c("MTS", "ggplot2", "gridExtra", "rstan")
+pkgs <- c("MTS", "ggplot2", "gridExtra", "rstan", "progress", "tidyr", "tibble", "dplyr")
 for (pkg in pkgs) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
       install.packages(pkg)}  else {
       library(pkg, character.only = T)}}
 # Parameters.
 n_obs <- 10000       # kept observations
-burn  <- 200         # burn-in dropped by skip=
-# Template VAR(1) coefficient matrix.
-A               <- matrix(0, nrow = 20, ncol = 20)
-A[upper.tri(A)] <- runif(n = upper.tri(A) |> sum(), -0.99, 0.99)
-# Generate observed values at different time frequencies.
-frequencies <- c(1,2,5,10,20,40,80,160)
-frq_names   <- paste0("frequency_", frequencies)
-num_var     <- 3:20
-num_var_names <- paste0("num_var_", num_var)
-result      <- lapply(
-  num_var, FUN = \(p) {
-    true_simu <- MTS::VARMAsim(
-      nobs  = n_obs, arlags = 1, phi   = A[1:p,1:p], sigma = diag(p), skip=burn)
-    lapply(frequencies,FUN = \(frq) {
-      true_simu$series[seq(from=1,to=nrow(true_simu$series),by=frq),]
-                 }) |> setNames(frq_names) }) |> setNames(num_var_names)
-# Fit models.
-models      <- lapply(
-  result, FUN = \(p) {
-    lapply(p, FUN = \(frq){
-      try({MTS::VARMA(da = frq, p = 1, q = 0); invisible(gc())})
-    }) |> setNames(frq_names) 
-    }) |> setNames(num_var_names)
-saveRDS(models, file = "./second publication/")
-# Eigen decomp each model implied within time point covariance matrix.
-# Yule-Walker:
-yule_walker <- function(model) {
-  if(class(model) == "try-error") {
-    message("Try error found, returning 0 matrix.")
-    return(matrix(0))} 
-  else {
-  A <- model$Phi; S <- model$Sigma; p <- nrow(A)
-  return(matrix(solve(diag(p^2) - fastmatrix::kronecker.prod(A))
-                        %*% fastmatrix::vec(S),
-                 ncol = p, nrow = p))}}
-eigen_decomps <- lapply(
-  models, FUN = \(p) {
-    lapply(p, FUN = \(frq){
-      e <- (yule_walker(frq) |> eigen(only.values = T))$values
-      # return(sum(round(e, digits = 8) != 0))
-  }) |> setNames(frq_names) }) |> setNames(num_var_names)
-# Create table out of freq vs. number of variables.
-rank_df <- data.frame(eigen_decomps)
-saveRDS(rank_df, file = "./second publication/model_dimensions.rds")
+burn  <- 200         # burn-in dropped by skip
+p_max <- 40
+frequencies <- seq(n_obs / 50, n_obs / 2, length.out = 1000)
+ranks <- expand.grid(3:p_max, frequencies) |> 
+         setNames(c("true_dimension", "sampling_freq"))
+# Pb
+pb <- progress::progress_bar$new(total = p_max-2 )
+for( p in 3:p_max) {
+  # Random VAR time series.
+  A <- matrix(0,p,p)
+  A[upper.tri(A, diag = T)] <- runif((p*(p-1) / 2) + p, -0.99, 0.99)
+  true_simu <- MTS::VARMAsim(
+    nobs  = n_obs, arlags = 1, 
+    phi   = A, 
+    sigma = diag(p), skip=burn)
+  pb2 <- progress::progress_bar$new(total = length(frequencies))
+  for( frq in frequencies ){
+    # Pick samples.
+    obs_series <- true_simu$series[ seq(1, n_obs, by = frq), ]
+    # Save rank of the covariance.
+    result     <- cov(obs_series) |> eigen() |> 
+                  (\(x) x$values > 1e-06)()  |> sum()
+    ranks[ ranks$true_dimension == p & 
+           ranks$sampling_freq  == frq, 
+           c("est_dimension") ] <- result
+    pb2$tick()}
+  pb2$terminate()
+  pb$tick()}
+pb$terminate() ; gc()
+# Plot the result.
+ggplot(data = ranks,
+       aes(x     = (n_obs / sampling_freq) / n_obs, 
+           y     = est_dimension,
+           color = true_dimension -  est_dimension)) + 
+  geom_point() +
+  theme_bw() + 
+  ylab("Estimated dimension") + 
+  xlab("Proportion of equidistant observations") +
+  scale_y_continuous(breaks = 1:p_max) +
+  scale_color_gradientn(
+    colours = hcl.colors(2),
+    values  = scales::rescale(c(min(ranks$true_dimension),
+                                max(ranks$true_dimension)))
+  )
