@@ -1,6 +1,8 @@
 # Libraries
 packages <- c("lavaan", "qgraph", "psych", "mlVAR", "knitr", 
-              "semTools", "semPlot","ggplot2", "fastmatrix")
+              "semTools", "semPlot","ggplot2", "fastmatrix",
+              "MTS","ggplot2","gridExtra","rstan","progress","tidyr","tibble",
+              "dplyr","foreach","doParallel") |> unique()
 for ( i in packages ) {
   if ( !requireNamespace( i, quietly = T )) {
     install.packages( i )}
