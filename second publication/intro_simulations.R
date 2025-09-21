@@ -12,13 +12,11 @@ idx      <- lapply(sample_n,
 cl <- parallel::makeCluster(max(1, parallel::detectCores() - 1))
 doSNOW::registerDoSNOW(cl)
 # Compute (parallel over sim). ----
-
 # Progress bar.
 pb <- progress_bar$new(
   format = "sim = :simulation [:bar] :elapsed | eta: :eta",
-  total = simu_n,    # 100 
-  width = 60)
-progress <- function(n){pb$tick(tokens = list(simulation = sim))} 
+  total = simu_n, width = 60)
+progress <- function(n){pb$tick(tokens = list(simulation = n))} 
 
 ranks_sim <- foreach::foreach(
   sim = 1:simu_n,
