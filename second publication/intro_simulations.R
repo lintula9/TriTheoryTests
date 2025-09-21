@@ -3,18 +3,27 @@ source("Libraries.R")
 # Parameters. ----
 n_obs  <- 10000
 burn   <- 200
-simu_n <- 1000
+simu_n <- 100
 p_max  <- 40
 sample_n <- floor(seq(2, 5000, length.out = 1000)) |> unique()
 idx      <- lapply(sample_n, 
                    FUN = \(n) unique(floor(seq(1, n_obs, length.out = n))))
 # Parallel backend. ----
 cl <- parallel::makeCluster(max(1, parallel::detectCores() - 1))
-doParallel::registerDoParallel(cl)
+doSNOW::registerDoSNOW(cl)
 # Compute (parallel over sim). ----
+
+# Progress bar.
+pb <- progress_bar$new(
+  format = "sim = :simulation [:bar] :elapsed | eta: :eta",
+  total = simu_n,    # 100 
+  width = 60)
+progress <- function(n){pb$tick(tokens = list(simulation = sim))} 
+
 ranks_sim <- foreach::foreach(
   sim = 1:simu_n,
-  .combine  = "rbind"
+  .combine      = "rbind",
+  .options.snow = list(progress = progress)
 ) %dopar% {
   k <- 0L
   acc <- vector("list", length = (p_max - 1L) * length(sample_n))
