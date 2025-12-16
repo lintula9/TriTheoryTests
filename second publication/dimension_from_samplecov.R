@@ -8,37 +8,61 @@ library(dplyr)
 library(tidyr)
 library(cowplot)
 
-set.seed(42)
+set.seed(999) # New seed for rotation
 
 # ==============================================================================
-# 1. MODEL DEFINITION (Same as before)
+# 1. MODEL DEFINITION: ROTATED RANK-2 SYSTEM
 # ==============================================================================
 
 p <- 3
-mu <- c(10, 0, -5)
+mu_base <- c(0, 0, 0)
 
-# Mean Reversion Matrix (Theta)
-Theta <- matrix(c(
-  0.5,  0.1,  0.0,
-  -0.1,  0.8,  0.1,
-  0.0, -0.2,  1.0
+# A. Base System (2 Active, 1 Silent)
+# We decouple the 3rd dimension and give it 0 noise.
+Theta_base <- matrix(c(
+  0.5,  0.1, 0.0,
+  -0.1, 0.8, 0.0,
+  0.0,  0.0, 1.0   # 3rd dim decays independently
 ), nrow=p, ncol=p, byrow=TRUE)
 
-# Diffusion Matrix (Sigma)
-Sigma <- matrix(c(
+Sigma_base <- matrix(c(
   1.0, 0.0, 0.0,
   0.5, 1.0, 0.0,
-  0.2, 0.3, 1.0
+  0.0, 0.0, 0.0   # 3rd dim has NO noise
 ), nrow=p, ncol=p, byrow=TRUE)
 
-BBt <- Sigma %*% t(Sigma)
+# B. Create Random Rotation Matrix
+# QR decomposition of random matrix gives a valid orthogonal rotation matrix
+rnd_mat <- matrix(rnorm(9), 3, 3)
+Rot <- qr.Q(qr(rnd_mat))
 
-# Theoretical C(0) and Eigenvalues
+# C. Rotate Parameters into 3D Space
+# X_new = R * X_old
+Theta <- Rot %*% Theta_base %*% t(Rot)
+Sigma <- Rot %*% Sigma_base
+mu    <- Rot %*% mu_base
+
+BBt <- Sigma %*% t(Sigma) # This is now Rank 2
+
+# D. Calculate Theoretical C(0)
 I_mat <- diag(p)
 L_op <- kronecker(I_mat, Theta) + kronecker(Theta, I_mat)
 vec_V <- solve(L_op, as.vector(BBt))
 True_C0 <- matrix(vec_V, nrow=p, ncol=p)
+
+# Check Eigenvalues (Expect 3rd one to be 0)
 true_eigs <- sort(eigen(True_C0)$values, decreasing = TRUE)
+
+cat("Theoretical True Eigenvalues (Expect 3rd is approx 0):\n")
+print(round(true_eigs, 6))
+
+# --- Define Measurement Noise (50/50 SNR against the NON-ZERO signals) ---
+# Average variance of the signal part only
+avg_signal_var <- mean(diag(True_C0))
+noise_var <- avg_signal_var 
+noise_sd <- sqrt(noise_var)
+
+cat("Noise Variance Added:", round(noise_var, 3), "\n")
 
 # ==============================================================================
 # 2. SIMULATION FUNCTION
@@ -51,30 +75,29 @@ mat_exp <- function(A) {
   return(Re(V %*% D %*% solve(V)))
 }
 
-# Optimized for repeated runs
-run_simulation_batch <- function(N_seq, reps, dt, Theta, mu, True_V) {
+run_simulation_batch <- function(N_seq, reps, dt, Theta, mu, True_V, noise_sd) {
   
-  # Pre-calculate transition parameters (fixed for all N if dt is fixed)
   Phi <- mat_exp(-Theta * dt)
   Q <- True_V - Phi %*% True_V %*% t(Phi)
   
-  # Robust Cholesky
+  # Robust Cholesky (Handles Rank Deficient Q gracefully)
   chol_Q <- tryCatch({
-    t(chol(Q, pivot = TRUE))
+    # pivoting is crucial here as Q is rank 2!
+    suppressWarnings(t(chol(Q, pivot = TRUE))) 
   }, error = function(e) {
     e_Q <- eigen(Q); val <- pmax(e_Q$values, 0)
     return(e_Q$vectors %*% diag(sqrt(val)) %*% t(e_Q$vectors))
   })
+  
   if(is.matrix(chol_Q) && !is.null(attr(chol_Q, "pivot"))) {
     piv <- attr(chol_Q, "pivot")
     chol_Q <- chol_Q[order(piv), order(piv)]
   }
   
-  # Storage list
   results_list <- vector("list", length(N_seq) * reps)
   idx <- 1
   
-  cat("Running Simulations (Total batches:", length(N_seq), ")\n")
+  cat("Running Simulations...\n")
   pb <- txtProgressBar(min = 0, max = length(N_seq), style = 3)
   
   for (i in seq_along(N_seq)) {
@@ -82,36 +105,45 @@ run_simulation_batch <- function(N_seq, reps, dt, Theta, mu, True_V) {
     setTxtProgressBar(pb, i)
     
     for (r in 1:reps) {
-      # 1. Generate Path
-      # We can generate noise for all N at once, but matrix ops are fast enough
+      # 1. Generate Signal X
       X <- matrix(0, nrow=n, ncol=p)
       X[1, ] <- mu 
       Z <- matrix(rnorm(p * (n - 1)), nrow=p)
-      
       curr_centered <- numeric(p)
       for (t in 1:(n - 1)) {
         curr_centered <- Phi %*% curr_centered + chol_Q %*% Z[, t]
         X[t+1, ] <- curr_centered + mu
       }
       
-      # 2. Estimates
-      Est_C0 <- cov(X)
+      # 2. Add Measurement Noise (Full Rank Noise!)
+      Noise_Mat <- matrix(rnorm(n * p, sd = noise_sd), nrow = n, ncol = p)
+      Y <- X + Noise_Mat
       
-      # Metric A: Error Norm
+      # --- Metric Calculation ---
+      
+      # A. Clean Data (Reference)
+      Est_C0 <- cov(X)
       diff_mat <- Est_C0 - True_V
       frob_error <- sqrt(sum(diff_mat^2))
+      clean_eigs <- sort(eigen(Est_C0)$values, decreasing = TRUE)
       
-      # Metric B: Eigenvalues
-      est_eigs <- sort(eigen(Est_C0)$values, decreasing = TRUE)
+      # B. Noisy Data (Standard Covariance)
+      Est_C0_Noisy <- cov(Y)
+      noisy_eigs <- sort(eigen(Est_C0_Noisy)$values, decreasing = TRUE)
       
-      # Store
+      # C. Dynamic Factor (Lag-1 Estimator)
+      # Uses Autocovariance at lag 1 to filter out noise
+      Gam1 <- cov(Y[1:(n-1), ], Y[2:n, ])
+      Est_C0_Dynamic <- (Gam1 + t(Gam1)) / 2
+      # Sort eigenvalues magnitude (sometimes small negative values appear due to finite sample)
+      dfm_vals <- eigen(Est_C0_Dynamic)$values
+      dfm_eigs <- sort(dfm_vals, decreasing = TRUE)
+      
       results_list[[idx]] <- data.frame(
-        N = n,
-        Rep = r,
-        Error_Norm = frob_error,
-        Eig1 = est_eigs[1],
-        Eig2 = est_eigs[2],
-        Eig3 = est_eigs[3]
+        N = n, Rep = r, Error_Norm = frob_error,
+        Clean_Eig1 = clean_eigs[1], Clean_Eig2 = clean_eigs[2], Clean_Eig3 = clean_eigs[3],
+        Noisy_Eig1 = noisy_eigs[1], Noisy_Eig2 = noisy_eigs[2], Noisy_Eig3 = noisy_eigs[3],
+        DFM_Eig1   = dfm_eigs[1],   DFM_Eig2   = dfm_eigs[2],   DFM_Eig3   = dfm_eigs[3]
       )
       idx <- idx + 1
     }
@@ -121,89 +153,79 @@ run_simulation_batch <- function(N_seq, reps, dt, Theta, mu, True_V) {
 }
 
 # ==============================================================================
-# 3. EXECUTE & PROCESS DATA
+# 3. EXECUTE & PLOT
 # ==============================================================================
 
-# Parameters
-N_values <- seq(20, 1000, by = 20) # N from 20 to 1000
-Replicates <- 50                   # 50 Simulations per N
+N_values <- seq(20, 1000, by = 20)
+Replicates <- 50
+raw_data <- run_simulation_batch(N_values, Replicates, 0.1, Theta, mu, True_C0, noise_sd)
 
-# Run
-raw_data <- run_simulation_batch(N_values, Replicates, 0.1, Theta, mu, True_C0)
+# Process Summaries
+get_summary <- function(data, prefix) {
+  data %>%
+    select(N, Rep, starts_with(prefix)) %>%
+    pivot_longer(cols = starts_with(prefix), names_to = "Eigenvalue", values_to = "Value") %>%
+    mutate(Eigenvalue = gsub(paste0(prefix, "_"), "", Eigenvalue)) %>%
+    group_by(N, Eigenvalue) %>%
+    summarise(
+      Median = median(Value),
+      Lower = quantile(Value, 0.10),
+      Upper = quantile(Value, 0.90),
+      .groups = "drop"
+    )
+}
 
-# --- Process Data for Plotting (Calculate Quantiles) ---
+err_summary <- raw_data %>% group_by(N) %>% 
+  summarise(Median=median(Error_Norm), Lower=quantile(Error_Norm,0.1), Upper=quantile(Error_Norm,0.9))
+clean_summary <- get_summary(raw_data, "Clean")
+noisy_summary <- get_summary(raw_data, "Noisy")
+dfm_summary   <- get_summary(raw_data, "DFM")
 
-# 1. Error Plot Data
-error_summary <- raw_data %>%
-  group_by(N) %>%
-  summarise(
-    Median = median(Error_Norm),
-    Lower = quantile(Error_Norm, 0.10),
-    Upper = quantile(Error_Norm, 0.90)
-  )
+# Plots
+true_lines <- data.frame(Eigenvalue = c("Eig1", "Eig2", "Eig3"), Value = true_eigs)
+plot_cols <- hcl.colors(3) |> setNames(c("Eig1","Eig2","Eig3"))
 
-# 2. Eigenvalue Plot Data (Needs Pivot to Long format first)
-eig_long <- raw_data %>%
-  select(N, Rep, Eig1, Eig2, Eig3) %>%
-  pivot_longer(cols = starts_with("Eig"), names_to = "Eigenvalue", values_to = "Value")
+# A. Error
+p1 <- ggplot(err_summary, aes(x = N)) +
+  geom_ribbon(aes(ymin=Lower, ymax=Upper), fill="steelblue", alpha=0.3) +
+  geom_line(aes(y=Median), color="darkblue", size=1) +
+  labs(title="A. Clean Estimation Error", y="Frobenius Norm", x=NULL) +
+  theme_minimal() + theme(plot.title=element_text(face="bold"))
 
-eig_summary <- eig_long %>%
-  group_by(N, Eigenvalue) %>%
-  summarise(
-    Median = median(Value),
-    Lower = quantile(Value, 0.10),
-    Upper = quantile(Value, 0.90),
-    .groups = "drop"
-  )
+# B. Clean (Reference)
+p2 <- ggplot(clean_summary, aes(x=N, group=Eigenvalue)) +
+  geom_ribbon(aes(ymin=Lower, ymax=Upper, fill=Eigenvalue), alpha=0.2) +
+  geom_line(aes(y=Median, color=Eigenvalue), size=1) +
+  geom_hline(data=true_lines, aes(yintercept=Value, color=Eigenvalue), linetype="dashed", size=0.8) +
+  labs(title="B. Clean Eigenvalues (True Rank 2)", y="Magnitude", x=NULL) +
+  scale_color_manual(values=plot_cols) + scale_fill_manual(values=plot_cols) +
+  theme_minimal() + theme(plot.title=element_text(face="bold"), legend.position="none")
 
-# ==============================================================================
-# 4. PLOTTING
-# ==============================================================================
+# C. Noisy (Standard Cov)
+p3 <- ggplot(noisy_summary, aes(x=N, group=Eigenvalue)) +
+  geom_ribbon(aes(ymin=Lower, ymax=Upper, fill=Eigenvalue), alpha=0.2) +
+  geom_line(aes(y=Median, color=Eigenvalue), size=1) +
+  geom_hline(data=true_lines, aes(yintercept=Value, color=Eigenvalue), linetype="dashed", size=0.8) +
+  labs(title="C. Noisy Estimator (Standard)", subtitle="3rd Eigenvalue artificially inflated", y="Magnitude", x="Sample Size N") +
+  scale_color_manual(values=plot_cols) + scale_fill_manual(values=plot_cols) +
+  theme_minimal() + theme(plot.title=element_text(face="bold"), legend.position="none")
 
-# --- Plot 1: Estimation Error (Ribbon) ---
-p1 <- ggplot(error_summary, aes(x = N)) +
-  # Shaded Confidence Band (10th-90th Percentile)
-  geom_ribbon(aes(ymin = Lower, ymax = Upper), fill = "steelblue", alpha = 0.3) +
-  # Median Line
-  geom_line(aes(y = Median), color = "darkblue", size = 1) +
-  labs(
-    title = "A. Estimation Error Consistency",
-    subtitle = "Median Error (Line) ± 10th-90th Percentile (Shaded)",
-    x = "Sample Size N",
-    y = "Error (Frobenius Norm)"
-  ) +
-  theme_minimal() +
-  theme(plot.title = element_text(face = "bold"))
+# D. Dynamic Factor (Lag-1)
+p4 <- ggplot(dfm_summary, aes(x=N, group=Eigenvalue)) +
+  geom_ribbon(aes(ymin=Lower, ymax=Upper, fill=Eigenvalue), alpha=0.2) +
+  geom_line(aes(y=Median, color=Eigenvalue), size=1) +
+  geom_hline(data=true_lines, aes(yintercept=Value, color=Eigenvalue), linetype="dashed", size=0.8) +
+  labs(title="D. Dynamic Model (Noise Removed)", subtitle="Correctly recovers 0 for 3rd Eigenvalue", y="Magnitude", x="Sample Size N") +
+  scale_color_manual(values=plot_cols) + scale_fill_manual(values=plot_cols) +
+  theme_minimal() + theme(plot.title=element_text(face="bold"), legend.position="bottom")
 
-# --- Plot 2: Eigenvalue Convergence (Ribbon) ---
-# True Values Dataframe for dashed lines
-true_lines <- data.frame(
-  Eigenvalue = c("Eig1", "Eig2", "Eig3"),
-  Value = true_eigs
+final_plot <- plot_grid(
+  plot_grid(p1, p2, ncol=2, align="h"),
+  plot_grid(p3, p4, ncol=2, align="h"),
+  ncol=1, rel_heights=c(1, 1.2)
 )
 
-p2 <- ggplot(eig_summary, aes(x = N, group = Eigenvalue)) +
-  # Shaded Bands
-  geom_ribbon(aes(ymin = Lower, ymax = Upper, fill = Eigenvalue), alpha = 0.2) +
-  # Median Lines
-  geom_line(aes(y = Median, color = Eigenvalue), size = 1) +
-  # True Value Dashed Lines
-  geom_hline(data = true_lines, aes(yintercept = Value, color = Eigenvalue), 
-             linetype = "dashed", size = 0.8) +
-  labs(
-    title = "B. Eigenvalue Spectrum",
-    subtitle = "Shaded regions represent empirical variation (simulated)",
-    x = "Sample Size N",
-    y = "Eigenvalue Magnitude"
-  ) +
-  theme_minimal() +
-  scale_fill_manual(values = c("red", "green4", "blue")) +
-  scale_color_manual(values = c("red", "green4", "blue")) +
-  theme(plot.title = element_text(face = "bold"), legend.position = "bottom")
-
-# --- Combine ---
-final_plot <- plot_grid(p1, p2, ncol = 2, align = "h")
-tiff(filename = "./Datas/Convergence_of_Eigenvalues.tiff", 
-     width = 16, height = 12, units = "in", family = "sans", res = 120)
+png(filename = "./Datas/Convergence_of_Eigenvalues.png",
+    width = 16, height = 12, units = "in", family = "sans", res = 120)
 print(final_plot)
 dev.off()
