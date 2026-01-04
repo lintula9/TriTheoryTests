@@ -427,7 +427,7 @@ if(F){
   parallel_A <- var_dcf_compare(A_2,Z_2)
   matplot(t(parallel_A$singularvals), type = "n", 
           ylab = "Singular value", 
-          main = "Distinguishable Cross-covariance",
+          main = "Distinguishable cross-covariance",
           font.main = 1,
           col  = cividis(7),
           xlab = expression(paste("Increment in time ", Delta, "T")),
@@ -442,7 +442,7 @@ if(F){
   parallel_B <- var_dcf_compare(A_3, Z_3)
   matplot(t(parallel_B$singularvals), type = "n", 
           ylab = "",
-          main = "Perfectly indistinguishable Cross-covariance",
+          main = "Perfectly indistinguishable cross-covariance",
           font.main = 1,
           col  = cividis(7),
           xlab = expression(paste("Increment in time ", Delta, "T")),
