@@ -317,7 +317,7 @@ plot.rmsea_approximation <- function(x, ...) {
   grid() 
   }
 
-# Main function of article: CIV parallel --------------
+# Main function of article: var_ccov_decompose --------------
 
 var_ccov_decompose <- function(A,Z,time_points = 10) {
   
