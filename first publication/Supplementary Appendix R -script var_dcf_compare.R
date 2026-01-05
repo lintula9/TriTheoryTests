@@ -2,7 +2,7 @@
 
 
 # First, run (source) the whole script. 
-# var_dcf_compare takes the coefficient matrix and innovation covariance as arguments.
+# var_ccov_decompose takes the coefficient matrix and innovation covariance as arguments.
 # You can define time_points used in the computation. 
 # RMSEA approximation function is also provided (experimental).
 
@@ -319,7 +319,7 @@ plot.rmsea_approximation <- function(x, ...) {
 
 # Main function of article: CIV parallel --------------
 
-var_dcf_compare <- function(A,Z,time_points = 10) {
+var_ccov_decompose <- function(A,Z,time_points = 10) {
   
   if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting.")
   if(any(round(eigen(var_ccov(A,Z,0))$values, digits = 10) == 0)) simpleWarning("Near zero eigenvalues detected in predicted the within time point covariance. Generalized inverse used where needed.")
@@ -347,13 +347,13 @@ var_dcf_compare <- function(A,Z,time_points = 10) {
     all_factor_congruencies       = cosine_i,
     subsequent_pair_congruencies  = mgcv::sdiag(cosine_i,1) )
   
-  class(result) <- c("var_dcf_compare", "list")
+  class(result) <- c("var_ccov_decompose", "list")
   
   return(result)
     
    }
 
-  plot.var_dcf_compare <- function(x, ...) {
+  plot.var_ccov_decompose <- function(x, ...) {
   answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies, 3: singular values, 4: Canonical correlation.")
   if(answer == 1)  {
     matplot((t(x$eigenvals)), type = "b", ylab = "Eigenvalue", 
@@ -424,7 +424,7 @@ if(F){
     library(viridisLite) } else library(viridisLite)
   
   #A
-  parallel_A <- var_dcf_compare(A_2,Z_2)
+  parallel_A <- var_ccov_decompose(A_2,Z_2)
   matplot(t(parallel_A$singularvals), type = "n", 
           ylab = "Singular value", 
           main = "Distinguishable cross-covariance",
@@ -439,7 +439,7 @@ if(F){
           lty = 1)
   
   #B
-  parallel_B <- var_dcf_compare(A_3, Z_3)
+  parallel_B <- var_ccov_decompose(A_3, Z_3)
   matplot(t(parallel_B$singularvals), type = "n", 
           ylab = "",
           main = "Perfectly indistinguishable cross-covariance",
