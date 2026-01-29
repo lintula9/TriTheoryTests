@@ -357,7 +357,7 @@ var_ccov_decompose <- function(A,Z,time_points = 10) {
   answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies, 3: singular values, 4: Canonical correlation.")
   if(answer == 1)  {
     matplot((t(x$eigenvals)), type = "b", ylab = "Eigenvalue", 
-                           xlab = expression(paste("Increment in time ", Delta, "T")),
+                           xlab = expression(paste("Increment in time ", Delta, "t")),
                            xaxt = "n", 
             ...)
     axis(1, at  = 1: length(x$eigenvals), 
@@ -367,7 +367,7 @@ var_ccov_decompose <- function(A,Z,time_points = 10) {
                            xlab = "T, T+1", ...)
   if(answer == 3)  {
     matplot(t(x$singularvals), type = "b", ylab = "Singular value", 
-            xlab = expression(paste("Increment in time ", Delta, "T")),
+            xlab = expression(paste("Increment in time ", Delta, "t")),
             xaxt = "n",
             ...)
     axis(1, at  = 1:length(x$singularvals), 
@@ -375,7 +375,7 @@ var_ccov_decompose <- function(A,Z,time_points = 10) {
   }
   if(answer == 4)  {
     matplot(t(x$canonical_correlations), type = "b", ylab = "Canonical correlation coefficient", 
-            xlab = expression(paste("Increment in time ", Delta, "T")),
+            xlab = expression(paste("Increment in time ", Delta, "t")),
             xaxt = "n",
             ...)
     axis(1, at  = 1:length( x$canonical_correlations), 
@@ -430,7 +430,7 @@ if(F){
           main = "Distinguishable cross-covariance",
           font.main = 1,
           col  = cividis(7),
-          xlab = expression(paste("Increment in time ", Delta, "T")),
+          xlab = expression(paste("Increment in time ", Delta, "t")),
           xaxt = "n"); grid()
   axis(1, labels = paste0(0:10),
        at = 1:11)
@@ -445,7 +445,7 @@ if(F){
           main = "Perfectly indistinguishable cross-covariance",
           font.main = 1,
           col  = cividis(7),
-          xlab = expression(paste("Increment in time ", Delta, "T")),
+          xlab = expression(paste("Increment in time ", Delta, "t")),
           xaxt = "n"); grid()
   axis(1, labels = paste0(0:10),
        at = 1:11)
