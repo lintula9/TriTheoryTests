@@ -18,7 +18,7 @@ for (pkg in required_packages) {
 # Load data ------
 
 # load 
-load(file.path("Fried_2022 data/clean_network.RData")); gc()
+load(file.path("./Fried_2022 data/clean_network.RData")); gc()
 Data5b <- Data2
 
 # Variables to investigate:
@@ -194,9 +194,11 @@ fit_Net <- mod_Net$sample(
 # Save output.
 fit_Net$save_output_files("/Datas/", basename = "3VAR_CF_relaxedpriors", timestamp = T, random = F)
 
-# Read data
+# For Figure 4. ----
+## Read data. ----
 if(F){
-    fit_Net    <- as_cmdstan_fit(files = paste0("Datas/3VAR_CF_relaxedpriors-202502031854-",1:nchains,".csv") ); gc()
+  nchains = 8
+  fit_Net    <- as_cmdstan_fit(files = paste0("Datas/3VAR_CF_relaxedpriors-202502031854-",1:nchains,".csv") ); gc()
   draws_data <- as_draws_df(fit_Net$draws(variables = c(inference_vars_regex_alpha) ), .nhcains = nchains ); gc(); rm(fit_Net); gc()
 }
 
@@ -219,9 +221,9 @@ var_samples           <- pbapply::pblapply(1:nrow(draws_data),
                                    return(list(A = A_temp, Z = Z_temp))
                                  }); gc()
 # Source the methods.
-source("Supplementary Appendix R -script var_dcf_compare.R")
+source("./first publication/Supplementary Appendix R -script var_ccov_decompose.R")
 
-# Figure 4 in main text ----
+## Figure 4 in main text ----
   # Compute parallel analysis imitation and RMSEA, for the posterior mean.
 result_parallel  <- var_dcf_compare(A, Z)
 
@@ -247,7 +249,7 @@ eigen_dat <- data.frame(
 upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.975))) ))
 lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
 
-tiff(filename = "Figure_3.tiff", 
+tiff(filename = "Figure_4.tiff", 
      width    = 17, 
      height   = 19, 
      units    = "cm", 
@@ -259,7 +261,7 @@ colvec <- cividis(ncol(upper)-1) |> adjustcolor(alpha.f = 0.15)
 matplot(t(result_parallel$eigenvals),
         type = "n",
         ylab = "Absolute value of eigenvalue", 
-        xlab = expression(paste("Increment in time ", Delta, "T")),
+        xlab = expression(paste("Increment in time ", Delta, "t")),
         xaxt = "n",
         main = "Cross-covariance eigenvalues",
         font.main = 1); grid()
@@ -521,7 +523,7 @@ matplot(t(result_parallel_7$singularvals),
         col  = colvec,
         type = "n",
         ylab = "Singular value", 
-        xlab = expression(paste("Increment in time ", Delta, "T")),
+        xlab = expression(paste("Increment in time ", Delta, "t")),
         xaxt = "n",
         main = "Cross-covariance singular values",
         font.main = 1); grid()
