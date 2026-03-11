@@ -69,40 +69,40 @@ Tammilehto_model_8_Q <- matrix(
     .233*.292*.467, .292^2), 2, 2, byrow = TRUE)
 
 # Clinical cohort models: Pooled iCBT.
-# NOT DONE.
 ## Model 9. ----
 Tammilehto_model_9_A <- matrix(
-  c( -.066,  .032 , 
-      .040, -.072 ), 2, 2, byrow = TRUE)
+  c( -.136,  .046 , 
+      .062, -.100 ), 2, 2, byrow = TRUE)
 Tammilehto_model_9_Q <- matrix(
-  c(.299^2,         .299*.351*.172, 
-    .299*.351*.172, .351^2), 2, 2, byrow = TRUE)
-continuous_decompose(Tammilehto_model_9_A,
-                     Tammilehto_model_9_Q)
+  c(.424^2,         .424*.423*.178, 
+    .424*.423*.178, .423^2), 2, 2, byrow = TRUE)
 ## Model 10. ----
 Tammilehto_model_10_A <- matrix(
-  c(-.349,  .188   , 
-    .173, -.190 ), 2, 2, byrow = TRUE)
+  c(-.620,  .300   , 
+     .320, -.520 ), 2, 2, byrow = TRUE)
 Tammilehto_model_10_Q <- matrix(
-  c(.410^2,         .410*.402*.038, 
-    .410*.402*.038, .402^2), 2, 2, byrow = TRUE)
-continuous_decompose(Tammilehto_model_10_A,
-                     Tammilehto_model_10_Q)
+  c(.548^2,         .548*.566*.030, 
+    .548*.566*.030, .566^2), 2, 2, byrow = TRUE)
 # Model 11. ----
 Tammilehto_model_11_A <- matrix(
-  c(-.224,  .118  , 
-    .048, -.080 ), 2, 2, byrow = TRUE)
+  c(-.294,  .098  , 
+     .026, -.109 ), 2, 2, byrow = TRUE)
 Tammilehto_model_11_Q <- matrix(
-  c(.250^2,         .250*.254*.440,
-    .250*.254*.440, .254^2), 2, 2, byrow = TRUE)
-continuous_decompose(Tammilehto_model_11_A,
-                     Tammilehto_model_11_Q)
+  c(.288^2,         .288*.299*.544,
+    .288*.299*.544, .299^2), 2, 2, byrow = TRUE)
 # Model 12. ----
 Tammilehto_model_12_A <- matrix(
-  c(-.191,  .034  , 
-    .044, -.137 ), 2, 2, byrow = TRUE)
+  c(-.297,  .041, 
+    -.016, -.164 ), 2, 2, byrow = TRUE)
 Tammilehto_model_12_Q <- matrix(
-  c(.233^2,         .233*.292*.467, 
-    .233*.292*.467, .292^2), 2, 2, byrow = TRUE)
-continuous_decompose(Tammilehto_model_12_A,
-                     Tammilehto_model_12_Q)
+  c(.304^2,         .304*.318*.504, 
+    .304*.318*.504, .318^2), 2, 2, byrow = TRUE)
+
+# Combine Tammilehto et al., 2025 esimates. ----
+tammilehto_2025 <- lapply(
+  paste0("Tammilehto_model_", 1:12, "_"),
+  FUN = \(model_name) {
+    A <- get(paste0(model_name, "A"))
+    Q <- get(paste0(model_name, "Q"))
+    return(continuous_decompose(A,Q))
+      })
