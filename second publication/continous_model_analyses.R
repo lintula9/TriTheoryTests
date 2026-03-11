@@ -4,13 +4,15 @@ source("./second publication/continuous_decompose.R")
 # The most complex models are used - as they were best fitting.
 
 # Clinical cohort model: Depression iCBT.
-Tammilehto_model_4_A <- matrix(
-  c(-.324,  .055  , 
-     .043, -.244 ), 2, 2, byrow = TRUE)
-Tammilehto_model_4_Q <- matrix(
-  c(.352^2,         .352*.337*.418, 
-    .352*.337*.418, .337^2), 2, 2, byrow = TRUE)
-
+Tammilehto_2025_depiCBT_A <- matrix(
+  c(-.3191,  .0343  , 
+     .0498, -.2334 ), 2, 2, byrow = TRUE)
+Tammilehto_2025_depiCBT_Q <- matrix(
+  c(.2219, .1876, 
+    .1876, .2666), 2, 2, byrow = TRUE)
+continuous_decompose(Tammilehto_2025_depiCBT_A,
+                     Tammilehto_2025_depiCBT_Q)
+# BELOW NOT DONE.
 # Clinical cohort models: GAD iCBT.
 Tammilehto_model_8_A <- matrix(
   c(-.191,  .034  , 
