@@ -7,29 +7,27 @@ source("./second publication/continuous_decompose.R")
 
 # Clinical cohort model: Depression iCBT.
 Tammilehto_2025_depiCBT_A <- matrix(
-  c(-.3250,  .0558  , 
-     .0431, -.2442 ), 2, 2, byrow = TRUE)
+  c(-.3245,  .0552  , 
+     .0426, -.2437 ), 2, 2, byrow = TRUE)
 Tammilehto_2025_depiCBT_Q <- matrix(
-  c( .2244,  .1881, 
-     .1881,  .2664), 2, 2, byrow = TRUE)
-continuous_decompose(Tammilehto_2025_depiCBT_A,
-                     Tammilehto_2025_depiCBT_Q)
+  c( .1245,  .0823, 
+     .0823,  .1139), 2, 2, byrow = TRUE)
 
 # Clinical cohort models: GAD iCBT.
 Tammilehto_2025_gadiCBT_A <- matrix(
-  c(-.191,  .034  , 
-     .044, -.137 ), 2, 2, byrow = TRUE)
+  c(-.1906,  .0336  , 
+     .0336, -.1366 ), 2, 2, byrow = TRUE)
 Tammilehto_2025_gadiCBT_Q <- matrix(
-  c(.233^2,         .233*.292*.467, 
-    .233*.292*.467, .292^2), 2, 2, byrow = TRUE)
+  c(.1245, .0823,
+    .0823, .1139), 2, 2, byrow = TRUE)
 
 # Clinical cohort models: Pooled iCBT.
 Tammilehto_2025_pooliCBT_A <- matrix(
-  c(-4.2833,  .4641, 
-      .1359, -3.4495 ), 2, 2, byrow = TRUE)
+  c(-.2961,  .0392, 
+     .0166, -.1641 ), 2, 2, byrow = TRUE)
 Tammilehto_2025_pooliCBT_Q <- matrix(
-  c(.2953, .0619,
-    .0619, .1612), 2, 2, byrow = TRUE)
+  c(.0920, .0764,
+    .0764, .1015), 2, 2, byrow = TRUE)
 
 ## Combine Tammilehto et al., 2025 estimates. ----
 tammilehto_2025 <- lapply(
@@ -43,3 +41,21 @@ tammilehto_2025 <- lapply(
       })
 
 # Tammilehto et al., 2026. ----
+# Worry <-> somatic symptoms main model.
+Tammilehto_2026_main_A <- matrix(
+  c(-.44,  -.22, 
+     .29,  -1.14 ), 2, 2, byrow = TRUE)
+Tammilehto_2026_main_Q <- matrix(
+  c(.3011, .2692,
+    .2692, .4366), 2, 2, byrow = TRUE)
+
+## Combine Tammilehto et al., 2026 estimates. ----
+tammilehto_2026 <- lapply(
+  grep("Tammilehto_2026_(.*)_*", ls(), value = T,) |> 
+    gsub(pattern = "(_A|_Q)", replacement = "_") |> 
+    unique(),
+  FUN = \(model_name) {
+    A <- get(paste0(model_name, "A"))
+    Q <- get(paste0(model_name, "Q"))
+    return(continuous_decompose(A,Q))
+  })
