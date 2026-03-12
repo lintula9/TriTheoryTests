@@ -57,5 +57,15 @@ tammilehto_2026 <- lapply(
   FUN = \(model_name) {
     A <- get(paste0(model_name, "A"))
     Q <- get(paste0(model_name, "Q"))
-    return(continuous_decompose(A,Q))
+    return(decompose_stationary_cov(A,Q,"continuous"))
   })
+
+# Fried et al., 2022. ----
+Fried_2022_detrended_A <- read.csv("./Datas/fried_2022_A.csv") |>
+  select(-X) |> as.matrix()
+Fried_2022_detrended_Q <- read.csv("./Datas/fried_2022_Q.csv") |>
+  select(-X) |> as.matrix()
+# Select psychopathology variables.
+decompose_stationary_cov(Fried_2022_detrended_A,
+                         Fried_2022_detrended_Q,
+                         type = "discrete")
