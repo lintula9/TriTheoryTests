@@ -180,7 +180,7 @@ breaks <- as.POSIXct(paste0(as.Date("2020-03-15") + 1:14, " 00:01"), format = "%
 
 # Run mlVAR (orthogonal, detrended): ----
 res <- mlVAR(data_detrended,
-             vars=varLabs,
+             vars=varLabs[1:7],
              idvar="id",
              dayvar="day",
              beepvar="beep",
@@ -197,7 +197,7 @@ write.csv(res$results$Theta$cov$mean, file = "./Datas/fried_2022_Q.csv")
 
 # Run mlVAR (orthogonal, no-detrending): ----
 res_nodetrend <- mlVAR(Data5b,
-             vars=varLabs,
+             vars=varLabs[1:7],
              idvar="id",
              dayvar="day",
              beepvar="beep",
