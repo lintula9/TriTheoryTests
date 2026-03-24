@@ -67,24 +67,16 @@ varLabs <- varLabs[!varLabs %in% c("Hungry","Angry","Music","Procrastinate")]
 # Data frame with empty values for fitted effects (all):
 fitted_all <- expand.grid(
   beep = seq(min(Data5b$beep),max(Data5b$beep)),
-  day = seq(min(Data5b$day),max(Data5b$day))
-)
-
+  day = seq(min(Data5b$day),max(Data5b$day)))
 # Data frame with empty values for day trends:
 fitted_day <- data.frame(
-  day = seq(min(Data5b$day),max(Data5b$day))
-)
-
+  day = seq(min(Data5b$day),max(Data5b$day)))
 # Data frame with empty values for beeps:
 fitted_beep <- data.frame(
-  beep = seq(min(Data5b$beep),max(Data5b$beep))
-)
-
+  beep = seq(min(Data5b$beep),max(Data5b$beep)))
 # Data frame to store p-values:
 p_values <- data.frame(
-  var = c("day", "beep")
-)
-
+  var = c("day", "beep"))
 # Also empty data frame list for test statistics:
 testStatistics <- list()
 coefficients <- list()
@@ -186,33 +178,44 @@ breaks <- as.POSIXct(paste0(as.Date("2020-03-15") + 1:14, " 00:01"), format = "%
 # Save detrended data for students to work with
 # saveRDS(data_detrended, file=paste0(datapath, "data_students_network.RData"))
 
-
-
-# -------------------------------------------------------------------------
-# --------------- 3. Fit mlVAR network models: orthogonal estimation ------
-# -------------------------------------------------------------------------
-
-
-# Run mlVAR (orthogonal):
-# res <- mlVAR(data_detrended,
-#              vars=varLabs[1:7],
-#              idvar="id",
-#              dayvar="day",
-#              beepvar="beep",
-#              lags = 1,
-#              temporal = "orthogonal",
-#              contemporaneous = "orthogonal",
-#              nCores = 8)
-# save(res, file="./Datas/mlvar_res.RData")
+# Run mlVAR (orthogonal, detrended): ----
+res <- mlVAR(data_detrended,
+             vars=varLabs,
+             idvar="id",
+             dayvar="day",
+             beepvar="beep",
+             lags = 1,
+             temporal = "orthogonal",
+             contemporaneous = "orthogonal",
+             nCores = 8)
+save(res, file="./Datas/mlvar_res.RData")
 load("./Datas/mlvar_res.RData")
 
 # Save B and Z matrices.
 write.csv(res$results$Beta$mean,      file = "./Datas/fried_2022_A.csv")
 write.csv(res$results$Theta$cov$mean, file = "./Datas/fried_2022_Q.csv")
 
+# Run mlVAR (orthogonal, no-detrending): ----
+res_nodetrend <- mlVAR(Data5b,
+             vars=varLabs,
+             idvar="id",
+             dayvar="day",
+             beepvar="beep",
+             lags = 1,
+             temporal = "orthogonal",
+             contemporaneous = "orthogonal",
+             nCores = 8)
+save(res, file="./Datas/mlvar_res_nodetrend.RData")
+load("./Datas/mlvar_res_nodetrend.RData")
 
-# 
-# 
+# Save B and Z matrices.
+write.csv(res$results$Beta$mean,      file = "./Datas/fried_2022_A.csv")
+write.csv(res$results$Theta$cov$mean, file = "./Datas/fried_2022_Q.csv")
+write.csv(res_nodetrend$results$Beta$mean,      
+          file = "./Datas/fried_2022_A_nodetrend.csv")
+write.csv(res_nodetrend$results$Theta$cov$mean, 
+          file = "./Datas/fried_2022_Q_nodetrend.csv")
+
 # # Plot :
 # names <- c("Relax","Irritable","Worry","Nervous","Future",
 #            "Anhedonia","Tired","Alone",
