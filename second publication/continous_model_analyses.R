@@ -1,9 +1,8 @@
 source("./second publication/continuous_decompose.R")
+source("./Libraries.R")
 # Tammilehto et al., 2025. ----
 # http://journals.sagepub.com/doi/suppl/10.1177/21677026241301057
 # The most complex models are used - as they were best fitting.
-
-# Ask for parameter estimates from Jaakko.
 
 # Clinical cohort model: Depression iCBT.
 Tammilehto_2025_depiCBT_A <- matrix(
@@ -37,7 +36,7 @@ tammilehto_2025 <- lapply(
   FUN = \(model_name) {
     A <- get(paste0(model_name, "A"))
     Q <- get(paste0(model_name, "Q"))
-    return(continuous_decompose(A,Q))
+    return(decompose_stationary_cov(A,Q))
       })
 
 # Tammilehto et al., 2026. ----
