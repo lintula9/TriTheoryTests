@@ -68,6 +68,7 @@ Fried_2022_detrended_Q <- read.csv("./Datas/fried_2022_Q.csv") |>
 decompose_stationary_cov(Fried_2022_detrended_A,
                          Fried_2022_detrended_Q,
                          type = "discrete")
+<<<<<<< HEAD
 Fried_2022_A <- read.csv("./Datas/fried_2022_A_nodetrend.csv") |>
   select(-X) |> as.matrix()
 Fried_2022_Q <- read.csv("./Datas/fried_2022_Q_nodetrend.csv") |>
@@ -75,4 +76,11 @@ Fried_2022_Q <- read.csv("./Datas/fried_2022_Q_nodetrend.csv") |>
 # Select psychopathology variables.
 decompose_stationary_cov(Fried_2022_A,
                          Fried_2022_Q,
+=======
+# Lintula et al., 2026. ----
+A_7 <- readRDS("C:/Users/lintu/Documents/TriTheoryTests/Datas/A_7.RDS")
+Z_7 <- readRDS("C:/Users/lintu/Documents/TriTheoryTests/Datas/Z_7.RDS")
+decompose_stationary_cov(A_7,
+                         Z_7,
+>>>>>>> cce331dd3d2edca9a2b48ffc99aa377eb7883be7
                          type = "discrete")
