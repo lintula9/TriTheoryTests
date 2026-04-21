@@ -68,3 +68,11 @@ Fried_2022_detrended_Q <- read.csv("./Datas/fried_2022_Q.csv") |>
 decompose_stationary_cov(Fried_2022_detrended_A,
                          Fried_2022_detrended_Q,
                          type = "discrete")
+Fried_2022_A <- read.csv("./Datas/fried_2022_A_nodetrend.csv") |>
+  select(-X) |> as.matrix()
+Fried_2022_Q <- read.csv("./Datas/fried_2022_Q_nodetrend.csv") |>
+  select(-X) |> as.matrix()
+# Select psychopathology variables.
+decompose_stationary_cov(Fried_2022_A,
+                         Fried_2022_Q,
+                         type = "discrete")
