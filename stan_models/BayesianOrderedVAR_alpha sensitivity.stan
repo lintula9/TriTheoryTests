@@ -34,15 +34,17 @@ parameters {
   matrix[K, K] A;           // VAR(1) coefficient matrix.
 
   // SENSITIVITY modification: psi becomes redundant.
-  real psi; // The CF autoregression coefficient.
+  //real psi; // The CF autoregression coefficient.
 
   // SENSITIVITY modification: factor loading parameterization becomes redundant.
   // 2. Declare Lambda (factor loadings) explicitly. 
   // COMMENT: constrain to 1 to identify scale: real<lower=0> Lambda_first;             
   // First element, constrained to be positive for sign identification.
-  vector[K-1] Lambda_rest;                // Remaining elements with no sign constraint
-  array[K-1] real<lower=0> L_rest_diag;       // Must be non-negative, to ensure PSD of covariance.
-  vector[(K*(K-1)%/%2)] L_rest_offdiag; // Unrestricted.
+  //vector[K-1] Lambda_rest;                // Remaining elements with no sign constraint
+  //array[K-1] real<lower=0> L_rest_diag;       // Must be non-negative, to ensure PSD of covariance.
+  //vector[(K*(K-1)%/%2)] L_rest_offdiag; // Unrestricted.
+  // Define the Cholesky factor.
+  cholesky_factor_corr[K] L_corr;
 
   // 3. Random intercepts for each subject
   matrix[S, K] subject_intercept_raw;  // subject-specific intercept deviations
@@ -77,28 +79,30 @@ transformed parameters {
 
   // SENSITIVITY modification: Cholesky factor is declared without reference to factor loadings.
   // 1. Create the Cholesky factor.
-  vector[K] Lambda; // Declare Lambda as the whole vector.
+  //vector[K] Lambda; // Declare Lambda as the whole vector.
   // COMMENT: constrain to one to identify scale: Lambda[1] = Lambda_first;
-  Lambda[1] = 1;
-  Lambda[2:K] = Lambda_rest;
+  //Lambda[1] = 1;
+  //Lambda[2:K] = Lambda_rest;
   
-  matrix[K,K] L_;
-  L_ = rep_matrix(0.0, K, K); // L_ will be the cholesky factor (of the covariance).
-  L_[,1] = Lambda;
-  for( i in 2:K) L_[i,i] = L_rest_diag[i-1];
-  for( i in 2:(K)) {
-    int counter = 2 + (i - 2) * K - ((i - 1) * i) %/% 2;
-    L_[(i+1):K, i] = L_rest_offdiag[counter:(counter + (K - i) - 1)];
-  }
+  //matrix[K,K] L_;
+  //L_ = rep_matrix(0.0, K, K); // L_ will be the cholesky factor (of the covariance).
+  //L_[,1] = Lambda;
+  //for( i in 2:K) L_[i,i] = L_rest_diag[i-1];
+  //for( i in 2:(K)) {
+  //  int counter = 2 + (i - 2) * K - ((i - 1) * i) %/% 2;
+  //  L_[(i+1):K, i] = L_rest_offdiag[counter:(counter + (K - i) - 1)];
+  //}
       // Compute L_corr
-  matrix[K,K] L_corr;
+  //matrix[K,K] L_corr;
   // L_corr = diag_matrix(1.0 ./ sqrt(diagonal(L_*L_'))) * L_;
   // For compatibility, simply declare
-  L_corr = L_;
+  //L_corr = L_;
   
+  // SENSITIVITY modification: A_effective is redundantly delcared as A.
   // 1. Create A.
-  matrix[K,K] A_effective;
-  A_effective = add_diag(A, psi);
+  //matrix[K,K] A_effective;
+  //A_effective = add_diag(A, psi);
+  A_effective = A;
   
   // 8. Create time of day effect. The reference is set to be the first.
   array[nbeeps] vector[K] time_of_day_effect;
@@ -136,8 +140,8 @@ model {
   // Using this knowledge, we present the prior as follows:
   
   // SENSITIVITY modification: psi prior becomes redundant.
-  psi ~ normal(0,0.5);              // CF autoregression prior.
-  to_vector(A) ~ normal(0,0.1);    // As per our prior belief, we set a strict prior for A parameters, outside of the diagonal psi.
+  //psi ~ normal(0,0.5);              // CF autoregression prior.
+  //to_vector(A) ~ normal(0,0.1);    // As per our prior belief, we set a strict prior for A parameters, outside of the diagonal psi.
   // To finalize, the computation: A_effective = A + psi * I is conducted in transformed parameters.
   // Effectively, using non-centralized parameterizatoin, psi will denote the location of the diagonal, and deviations from
   // psi * I are punished by our prior belief heavily. Strong prior should also identify our model.
@@ -145,9 +149,10 @@ model {
   // SENSITIVITY modification: Cholesky prior becomes standard, no longer declared in terms of factor loadings.
   // Prior for innovation covariance.
   // COMMENT: Set to 1 for identification. Lambda_first ~ normal(0.5,0.5);     
-  Lambda_rest ~ normal(0.5,0.5);         // Factor loadings as the first column of Cholesky factor
-  L_rest_diag ~ normal(0,0.1);           // Tight prior - our prior is that the true model is CF model.
-  L_rest_offdiag ~ normal(0,0.1); 
+  //Lambda_rest ~ normal(0.5,0.5);         // Factor loadings as the first column of Cholesky factor
+  //L_rest_diag ~ normal(0,0.1);           // Tight prior - our prior is that the true model is CF model.
+  //L_rest_offdiag ~ normal(0,0.1); 
+  L_corr ~ lkj_corr_cholesky(1);
   
   // Prior for the white noise innovatoins, afterwards transformed to correlated innovations.
   to_vector(X_star_innovation) ~ std_normal();
