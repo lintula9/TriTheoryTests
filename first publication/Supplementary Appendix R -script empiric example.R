@@ -1,4 +1,5 @@
 # Packages -----
+# nolint start
 # List of required packages
 required_packages <- c(
   "Matrix", "fastmatrix", "expm", "rstan",
@@ -581,3 +582,4 @@ if(F) {
   eigen_congurency_7 <- readRDS("eigen_congurency_7.RDS")
   draws_data_7       <- readRDS("draws_data_7.RDS")
   }
+  # nolint end
