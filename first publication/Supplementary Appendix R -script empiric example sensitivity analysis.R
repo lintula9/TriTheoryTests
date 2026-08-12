@@ -155,7 +155,7 @@ stan_data <- list(
 
 # Set of variables of interest, which we can set to pars argument, or later on extract.
 inference_vars_regex <- c("A", "Omega", "cutpoints","time_of_day_intercept")
-inference_vars_regex_alpha <- c("A_effective","A","psi","Lambda", "Omega","L_", "cutpoints", "time_of_day_effect",
+inference_vars_regex_alpha <- c("A_effective","A", "Omega","cutpoints", "time_of_day_effect",
                                 "ref_time_of_day_effect", "specific_time_of_day_effect")
 # Run MCMC with cmdstanr
 nchains = 8
@@ -198,7 +198,7 @@ fit_Net <- mod_Net$sample(
   }
 ); gc()
 # Save output.
-fit_Net$save_output_files("/Datas/", basename = "3VAR_sensitivityt", timestamp = T, random = F)
+fit_Net$save_output_files("./Datas/", basename = "3VAR_sensitivityt", timestamp = T, random = F)
 
 # For Figure 4. ----
 ## Read data. ----
@@ -210,7 +210,7 @@ if(F){
 
   # Analysis.
 # Diagnostics and posterior distribution marignal plots. 
-plotnams <- inference_vars_regex_alpha;pdf(file = paste0("Datas/Bayespots_",format(Sys.time(), "%Y-%m-%d"), ".pdf"));color_scheme_set("viridis")
+plotnams <- inference_vars_regex_alpha;pdf(file = paste0("Datas/Bayespots_sensitivity_",format(Sys.time(), "%Y-%m-%d"), ".pdf"));color_scheme_set("viridis")
 for(i in plotnams){print(  mcmc_trace(draws_data, regex_pars = i ));print(  mcmc_areas_ridges(draws_data[ , grep(i, names(draws_data))]) );
   }; gc(); dev.off()
 
@@ -231,11 +231,11 @@ source("./first publication/Supplementary Appendix R -script var_ccov_decompose.
 
 ## Figure 4 in main text ----
   # Compute parallel analysis imitation and RMSEA, for the posterior mean.
-result_parallel  <- var_dcf_compare(A, Z)
+result_parallel  <- var_ccov_decompose(A, Z)
 
   # Compute credible intervals for eigenvalues, congruencies.
 eigen_congurency <- pbapply::pblapply(var_samples, FUN = function(x){
-              res  <- try(var_dcf_compare(x$A,x$Z))
+              res  <- try(var_ccov_decompose(x$A,x$Z))
             eigens <- t(abs(res$eigenvals))
       congruencies <- res$subsequent_pair_congruencies
     return(list(eigens = eigens, congruencies = congruencies)) }); gc()
@@ -255,7 +255,7 @@ eigen_dat <- data.frame(
 upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.975))) ))
 lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
 
-tiff(filename = "Figure_4.tiff", 
+tiff(filename = "Figure_4_sensitivity.tiff", 
      width    = 17, 
      height   = 19, 
      units    = "cm", 
@@ -407,7 +407,7 @@ stan_data <- list(
 
 # Run MCMC with cmdstanr
 nchains = 8
-mod_Net_7 <- cmdstan_model("BayesianOrderedVAR_alpha_sensitivity.stan")
+mod_Net_7 <- cmdstan_model("./stan_models/BayesianOrderedVAR_alpha sensitivity.stan")
 fit_Net_7 <- mod_Net_7$sample(
   data = stan_data,
   seed = 123,                 # or your preferred seed
