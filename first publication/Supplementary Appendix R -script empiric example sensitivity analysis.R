@@ -445,7 +445,7 @@ fit_Net_7 <- mod_Net_7$sample(
   }
 ); gc()
 # Save output
-fit_Net_7$save_output_files("Datas/",basename = "BVAR_7_variables_30_01")
+fit_Net_7$save_output_files("Datas/",basename = "BVAR_7_variables_sensitivity")
 # Read data
 if(F){
     ## CHECK THAT THIS IS THE CORRECT FILE
