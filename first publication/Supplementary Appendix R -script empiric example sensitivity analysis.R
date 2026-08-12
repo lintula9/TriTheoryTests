@@ -23,7 +23,7 @@ for (pkg in required_packages) {
 # Load data ------
 
 # load 
-load(file.path("./Fried_2022 data/clean_network.RData")); gc()
+load(file.path("./Datas/Fried_2022_network.RData")); gc()
 Data5b <- Data2
 
 # Variables to investigate:
@@ -159,7 +159,8 @@ inference_vars_regex_alpha <- c("A_effective","A","psi","Lambda", "Omega","L_", 
                                 "ref_time_of_day_effect", "specific_time_of_day_effect")
 # Run MCMC with cmdstanr
 nchains = 8
-mod_Net <- cmdstan_model("BayesianOrderedVAR_alpha_sensitivity.stan")
+mod_Net <- cmdstan_model("./stan_models/BayesianOrderedVAR_alpha sensitivity.stan")
+gc()
 fit_Net <- mod_Net$sample(
   data = stan_data,
   seed = 123,                 # or your preferred seed
