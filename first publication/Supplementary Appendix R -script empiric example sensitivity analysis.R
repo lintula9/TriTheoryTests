@@ -445,7 +445,7 @@ fit_Net_7 <- mod_Net_7$sample(
   }
 ); gc()
 # Save output
-fit_Net_7$save_output_files("Datas/",basename = "BVAR_7_variables_sensitivity")
+fit_Net_7$save_output_files("./Datas/",basename = "BVAR_7_variables_sensitivity")
 # Read data
 if(F){
     ## CHECK THAT THIS IS THE CORRECT FILE
@@ -453,7 +453,7 @@ if(F){
   draws_data_7 <- as_draws_df(fit_Net_7$draws(variables = c(inference_vars_regex_alpha, "lp__") )); gc(); rm(fit_Net_7); gc()
 }
 # Diagnostics and posterior distribution marignal plots. 
-plotnams <- inference_vars_regex_alpha;pdf(file = paste0("Datas/Bayespots_7VAR_",format(Sys.time(), "%Y-%m-%d"), ".pdf"));color_scheme_set("viridis")
+plotnams <- inference_vars_regex_alpha;pdf(file = paste0("./Datas/Bayespots_7VAR_sensitivity_",format(Sys.time(), "%Y-%m-%d"), ".pdf"));color_scheme_set("viridis")
 for(i in plotnams){print(  mcmc_trace(draws_data_7, regex_pars = i ));print(  mcmc_areas_ridges(draws_data_7[ , grep(i, names(draws_data_7))]) );
 }; gc(); dev.off()
 
@@ -471,15 +471,15 @@ var_samples_7           <- pbapply::pblapply(1:nrow(draws_data_7),
                                              return(list(A = A_temp, Z = Z_temp))
                                            }); gc()
 # Source the methods.
-source("Supplementary Appendix R -script var_dcf_compare.R")
+source("./first publication/Supplementary Appendix R -script var_ccov_decompose.R")
 
 # Figure 5 in main text ----
 # Compute parallel analysis imitation and RMSEA, for the posterior mean.
-result_parallel_7  <- var_dcf_compare(A_7, Z_7)
+result_parallel_7  <- var_ccov_decompose(A_7, Z_7)
 
 # Compute credible intervals for eigenvalues, congruencies.
 eigen_congurency_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
-  res  <- try(var_dcf_compare(x$A,x$Z))
+  res  <- try(var_ccov_decompose(x$A,x$Z))
   eigens       <- t(abs(res$eigenvals))
   singularvals <- t(res$singularvals)
   congruencies <- res$subsequent_pair_congruencies
@@ -494,7 +494,7 @@ mean(unlist(lapply(eigen_congurency_7, function(x) any(0.90 > x$congruencies))))
 
 # Compute quantiles for eigenvalues.
 eigen_distributions_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
-  res          <- var_dcf_compare(x$A,x$Z)
+  res          <- var_ccov_decompose(x$A,x$Z)
   eigens       <- t((res$eigenvals))
   singularvals <- t((res$singularvals))
   return(list(eigens = eigens)) }); gc()
@@ -516,7 +516,7 @@ singular_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7,
 upper_7 <- as.matrix(singular_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(singular_dat_7)-1) ), ~ quantile(.x, c(.975))) ))
 lower_7 <- as.matrix(singular_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(singular_dat_7)-1) ), ~ quantile(.x, c(.025))) ))
 
-tiff(filename = "Figure_4_tentative.tiff", 
+tiff(filename = "./Figure_4_sensitivity.tiff", 
      width    = 17, 
      height   = 19, 
      units    = "cm", 
@@ -579,12 +579,12 @@ dev.off();gc();par(mfrow = c(1,1) )
 # Save for future use.
 if(F) {
   
-  saveRDS(result_parallel_7, file = "parallel_7.RDS")
-  saveRDS(eigen_congurency_7, file = "eigen_congurency_7.RDS")
-  saveRDS(draws_data_7, file = "draws_data_7.RDS"); gc()
+  saveRDS(result_parallel_7, file = "./Datas/parallel_7_sensitivity.RDS")
+  saveRDS(eigen_congurency_7, file = "./Datas/eigen_congurency_7_sensitivity.RDS")
+  saveRDS(draws_data_7, file = "./Datas/draws_data_7_sensitivity.RDS"); gc()
   
-  result_parallel_7  <- readRDS("parallel_7.RDS")
-  eigen_congurency_7 <- readRDS("eigen_congurency_7.RDS")
-  draws_data_7       <- readRDS("draws_data_7.RDS")
+  result_parallel_7  <- readRDS("./Datas/parallel_7_sensitivity.RDS")
+  eigen_congurency_7 <- readRDS("./Datas/eigen_congurency_7_sensitivity.RDS")
+  draws_data_7       <- readRDS("./Datas/draws_data_7.RDS_sensitivity")
   }
   # nolint end
