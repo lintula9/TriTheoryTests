@@ -255,7 +255,7 @@ eigen_dat <- data.frame(
 upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.975))) ))
 lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
 
-tiff(filename = "Figure_4_sensitivity.tiff", 
+tiff(filename = "Figure_4a_sensitivity.tiff", 
      width    = 17, 
      height   = 19, 
      units    = "cm", 
@@ -312,6 +312,18 @@ title("Innovation covariance",
       line     = -1)
 
 dev.off();gc();par(mfrow = c(1,1) )
+
+# Save for future use.
+if(F) {
+  
+  saveRDS(result_parallel, file = "./Datas/parallel_sensitivity.RDS")
+  saveRDS(eigen_congurency, file = "./Datas/eigen_congurency_sensitivity.RDS")
+  saveRDS(draws_data, file = "./Datas/draws_data_sensitivity.RDS"); gc()
+  
+  result_parallel  <- readRDS("./Datas/parallel_sensitivity.RDS")
+  eigen_congurency <- readRDS("./Datas/eigen_congurency_sensitivity.RDS")
+  draws_data       <- readRDS("./Datas/draws_data.RDS_sensitivity")
+  }
 
 # Second analysis: More symptoms -----
 
