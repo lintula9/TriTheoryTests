@@ -434,7 +434,7 @@ if(F){
           xaxt = "n"); grid()
   axis(1, labels = paste0(0:10),
        at = 1:11)
-  matplot(t(abs(parallel_A$eigenvals)), type = "b",
+  matplot(t(abs(parallel_A$singularvals)), type = "b",
           col  = cividis(7), add = T,
           lty = 1)
   
@@ -449,7 +449,7 @@ if(F){
           xaxt = "n"); grid()
   axis(1, labels = paste0(0:10),
        at = 1:11)
-  matplot(t(abs(parallel_B$eigenvals)), type = "b", 
+  matplot(t(abs(parallel_B$singularvals)), type = "b", 
           col  = cividis(6),
           add  = T,
           lty = 1)
