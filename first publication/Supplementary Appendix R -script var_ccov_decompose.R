@@ -487,3 +487,49 @@ if(F){
   dev.off(); par(mfrow=c(1,1));gc()
 
   }
+
+# Numerical examples, supplement. -------------------------------
+
+if (F) {
+  # VAR(1), indistinguishable from a 2 dimensional CF model.
+  # CFs rotate, causing a mixup in the 'largest' direction.
+  Rotation <- matrix(c(
+  cos(90*pi/180), -sin(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
+  sin(90*pi/180), cos(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 
+     nrow = 7, byrow = T)
+  Scaling <- diag(c(rep(0.7, times =2), rep(0, times = 5)))
+  A_3     <- Rotation %*% Scaling
+  # Create the innovation covariance via the eigendecomposition.
+  direction_1 <- c(1,1,1,0,0,0,0)
+  direction_1_normalised <- direction_1 / pracma::Norm(direction_1)
+  direction_2 <- c(0,0,0,1,1,1,1)
+  direction_2_normalised <- direction_2 / pracma::Norm(direction_2)
+  directions <- cbind(direction_1_normalised,
+                      direction_2_normalised,
+                      rep(0, times = 7),
+                      rep(0, times = 7),
+                      rep(0, times = 7),
+                      rep(0, times = 7),
+                      rep(0, times = 7))
+  unit_eigens <- matrix(c(
+                1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 
+     nrow = 7, byrow = T)
+  Z_3 <- directions %*% unit_eigens %*% t(directions)
+
+  parallel_C <- var_ccov_decompose(A_3,Z_3)
+
+
+
+
+}
