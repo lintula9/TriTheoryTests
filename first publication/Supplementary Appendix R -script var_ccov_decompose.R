@@ -334,7 +334,7 @@ var_ccov_decompose <- function(A,Z,time_points = 10) {
   eigenvals     <- sapply(0:time_points, function(t) eigen( var_ccov(A,Z,t) )$values)
   singularvals  <- sapply(0:time_points, function(t) svd(   var_ccov(A,Z,t  ) )$d )
   ccorrcoefs    <- sapply(0:time_points, function(t) svd( MASS::ginv(var_ccov(A,Z,0)) %*% var_ccov(A,Z,t) %*% MASS::ginv(t(var_ccov(A,Z,0))) )$d ) 
-  
+
   colnames(eigenvals)    <- paste("Increment ",0:time_points)
   colnames(singularvals) <- paste("Increment ",0:time_points)
   colnames(ccorrcoefs)   <- paste("Increment ",0:time_points)
@@ -374,6 +374,9 @@ var_ccov_decompose <- function(A,Z,time_points = 10) {
          labels = 0:(length(x$singularvals)-1) )
   }
   if(answer == 4)  {
+    if(any(abs(x$canonical_correlations) > 1))
+    message("Note, that canonical correlations can become spurious near indistinguishability
+             due to low rank covariance.")
     matplot(t(x$canonical_correlations), type = "b", ylab = "Canonical correlation coefficient", 
             xlab = expression(paste("Increment in time ", Delta, "t")),
             xaxt = "n",
@@ -390,7 +393,7 @@ if(F){
   
   # VAR(1), distinguishable
     # Create a VAR(1) model, which rotates and scales.
-    # Rotation violates indistinguishability conditions.
+    # Rotation violates indistinguishability conditions w.r.t. a one CF model.
   Rotation <- matrix(c(
    cos(90*pi/180), -sin(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
     sin(90*pi/180), cos(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -503,14 +506,12 @@ if (F) {
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 
      nrow = 7, byrow = T)
   Scaling <- diag(c(rep(0.7, times =2), rep(0, times = 5)))
-  A_3     <- Rotation %*% Scaling
+  A_4     <- Rotation %*% Scaling
   # Create the innovation covariance via the eigendecomposition.
-  direction_1 <- c(1,1,1,0,0,0,0)
-  direction_1_normalised <- direction_1 / pracma::Norm(direction_1)
-  direction_2 <- c(0,0,0,1,1,1,1)
-  direction_2_normalised <- direction_2 / pracma::Norm(direction_2)
-  directions <- cbind(direction_1_normalised,
-                      direction_2_normalised,
+  direction_1 <- eigen(A_4)$vectors[,1]
+  direction_2 <- eigen(A_4)$vectors[,2]
+  directions <- cbind(Re(direction_1),
+                      Re(direction_2),
                       rep(0, times = 7),
                       rep(0, times = 7),
                       rep(0, times = 7),
@@ -525,9 +526,9 @@ if (F) {
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 
      nrow = 7, byrow = T)
-  Z_3 <- directions %*% unit_eigens %*% t(directions)
+  Z_4 <- directions %*% unit_eigens %*% t(directions)
 
-  parallel_C <- var_ccov_decompose(A_3,Z_3)
+  parallel_C <- var_ccov_decompose(A_4,Z_4)
 
 
 
