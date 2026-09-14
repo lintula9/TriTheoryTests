@@ -19,7 +19,7 @@ for (pkg in required_packages) {
 # Load data ------
 
 # load 
-load(file.path("./Fried_2022 data/clean_network.RData")); gc()
+load(file.path("./Datas/fried_2022_network.RData")); gc()
 Data5b <- Data2
 
 # Variables to investigate:
@@ -402,16 +402,16 @@ stan_data <- list(
 
 # Run MCMC with cmdstanr
 nchains = 8
-mod_Net_7 <- cmdstan_model("BayesianOrderedVAR_alpha.stan")
+mod_Net_7 <- cmdstan_model("./stan_models/BayesianOrderedVAR_alpha.stan")
 fit_Net_7 <- mod_Net_7$sample(
   data = stan_data,
-  seed = 123,                 # or your preferred seed
+  seed = 123,
   refresh = 100,
   chains = nchains,
   parallel_chains = nchains, 
-  iter_warmup = 2000,          # e.g. half of 1000
-  iter_sampling = 2000,        # total 1000 draws
-  adapt_delta = 0.95,
+  iter_warmup = 2000,
+  iter_sampling = 2000, 
+  adapt_delta = 0.95  ,
   init = function(chain_id) {
     list(
       A = diag(rep(0, stan_data$K)),
@@ -440,7 +440,7 @@ fit_Net_7 <- mod_Net_7$sample(
   }
 ); gc()
 # Save output
-fit_Net_7$save_output_files("Datas/",basename = "BVAR_7_variables_30_01")
+fit_Net_7$save_output_files("./Datas/",basename = "BVAR_7_variables_01_09")
 # Read data
 if(F){
     ## CHECK THAT THIS IS THE CORRECT FILE
