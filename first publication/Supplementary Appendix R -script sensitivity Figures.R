@@ -43,23 +43,22 @@ var_samples           <- pbapply::pblapply(1:nrow(draws_data),
 source("./first publication/Supplementary Appendix R -script var_ccov_decompose.R")
 
 ## Figure 4 in main text ----
-  # Compute parallel analysis imitation and RMSEA, for the posterior mean.
 result_parallel  <- var_ccov_decompose(A, Z, time_points = 50)
 
-  # Compute credible intervals for eigenvalues, congruencies.
-eigen_congurency <- pbapply::pblapply(var_samples, FUN = function(x){
+  # Compute credible intervals for singular vals, congruencies.
+sval_congruency <- pbapply::pblapply(var_samples, FUN = function(x){
               res  <- try(var_ccov_decompose(x$A,x$Z,time_points=50))
-            eigens <- t(abs(res$eigenvals))
+            svals  <- t(abs(res$singularvals))
       congruencies <- res$subsequent_pair_congruencies
-    return(list(eigens = eigens, congruencies = congruencies)) }); gc()
+    return(list(svals = svals, congruencies = congruencies)) }); gc()
 
-eigen_dat <- data.frame(
+sval_dat <- data.frame(
   Re(do.call(rbind,
-             lapply(eigen_congurency, 
-                    FUN = function(x) cbind( x$eigens, 1:51 ) ))))
+             lapply(sval_congruency, 
+                    FUN = function(x) cbind( x$svals, 1:51 ) ))))
 
-upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.975))) ))
-lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
+upper <- as.matrix(sval_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(sval_dat)-1) ), ~ quantile(.x, c(.975))) ))
+lower <- as.matrix(sval_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(sval_dat)-1) ), ~ quantile(.x, c(.025))) ))
 
 # Figure ----
 tiff(filename = "Figure_4_moretimepoints.tiff", 
@@ -71,24 +70,24 @@ tiff(filename = "Figure_4_moretimepoints.tiff",
 par(mfrow     = c(2,2) )
 par(mar       = c(4,4,2,0.5) )
 colvec <- cividis(ncol(upper)-1) |> adjustcolor(alpha.f = 0.15)
-matplot(t(result_parallel$eigenvals),
+matplot(t(result_parallel$singularvals),
         type = "n",
-        ylab = "Absolute value of eigenvalue", 
+        ylab = "Singular values", 
         xlab = expression(paste("Increment in time ", Delta, "t")),
         xaxt = "n",
-        main = "Cross-covariance eigenvalues",
+        main = "Cross-covariance singular values",
         font.main = 1); grid()
-axis(side = 1, at = 1:(ncol(result_parallel$eigenvals)), labels = 0:(ncol(result_parallel$eigenvals) - 1))
+axis(side = 1, at = 1:(ncol(result_parallel$singularvals)), labels = 0:(ncol(result_parallel$singularvals) - 1))
 for( i in 2:ncol(upper)) {
   polygon(x = c(upper[,1], rev(lower[,1])), y = c(upper[,i], rev(lower[,i])),
           col = colvec[i-1], border = F)
 }
-matplot(t(result_parallel$eigenvals), 
+matplot(t(result_parallel$singularvals), 
         type = "b",
         col  = cividis(ncol(upper)-1), add = T)
 
 
-cong_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function(x) cbind( x$congruencies, 1:50 ) ))))
+cong_dat <- data.frame(Re(do.call(rbind,lapply(sval_congruency, FUN = function(x) cbind( x$congruencies, 1:50 ) ))))
 upper_c  <- as.matrix(cong_dat %>% group_by(X2) %>% 
                         reframe( quantile(X1, 0.975) ))
 lower_c  <- as.matrix(cong_dat %>% group_by(X2) %>% 
@@ -107,12 +106,33 @@ axis(1, labels = paste0("(", 0:50,", ", 1:51,")"),
      at = 1:51, cex.axis = 0.7 )
 matplot(result_parallel$subsequent_pair_congruencies, type = "b",
         col = cividis(6), add = T )
-qgraph( A, layout = "circle", 
-        labels = varLabs, mar = c(2,2,7,2))
+qgraph(A,
+       layout      = "circle",
+       labels      = varLabs,
+       posCol      = "#0072B2",
+       negCol      = "#D55E00",
+       esize       = 12,        # width of the strongest edge
+       vsize       = 18,
+       edge.width  = 1,
+       label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+       label.cex   = 1,         # 1 = device pointsize, so 12pt
+       label.font  = 1,
+       mar = c(7,7,14,7))
 title("Coefficient matrix",
       font.main = 1,
       line     = -1)
-qgraph( Z, layout = "circle", mar = c(3,3,7,3))
+qgraph(Z,
+       layout      = "circle",
+       labels      = varLabs,
+       posCol      = "#0072B2",
+       negCol      = "#D55E00",
+       esize       = 12,        # width of the strongest edge
+       vsize       = 18,
+       edge.width  = 1,
+       label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+       label.cex   = 1,         # 1 = device pointsize, so 12pt
+       label.font  = 1,
+       mar = c(7,7,14,7))
 title("Innovation covariance",
       font.main = 1,
       line     = -1)
@@ -156,23 +176,23 @@ source("./first publication/Supplementary Appendix R -script var_ccov_decompose.
 result_parallel_7  <- var_ccov_decompose(A_7, Z_7, time_points = 50)
 
 # Compute credible intervals for eigenvalues, congruencies.
-eigen_congurency_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
+sval_congruency_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
   res  <- try(var_ccov_decompose(x$A,x$Z, time_points = 50))
-  eigens       <- t(abs(res$eigenvals))
+  svals       <- t(abs(res$singularvals))
   singularvals <- t(res$singularvals)
   congruencies <- res$subsequent_pair_congruencies
-  return(list(eigens = eigens, singularvals = singularvals, congruencies = congruencies)) }); gc()
+  return(list(svals = svals, singularvals = singularvals, congruencies = congruencies)) }); gc()
 
 # Compute quantiles for eigenvalues.
 eigen_distributions_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
   res          <- var_ccov_decompose(x$A,x$Z,time_points=50)
-  eigens       <- t((res$eigenvals))
+  svals       <- t((res$singularvals))
   singularvals <- t((res$singularvals))
-  return(list(eigens = eigens)) }); gc()
+  return(list(svals = svals)) }); gc()
 
-eigen_dat_7    <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, 
-                                                FUN = function(x) cbind( x$eigens, 1:51 ) ))))
-singular_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, 
+eigen_dat_7    <- data.frame(Re(do.call(rbind,lapply(sval_congruency_7, 
+                                                FUN = function(x) cbind( x$svals, 1:51 ) ))))
+singular_dat_7 <- data.frame(Re(do.call(rbind,lapply(sval_congruency_7, 
                                                      FUN = function(x) cbind( x$singularvals, 1:51 ) ))))
 
 upper_7 <- as.matrix(singular_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(singular_dat_7)-1) ), ~ quantile(.x, c(.975))) ))
@@ -207,7 +227,7 @@ for( i in 2:ncol(upper_7)) {
           border = NA)
 }
 
-cong_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, FUN = function(x) cbind( x$congruencies, 1:51 ) ))))
+cong_dat_7 <- data.frame(Re(do.call(rbind,lapply(sval_congruency_7, FUN = function(x) cbind( x$congruencies, 1:50 ) ))))
 upper_c_7  <- as.matrix(cong_dat_7 %>% group_by(X2) %>% 
                         reframe( quantile(X1, 0.975) ))
 lower_c_7  <- as.matrix(cong_dat_7 %>% group_by(X2) %>% 
@@ -225,13 +245,33 @@ axis(1, labels = paste0("(", 0:50,", ", 1:51,")"),
      at = 1:51, cex.axis = 0.7 )
 matplot(result_parallel_7$subsequent_pair_congruencies, type = "b",
         col = cividis(6), add = T )
-qgraph( A_7, layout = "circle", 
-        labels = varLabs2, mar = c(2,2,7,2) )
+qgraph(A_7,
+       layout      = "circle",
+       labels      = varLabs2,
+       posCol      = "#0072B2",
+       negCol      = "#D55E00",
+       esize       = 12,        # width of the strongest edge
+       vsize       = 18,
+       edge.width  = 1,
+       label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+       label.cex   = 1,         # 1 = device pointsize, so 12pt
+       label.font  = 1,
+       mar = c(7,7,14,7))
 title("Coefficient matrix",
       font.main = 1,
       line     = -1)
-qgraph( Z_7, layout = "circle", 
-        labels = varLabs2, mar = c(3,3,7,3))
+qgraph(Z_7,
+       layout      = "circle",
+       labels      = varLabs2,
+       posCol      = "#0072B2",
+       negCol      = "#D55E00",
+       esize       = 12,        # width of the strongest edge
+       vsize       = 18,
+       edge.width  = 1,
+       label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+       label.cex   = 1,         # 1 = device pointsize, so 12pt
+       label.font  = 1,
+       mar = c(7,7,14,7))
 title("Innovation covariance",
       font.main = 1,
       line     = -1)

@@ -225,30 +225,29 @@ var_samples           <- pbapply::pblapply(1:nrow(draws_data),
 source("./first publication/Supplementary Appendix R -script var_ccov_decompose.R")
 
 ## Figure 4 in main text ----
-  # Compute parallel analysis imitation and RMSEA, for the posterior mean.
-result_parallel  <- var_dcf_compare(A, Z)
+result_parallel  <- var_ccov_decompose(A, Z)
 
-  # Compute credible intervals for eigenvalues, congruencies.
-eigen_congurency <- pbapply::pblapply(var_samples, FUN = function(x){
-              res  <- try(var_dcf_compare(x$A,x$Z))
-            eigens <- t(abs(res$eigenvals))
+  # Compute credible intervals for singular vals, congruencies.
+sval_congruency <- pbapply::pblapply(var_samples, FUN = function(x){
+              res  <- try(var_ccov_decompose(x$A,x$Z))
+            svals  <- t(abs(res$singularvals))
       congruencies <- res$subsequent_pair_congruencies
-    return(list(eigens = eigens, congruencies = congruencies)) }); gc()
+    return(list(svals = svals, congruencies = congruencies)) }); gc()
 
     # How many explain above 0.90?
-mean(unlist(lapply(eigen_congurency, function(x) any(0.90 > (x$eigens[ , 1] / (rowSums(x$eigens)))) )))
+mean(unlist(lapply(sval_congruency, function(x) any(0.90 > (x$svals[ , 1] / (rowSums(x$svals)))) )))
     # All.
     # How many congruencies above 0.90?
-mean(unlist(lapply(eigen_congurency, function(x) any(0.90 > x$congruencies))))
+mean(unlist(lapply(sval_congruency, function(x) any(0.90 > x$congruencies))))
     # All.
 
-eigen_dat <- data.frame(
+sval_dat <- data.frame(
   Re(do.call(rbind,
-             lapply(eigen_congurency, 
-                    FUN = function(x) cbind( x$eigens, 1:11 ) ))))
+             lapply(sval_congruency, 
+                    FUN = function(x) cbind( x$svals, 1:11 ) ))))
 
-upper <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.975))) ))
-lower <- as.matrix(eigen_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(eigen_dat)-1) ), ~ quantile(.x, c(.025))) ))
+upper <- as.matrix(sval_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(sval_dat)-1) ), ~ quantile(.x, c(.975))) ))
+lower <- as.matrix(sval_dat %>% group_by(X4) %>% reframe( across(paste0( "X", 1:(length(sval_dat)-1) ), ~ quantile(.x, c(.025))) ))
 
 tiff(filename = "Figure_4.tiff", 
      width    = 17, 
@@ -259,24 +258,24 @@ tiff(filename = "Figure_4.tiff",
 par(mfrow     = c(2,2) )
 par(mar       = c(4,4,2,0.5) )
 colvec <- cividis(ncol(upper)-1) |> adjustcolor(alpha.f = 0.15)
-matplot(t(result_parallel$eigenvals),
+matplot(t(result_parallel$singularvals),
         type = "n",
-        ylab = "Absolute value of eigenvalue", 
+        ylab = "Singular values", 
         xlab = expression(paste("Increment in time ", Delta, "t")),
         xaxt = "n",
-        main = "Cross-covariance eigenvalues",
+        main = "Cross-covariance singular values",
         font.main = 1); grid()
-axis(side = 1, at = 1:(ncol(result_parallel$eigenvals)), labels = 0:(ncol(result_parallel$eigenvals) - 1))
+axis(side = 1, at = 1:(ncol(result_parallel$singularvals)), labels = 0:(ncol(result_parallel$singularvals) - 1))
 for( i in 2:ncol(upper)) {
   polygon(x = c(upper[,1], rev(lower[,1])), y = c(upper[,i], rev(lower[,i])),
           col = colvec[i-1], border = F)
 }
-matplot(t(result_parallel$eigenvals), 
+matplot(t(result_parallel$singularvals), 
         type = "b",
         col  = cividis(ncol(upper)-1), add = T)
 
 
-cong_dat <- data.frame(Re(do.call(rbind,lapply(eigen_congurency, FUN = function(x) cbind( x$congruencies, 1:10 ) ))))
+cong_dat <- data.frame(Re(do.call(rbind,lapply(sval_congruency, FUN = function(x) cbind( x$congruencies, 1:10 ) ))))
 upper_c  <- as.matrix(cong_dat %>% group_by(X2) %>% 
                         reframe( quantile(X1, 0.975) ))
 lower_c  <- as.matrix(cong_dat %>% group_by(X2) %>% 
@@ -295,13 +294,33 @@ axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
      at = 1:11, cex.axis = 0.7 )
 matplot(result_parallel$subsequent_pair_congruencies, type = "b",
         col = cividis(6), add = T )
-qgraph( A, layout = "circle", 
-        labels = varLabs, mar = c(2,2,7,2))
+qgraph(A,
+       layout      = "circle",
+       labels      = varLabs,
+       posCol      = "#0072B2",
+       negCol      = "#D55E00",
+       esize       = 12,        # width of the strongest edge
+       vsize       = 18,
+       edge.width  = 1,
+       label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+       label.cex   = 1,         # 1 = device pointsize, so 12pt
+       label.font  = 1,
+       mar = c(7,7,14,7))
 title("Coefficient matrix",
       font.main = 1,
       line     = -1)
-qgraph( Z, layout = "circle", 
-        labels = varLabs, mar = c(3,3,7,3))
+qgraph(Z,
+       layout      = "circle",
+       labels      = varLabs,
+       posCol      = "#0072B2",
+       negCol      = "#D55E00",
+       esize       = 12,        # width of the strongest edge
+       vsize       = 18,
+       edge.width  = 1,
+       label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+       label.cex   = 1,         # 1 = device pointsize, so 12pt
+       label.font  = 1,
+       mar = c(7,7,14,7))
 title("Innovation covariance",
       font.main = 1,
       line     = -1)
@@ -444,7 +463,7 @@ fit_Net_7$save_output_files("./Datas/",basename = "BVAR_7_variables_01_09")
 # Read data
 if(F){
     ## CHECK THAT THIS IS THE CORRECT FILE
-  fit_Net_7    <- as_cmdstan_fit(files = paste0("Datas/HOMEPC_VAR_7-202502050525-",1:8,".csv") ); gc()
+  fit_Net_7    <- as_cmdstan_fit(files = paste0("Datas/BVAR_7_variables_01_09-202609021852-",1:8,"-032488.csv") ); gc()
   draws_data_7 <- as_draws_df(fit_Net_7$draws(variables = c(inference_vars_regex_alpha, "lp__") )); gc(); rm(fit_Net_7); gc()
 }
 # Diagnostics and posterior distribution marignal plots. 
@@ -466,46 +485,46 @@ var_samples_7           <- pbapply::pblapply(1:nrow(draws_data_7),
                                              return(list(A = A_temp, Z = Z_temp))
                                            }); gc()
 # Source the methods.
-source("Supplementary Appendix R -script var_dcf_compare.R")
+source("./first publication/Supplementary Appendix R -script var_ccov_decompose.R")
 
 # Figure 5 in main text ----
 # Compute parallel analysis imitation and RMSEA, for the posterior mean.
-result_parallel_7  <- var_dcf_compare(A_7, Z_7)
+result_parallel_7  <- var_ccov_decompose(A_7, Z_7)
 
 # Compute credible intervals for eigenvalues, congruencies.
-eigen_congurency_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
-  res  <- try(var_dcf_compare(x$A,x$Z))
-  eigens       <- t(abs(res$eigenvals))
+sval_congruency_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
+  res  <- try(var_ccov_decompose(x$A,x$Z))
+  svals       <- t(abs(res$singularvals))
   singularvals <- t(res$singularvals)
   congruencies <- res$subsequent_pair_congruencies
-  return(list(eigens = eigens, singularvals = singularvals, congruencies = congruencies)) }); gc()
+  return(list(svals = svals, singularvals = singularvals, congruencies = congruencies)) }); gc()
 
 # How many do not explain above 0.90?
-mean(unlist(lapply(eigen_congurency_7, function(x) any(0.90 > (x$eigens[ , 1] / (rowSums(x$eigens)))) )))
+mean(unlist(lapply(sval_congruency_7, function(x) any(0.90 > (x$svals[ , 1] / (rowSums(x$svals)))) )))
 # All.
 # How many congruencies not above 0.90?
-mean(unlist(lapply(eigen_congurency_7, function(x) any(0.90 > x$congruencies))))
+mean(unlist(lapply(sval_congruency_7, function(x) any(0.90 > x$congruencies))))
 # 0.133.
 
 # Compute quantiles for eigenvalues.
 eigen_distributions_7 <- pbapply::pblapply(var_samples_7, FUN = function(x){
-  res          <- var_dcf_compare(x$A,x$Z)
-  eigens       <- t((res$eigenvals))
+  res          <- var_ccov_decompose(x$A,x$Z)
+  svals       <- t((res$singularvals))
   singularvals <- t((res$singularvals))
-  return(list(eigens = eigens)) }); gc()
+  return(list(svals = svals)) }); gc()
 
 eigen_distributions_7 |> 
-  lapply(FUN = function(x) cbind(Re(x$eigens), 0:10)) %>% 
+  lapply(FUN = function(x) cbind(Re(x$svals), 0:10)) %>% 
   do.call(rbind, args = .) |> 
   as.data.frame() |> setNames(c(paste0("eigen",1:7),"Increment")) %>%
   tibble() %>%
   group_by(Increment) %>%
-  summarise_all( .funs = function(x) quantile(x, c(0.05, 0.025, 0.01, 0.001)) ) |>
+  reframe( across(everything(), ~ quantile(.x, c(0.05, 0.025, 0.01, 0.001))) ) |>
   print(n = 50)
 
-eigen_dat_7    <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, 
-                                                FUN = function(x) cbind( x$eigens, 1:11 ) ))))
-singular_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, 
+eigen_dat_7    <- data.frame(Re(do.call(rbind,lapply(sval_congruency_7, 
+                                                FUN = function(x) cbind( x$svals, 1:11 ) ))))
+singular_dat_7 <- data.frame(Re(do.call(rbind,lapply(sval_congruency_7, 
                                                      FUN = function(x) cbind( x$singularvals, 1:11 ) ))))
 
 upper_7 <- as.matrix(singular_dat_7 %>% group_by(X8) %>% reframe( across(paste0( "X", 1:(length(singular_dat_7)-1) ), ~ quantile(.x, c(.975))) ))
@@ -540,7 +559,7 @@ for( i in 2:ncol(upper_7)) {
           border = NA)
 }
 
-cong_dat_7 <- data.frame(Re(do.call(rbind,lapply(eigen_congurency_7, FUN = function(x) cbind( x$congruencies, 1:10 ) ))))
+cong_dat_7 <- data.frame(Re(do.call(rbind,lapply(sval_congruency_7, FUN = function(x) cbind( x$congruencies, 1:10 ) ))))
 upper_c_7  <- as.matrix(cong_dat_7 %>% group_by(X2) %>% 
                         reframe( quantile(X1, 0.975) ))
 lower_c_7  <- as.matrix(cong_dat_7 %>% group_by(X2) %>% 
@@ -558,13 +577,33 @@ axis(1, labels = paste0("(", 0:10,", ", 1:11,")"),
      at = 1:11, cex.axis = 0.7 )
 matplot(result_parallel_7$subsequent_pair_congruencies, type = "b",
         col = cividis(6), add = T )
-qgraph( A_7, layout = "circle", 
-        labels = varLabs2, mar = c(2,2,7,2) )
+qgraph(A_7,
+       layout      = "circle",
+       labels      = varLabs2,
+       posCol      = "#0072B2",
+       negCol      = "#D55E00",
+       esize       = 12,        # width of the strongest edge
+       vsize       = 18,
+       edge.width  = 1,
+       label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+       label.cex   = 1,         # 1 = device pointsize, so 12pt
+       label.font  = 1,
+       mar = c(7,7,14,7))
 title("Coefficient matrix",
       font.main = 1,
       line     = -1)
-qgraph( Z_7, layout = "circle", 
-        labels = varLabs2, mar = c(3,3,7,3))
+qgraph(Z_7,
+       layout      = "circle",
+       labels      = varLabs2,
+       posCol      = "#0072B2",
+       negCol      = "#D55E00",
+       esize       = 12,        # width of the strongest edge
+       vsize       = 18,
+       edge.width  = 1,
+       label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+       label.cex   = 1,         # 1 = device pointsize, so 12pt
+       label.font  = 1,
+       mar = c(7,7,14,7))
 title("Innovation covariance",
       font.main = 1,
       line     = -1)
@@ -575,11 +614,11 @@ dev.off();gc();par(mfrow = c(1,1) )
 if(F) {
   
   saveRDS(result_parallel_7, file = "parallel_7.RDS")
-  saveRDS(eigen_congurency_7, file = "eigen_congurency_7.RDS")
+  saveRDS(sval_congruency_7, file = "sval_congruency_7.RDS")
   saveRDS(draws_data_7, file = "draws_data_7.RDS"); gc()
   
   result_parallel_7  <- readRDS("parallel_7.RDS")
-  eigen_congurency_7 <- readRDS("eigen_congurency_7.RDS")
+  sval_congruency_7 <- readRDS("sval_congruency_7.RDS")
   draws_data_7       <- readRDS("draws_data_7.RDS")
   }
   # nolint end

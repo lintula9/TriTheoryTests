@@ -47,10 +47,24 @@ tiff(filename = "Figure_1.tiff",
 
 par(mfrow = c(2,2))
 par(mar   = c(4,4,2,0.5))
-qgraph(As[[1]], layout = "circle")
-qgraph(As[[2]], layout = "circle")
-qgraph(As[[3]], layout = "circle")
-qgraph(As[[4]], layout = "circle")
+labels <- expression(X[1], X[2], X[3], X[4])
+for (i in 1:4) {
+  qgraph(As[[i]],
+         layout      = "circle",
+         labels      = labels,
+         posCol      = "#0072B2",
+         negCol      = "#D55E00",
+         esize       = 12,        # width of the strongest edge
+         vsize       = 18,
+         edge.width  = 1,
+         label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+         label.cex   = 1,         # 1 = device pointsize, so 12pt
+         label.font  = 1,
+         mar = c(7,7,14,7))
+  title(paste("Simulated sample", i),
+        font.main = 1,
+        line      = -1)
+}
 dev.off()
 par(mfrow = c(1,1))
 
@@ -340,7 +354,14 @@ par(mfrow = c(1,1))
          title.cex = 1.5,  
          mar = c(4, 4, 6, 4),
          maximum = max_weight, # Consistent scale for edges
-         edge.width = 3,       # Adjust this value for larger edges
+         posCol      = "#0072B2",
+         negCol      = "#D55E00",
+         esize       = 12,        # width of the strongest edge
+         vsize       = 10,        # smaller than the other figures: 9 nodes
+         edge.width  = 1,
+         label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+         label.cex   = 1,         # 1 = device pointsize, so 12pt
+         label.font  = 1,
          layout = "circle",
          labels = labels # Custom line types
   )
@@ -354,7 +375,14 @@ par(mfrow = c(1,1))
          title.cex = 1.5,  
          mar = c(4, 4, 6, 4),
          maximum = max_weight, # Consistent scale for edges
-         edge.width = 3,       # Adjust this value for larger edges
+         posCol      = "#0072B2",
+         negCol      = "#D55E00",
+         esize       = 12,        # width of the strongest edge
+         vsize       = 10,        # smaller than the other figures: 9 nodes
+         edge.width  = 1,
+         label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+         label.cex   = 1,         # 1 = device pointsize, so 12pt
+         label.font  = 1,
          layout = "circle",
          labels = labels      # Use the expression labels
   )
@@ -365,7 +393,14 @@ par(mfrow = c(1,1))
          title.cex = 1.5,  
          mar = c(4, 4, 6, 4),
          maximum = max_weight, # Consistent scale for edges
-         edge.width = 3,       # Adjust this value for larger edges
+         posCol      = "#0072B2",
+         negCol      = "#D55E00",
+         esize       = 12,        # width of the strongest edge
+         vsize       = 10,        # smaller than the other figures: 9 nodes
+         edge.width  = 1,
+         label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+         label.cex   = 1,         # 1 = device pointsize, so 12pt
+         label.font  = 1,
          layout = "circle",
          labels = labels      # Use the expression labels
   )
@@ -376,7 +411,14 @@ par(mfrow = c(1,1))
          title.cex = 1.5,  
          mar = c(4, 4, 6, 4),
          maximum = max_weight, # Consistent scale for edges
-         edge.width = 3,       # Adjust this value for larger edges
+         posCol      = "#0072B2",
+         negCol      = "#D55E00",
+         esize       = 12,        # width of the strongest edge
+         vsize       = 10,        # smaller than the other figures: 9 nodes
+         edge.width  = 1,
+         label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+         label.cex   = 1,         # 1 = device pointsize, so 12pt
+         label.font  = 1,
          layout = "circle",
          labels = labels      # Use the expression labels
   )
@@ -387,7 +429,14 @@ par(mfrow = c(1,1))
          title.cex = 1.5,  
          mar = c(4, 4, 6, 4),
          maximum = max_weight, # Consistent scale for edges
-         edge.width = 3,       # Adjust this value for larger edges
+         posCol      = "#0072B2",
+         negCol      = "#D55E00",
+         esize       = 12,        # width of the strongest edge
+         vsize       = 10,        # smaller than the other figures: 9 nodes
+         edge.width  = 1,
+         label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
+         label.cex   = 1,         # 1 = device pointsize, so 12pt
+         label.font  = 1,
          layout = "circle",
          labels = labels      # Use the expression labels
   ); gc(); par(mfrow = c(1,1))
