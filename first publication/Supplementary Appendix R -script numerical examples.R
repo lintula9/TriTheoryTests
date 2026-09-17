@@ -57,13 +57,11 @@ for (i in 1:4) {
          esize       = 12,        # width of the strongest edge
          vsize       = 18,
          edge.width  = 1,
+         diag        = TRUE,      # always draw the diagonal (innovation variances)
          label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
          label.cex   = 1,         # 1 = device pointsize, so 12pt
          label.font  = 1,
-         mar = c(7,7,14,7))
-  title(paste("Simulated sample", i),
-        font.main = 1,
-        line      = -1)
+         mar = c(7,7,7,7))
 }
 dev.off()
 par(mfrow = c(1,1))
@@ -359,6 +357,7 @@ par(mfrow = c(1,1))
          esize       = 12,        # width of the strongest edge
          vsize       = 10,        # smaller than the other figures: 9 nodes
          edge.width  = 1,
+         diag        = TRUE,      # always draw the diagonal (innovation variances)
          label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
          label.cex   = 1,         # 1 = device pointsize, so 12pt
          label.font  = 1,
@@ -380,6 +379,7 @@ par(mfrow = c(1,1))
          esize       = 12,        # width of the strongest edge
          vsize       = 10,        # smaller than the other figures: 9 nodes
          edge.width  = 1,
+         diag        = TRUE,      # always draw the diagonal (innovation variances)
          label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
          label.cex   = 1,         # 1 = device pointsize, so 12pt
          label.font  = 1,
@@ -398,6 +398,7 @@ par(mfrow = c(1,1))
          esize       = 12,        # width of the strongest edge
          vsize       = 10,        # smaller than the other figures: 9 nodes
          edge.width  = 1,
+         diag        = TRUE,      # always draw the diagonal (innovation variances)
          label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
          label.cex   = 1,         # 1 = device pointsize, so 12pt
          label.font  = 1,
@@ -416,6 +417,7 @@ par(mfrow = c(1,1))
          esize       = 12,        # width of the strongest edge
          vsize       = 10,        # smaller than the other figures: 9 nodes
          edge.width  = 1,
+         diag        = TRUE,      # always draw the diagonal (innovation variances)
          label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
          label.cex   = 1,         # 1 = device pointsize, so 12pt
          label.font  = 1,
@@ -434,6 +436,7 @@ par(mfrow = c(1,1))
          esize       = 12,        # width of the strongest edge
          vsize       = 10,        # smaller than the other figures: 9 nodes
          edge.width  = 1,
+         diag        = TRUE,      # always draw the diagonal (innovation variances)
          label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
          label.cex   = 1,         # 1 = device pointsize, so 12pt
          label.font  = 1,

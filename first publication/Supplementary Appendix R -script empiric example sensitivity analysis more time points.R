@@ -306,7 +306,8 @@ qgraph(A,
        negCol      = "#D55E00",
        esize       = 12,        # width of the strongest edge
        vsize       = 18,
-       edge.width  = 1,       
+       edge.width  = 1,
+       diag        = TRUE,      # always draw the diagonal (innovation variances)
        label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
        label.cex   = 1,         # 1 = device pointsize, so 12pt
        label.font  = 1,
@@ -321,7 +322,8 @@ qgraph(Z,
        negCol      = "#D55E00",
        esize       = 12,        # width of the strongest edge
        vsize       = 18,
-       edge.width  = 1,       
+       edge.width  = 1,
+       diag        = TRUE,      # always draw the diagonal (innovation variances)
        label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
        label.cex   = 1,         # 1 = device pointsize, so 12pt
        label.font  = 1,
@@ -601,6 +603,7 @@ qgraph(A_7,
        esize       = 12,        # width of the strongest edge
        vsize       = 18,
        edge.width  = 1,
+       diag        = TRUE,      # always draw the diagonal (innovation variances)
        label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
        label.cex   = 1,         # 1 = device pointsize, so 12pt
        label.font  = 1,
@@ -616,6 +619,7 @@ qgraph(Z_7,
        esize       = 12,        # width of the strongest edge
        vsize       = 18,
        edge.width  = 1,
+       diag        = TRUE,      # always draw the diagonal (innovation variances)
        label.scale = FALSE,     # stop qgraph shrinking labels to fit the node
        label.cex   = 1,         # 1 = device pointsize, so 12pt
        label.font  = 1,

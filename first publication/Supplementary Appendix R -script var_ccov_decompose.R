@@ -333,7 +333,15 @@ var_ccov_decompose <- function(A,Z,time_points = 10) {
 
   eigenvals     <- sapply(0:time_points, function(t) eigen( var_ccov(A,Z,t) )$values)
   singularvals  <- sapply(0:time_points, function(t) svd(   var_ccov(A,Z,t  ) )$d )
-  ccorrcoefs    <- sapply(0:time_points, function(t) svd( MASS::ginv(var_ccov(A,Z,0)) %*% var_ccov(A,Z,t) %*% MASS::ginv(t(var_ccov(A,Z,0))) )$d ) 
+  # Canonical correlations between x_t and x_{t+Delta}: singular values of the whitened cross-covariance
+  # Sigma0^{-1/2} Sigma_Delta Sigma0^{-1/2}. The pseudo-inverse square root restricts to the range of
+  # Sigma0, so a low rank (indistinguishable) covariance is handled; the result is bounded by one.
+  Sigma0_inv_sqrt <- {
+    e    <- eigen((var_ccov(A,Z,0) + t(var_ccov(A,Z,0)))/2, symmetric = TRUE)
+    keep <- e$values > 1e-8 * max(e$values)
+    e$vectors[, keep, drop = FALSE] %*% diag(1/sqrt(e$values[keep]), sum(keep)) %*% t(e$vectors[, keep, drop = FALSE])
+  }
+  ccorrcoefs    <- sapply(0:time_points, function(t) svd( Sigma0_inv_sqrt %*% var_ccov(A,Z,t) %*% Sigma0_inv_sqrt )$d )
 
   colnames(eigenvals)    <- paste("Increment ",0:time_points)
   colnames(singularvals) <- paste("Increment ",0:time_points)
@@ -374,9 +382,6 @@ var_ccov_decompose <- function(A,Z,time_points = 10) {
          labels = 0:(length(x$singularvals)-1) )
   }
   if(answer == 4)  {
-    if(any(abs(x$canonical_correlations) > 1))
-    message("Note, that canonical correlations can become spurious near indistinguishability
-             due to low rank covariance.")
     matplot(t(x$canonical_correlations), type = "b", ylab = "Canonical correlation coefficient", 
             xlab = expression(paste("Increment in time ", Delta, "t")),
             xaxt = "n",
