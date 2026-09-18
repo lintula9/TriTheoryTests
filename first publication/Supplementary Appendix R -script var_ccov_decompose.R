@@ -328,8 +328,11 @@ var_ccov_decompose <- function(A,Z,time_points = 10) {
   all_sum     <- sapply(1:ncol(A), function(j){
                         sum(sapply(1:(time_points+1), function(i) comp[[i]]$values[j]))})
   total_sum   <- sum(sapply(1:(time_points+1), function(i) sum(comp[[i]]$values)))
-  cosine_i    <- sapply(1:(time_points+1), function(j) {
-    sapply(1:(time_points+1), function(i) abs( sum( comp[[i]]$vectors[,1] * comp[[j]]$vectors[,1] ) ) ) }, simplify = "matrix")
+  cosine_i    <- sapply(1:(time_points+1),
+    function(j) {
+    sapply(1:(time_points+1),
+           function(i) abs( sum( comp[[i]]$vectors[,1] * comp[[j]]$vectors[,1] ) ) ) },
+    simplify = "matrix")
 
   eigenvals     <- sapply(0:time_points, function(t) eigen( var_ccov(A,Z,t) )$values)
   singularvals  <- sapply(0:time_points, function(t) svd(   var_ccov(A,Z,t  ) )$d )
@@ -498,44 +501,121 @@ if(F){
 
 # Numerical examples, supplement. -------------------------------
 
-if (F) {
+if (T) {
   # VAR(1), indistinguishable from a 2 dimensional CF model.
-  # CFs rotate, causing a mixup in the 'largest' direction.
-  Rotation <- matrix(c(
-  cos(90*pi/180), -sin(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
-  sin(90*pi/180), cos(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 
-     nrow = 7, byrow = T)
-  Scaling <- diag(c(rep(0.7, times =2), rep(0, times = 5)))
-  A_4     <- Rotation %*% Scaling
+  # Two components shrink at different rates.
+  Scaling <- diag(c(0.7, rep(0.8, times = 6)))
+  A_4     <- Scaling
   # Create the innovation covariance via the eigendecomposition.
   direction_1 <- eigen(A_4)$vectors[,1]
   direction_2 <- eigen(A_4)$vectors[,2]
-  directions <- cbind(Re(direction_1),
-                      Re(direction_2),
-                      rep(0, times = 7),
-                      rep(0, times = 7),
-                      rep(0, times = 7),
-                      rep(0, times = 7),
-                      rep(0, times = 7))
-  unit_eigens <- matrix(c(
-                1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), 
-     nrow = 7, byrow = T)
-  Z_4 <- directions %*% unit_eigens %*% t(directions)
+  directions <- cbind(c(1,rep(0,times=6)),
+                      c(0,1,rep(0,times=5)))
+  uneven_eigens <- matrix(c(
+                2.0, 0.0,
+                0.0, 1.0), 
+     nrow = 2, byrow = T)
+  Z_4 <- directions %*% uneven_eigens %*% t(directions)
 
   parallel_C <- var_ccov_decompose(A_4,Z_4)
 
+  # VAR(1), in which two components shrink at different rates
+  Rotation <- matrix(c(
+            cos(90*pi/180), -sin(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
+            sin(90*pi/180),  cos(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0), 
+     nrow = 7, byrow = T)
+  # Scaling is uneven.
+  Scaling <- diag(c(0.8, rep(0.9, times = 6)))
+  A_5     <- Rotation %*% Scaling
+  # Same innovation covariance as above.
+  unit_eigens <- matrix(c(
+                1.0, 0.0,
+                0.0, 1.0), 
+     nrow = 2, byrow = T)
+  Z_5 <- directions %*% unit_eigens %*% t(directions)
 
+  parallel_D <- var_ccov_decompose(A_5,Z_5)
+
+  tiff(filename = "Figure_supplement_review.tiff", 
+       width    = 17, 
+       height   = 19, 
+       units    = "cm", 
+       res      = 300,
+       pointsize = 10)
+  
+  par(mfrow = c(2,2))
+  par(mar   = c(4,4,2,0.5))
+  if(!requireNamespace("viridisLite")) {install.packages("viridisLite")
+    library(viridisLite) } else library(viridisLite)
+  
+  # Panel A
+  matplot(t(parallel_C$singularvals), type = "n", 
+          ylab = "Singular value", 
+          main = "Components shrink at different rates",
+          font.main = 1,
+          col  = cividis(7),
+          xlab = expression(paste("Increment in time ", Delta, "t")),
+          xaxt = "n"); grid()
+  axis(1, labels = paste0(0:10),
+       at = 1:11)
+  matplot(t(abs(parallel_C$singularvals)), type = "b",
+          col  = cividis(7), add = T,
+          lty = 1)
+
+  # Panel B
+  matplot( parallel_C$subsequent_pair_congruencies , 
+           ylab = "",
+           xlab = expression(paste("Cross-covariance pair")),
+           type = "n",
+           ylim = c(0,1), main = "Largest component direction changes",
+           font.main = 1,
+           col  = cividis(6),
+           xaxt = "n"); grid()
+  axis(1, labels = paste0("(",0:10,", ",1:11,")"),
+       at = 1:11, cex.axis = 0.7)
+  matplot( parallel_C$subsequent_pair_congruencies,
+           type = "b",
+           add  = T,
+           col  = cividis(6))
+  
+  # Panel C
+  matplot(t(parallel_D$singularvals), type = "n", 
+          ylab = "Singular value", 
+          main = "Two components varying in size",
+          font.main = 1,
+          col  = cividis(7),
+          xlab = expression(paste("Increment in time ", Delta, "t")),
+          xaxt = "n"); grid()
+  axis(1, labels = paste0(0:10),
+       at = 1:11)
+  matplot(t(abs(parallel_D$singularvals)), type = "b",
+          col  = cividis(7), add = T,
+          lty = 1)
+
+  # Panel D
+
+  ## FIX TITLES
+  matplot( parallel_D$subsequent_pair_congruencies , 
+           ylab = "",
+           xlab = expression(paste("Cross-covariance pair")),
+           type = "n",
+           ylim = c(0,1), main = "Rotation alters congruency",
+           font.main = 1,
+           col  = cividis(6),
+           xaxt = "n"); grid()
+  axis(1, labels = paste0("(",0:10,", ",1:11,")"),
+       at = 1:11, cex.axis = 0.7)
+  matplot( parallel_D$subsequent_pair_congruencies,
+           type = "b",
+           add  = T,
+           col  = cividis(6))
+  
+  dev.off();gc()
 
 
 }
