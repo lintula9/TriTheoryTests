@@ -319,7 +319,13 @@ plot.rmsea_approximation <- function(x, ...) {
 
 # Main function of article: var_ccov_decompose --------------
 
-var_ccov_decompose <- function(A,Z,time_points = 10) {
+#' var_ccov_decompose
+#' @param: A: Coefficient matrix, stable.
+#' @param: Z Innovation covariance matrix.
+#' @param: time_points: The length of time horizon.
+#' @param: multiple_congruencies: Should the congruencies be compute for other than the eigenvector of the largest component?
+var_ccov_decompose <- function(A,Z,time_points  = 10,
+                               compute_multiple_congruencies = F) {
   
   if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting.")
   if(any(round(eigen(var_ccov(A,Z,0))$values, digits = 10) == 0)) simpleWarning("Near zero eigenvalues detected in predicted the within time point covariance. Generalized inverse used where needed.")
@@ -333,6 +339,17 @@ var_ccov_decompose <- function(A,Z,time_points = 10) {
     sapply(1:(time_points+1),
            function(i) abs( sum( comp[[i]]$vectors[,1] * comp[[j]]$vectors[,1] ) ) ) },
     simplify = "matrix")
+
+  # Multiple cosine similarities (congruencies)
+  multiple_congruencies = NULL
+  if(compute_multiple_congruencies) {
+    multiple_congruencies  <- lapply(0:time_points,
+        FUN = \(i) crossprod((var_ccov(A,Z,i)   |> eigen())$vectors,
+                             (var_ccov(A,Z,i+1) |> eigen())$vectors) |>
+          abs()
+      ) |> setNames(paste0("(",0:time_points,", ",
+                           1:(time_points + 1),")"))
+  }
 
   eigenvals     <- sapply(0:time_points, function(t) eigen( var_ccov(A,Z,t) )$values)
   singularvals  <- sapply(0:time_points, function(t) svd(   var_ccov(A,Z,t  ) )$d )
@@ -356,13 +373,14 @@ var_ccov_decompose <- function(A,Z,time_points = 10) {
     canonical_correlations        = ccorrcoefs,
     min_factor_congruency         = min(cosine_i),
     all_factor_congruencies       = cosine_i,
-    subsequent_pair_congruencies  = mgcv::sdiag(cosine_i,1) )
+    subsequent_pair_congruencies  = mgcv::sdiag(cosine_i,1),
+    multiple_congruencies         = multiple_congruencies )
   
   class(result) <- c("var_ccov_decompose", "list")
   
   return(result)
     
-   }
+}
 
   plot.var_ccov_decompose <- function(x, ...) {
   answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies, 3: singular values, 4: Canonical correlation.")
@@ -501,7 +519,7 @@ if(F){
 
 # Numerical examples, supplement. -------------------------------
 
-if (T) {
+if (F) {
   # VAR(1), indistinguishable from a 2 dimensional CF model.
   # Two components shrink at different rates.
   Scaling <- diag(c(0.7, rep(0.8, times = 6)))
@@ -517,19 +535,21 @@ if (T) {
      nrow = 2, byrow = T)
   Z_4 <- directions %*% uneven_eigens %*% t(directions)
 
-  parallel_C <- var_ccov_decompose(A_4,Z_4)
+  parallel_C <- var_ccov_decompose(A_4,Z_4,
+                                   compute_multiple_congruencies = T)
 
-  # VAR(1), in which two components shrink at different rates
+  # VAR(1), in which two components exchange place as largest.
+  angle <- 90
   Rotation <- matrix(c(
-            cos(90*pi/180), -sin(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
-            sin(90*pi/180),  cos(90*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
+    cos(angle*pi/180), -sin(angle*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
+    sin(angle*pi/180),  cos(angle*pi/180), 0.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0), 
      nrow = 7, byrow = T)
-  # Scaling is uneven.
+  # Scaling.
   Scaling <- diag(c(0.8, rep(0.9, times = 6)))
   A_5     <- Rotation %*% Scaling
   # Same innovation covariance as above.
@@ -539,7 +559,7 @@ if (T) {
      nrow = 2, byrow = T)
   Z_5 <- directions %*% unit_eigens %*% t(directions)
 
-  parallel_D <- var_ccov_decompose(A_5,Z_5)
+  parallel_D <- var_ccov_decompose(A_5,Z_5, compute_multiple_congruencies = T)
 
   tiff(filename = "Figure_supplement_review.tiff", 
        width    = 17, 
@@ -616,6 +636,9 @@ if (T) {
            col  = cividis(6))
   
   dev.off();gc()
+
+  parallel_E <- var_ccov_decompose(A_5,Z_5, 
+                                   compute_multiple_congruencies = T)
 
 
 }
