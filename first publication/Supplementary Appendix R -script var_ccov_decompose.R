@@ -319,13 +319,9 @@ plot.rmsea_approximation <- function(x, ...) {
 
 # Main function of article: var_ccov_decompose --------------
 
-#' var_ccov_decompose
-#' @param: A: Coefficient matrix, stable.
-#' @param: Z Innovation covariance matrix.
-#' @param: time_points: The length of time horizon.
-#' @param: multiple_congruencies: Should the congruencies be compute for other than the eigenvector of the largest component?
+# var_ccov_decompose
 var_ccov_decompose <- function(A,Z,time_points  = 10,
-                               compute_multiple_congruencies = F) {
+                               all_congruencies = F) {
   
   if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting.")
   if(any(round(eigen(var_ccov(A,Z,0))$values, digits = 10) == 0)) simpleWarning("Near zero eigenvalues detected in predicted the within time point covariance. Generalized inverse used where needed.")
@@ -342,20 +338,20 @@ var_ccov_decompose <- function(A,Z,time_points  = 10,
 
   # Multiple cosine similarities (congruencies)
   multiple_congruencies = NULL
-  if(compute_multiple_congruencies) {
+  if(all_congruencies) {
     multiple_congruencies  <- lapply(0:time_points,
         FUN = \(i) crossprod((var_ccov(A,Z,i)   |> eigen())$vectors,
                              (var_ccov(A,Z,i+1) |> eigen())$vectors) |>
-          abs()
+          abs() # When imaginary eigenvectors are analysed, this is the Hermitian angle.
       ) |> setNames(paste0("(",0:time_points,", ",
                            1:(time_points + 1),")"))
+    # Angular similarities for a standardized 
+    angular_similarities     <- lapply(multiple_congruencies, \(x) 1 - (acos(x)/pi))
   }
 
   eigenvals     <- sapply(0:time_points, function(t) eigen( var_ccov(A,Z,t) )$values)
   singularvals  <- sapply(0:time_points, function(t) svd(   var_ccov(A,Z,t  ) )$d )
   # Canonical correlations between x_t and x_{t+Delta}: singular values of the whitened cross-covariance
-  # Sigma0^{-1/2} Sigma_Delta Sigma0^{-1/2}. The pseudo-inverse square root restricts to the range of
-  # Sigma0, so a low rank (indistinguishable) covariance is handled; the result is bounded by one.
   Sigma0_inv_sqrt <- {
     e    <- eigen((var_ccov(A,Z,0) + t(var_ccov(A,Z,0)))/2, symmetric = TRUE)
     keep <- e$values > 1e-8 * max(e$values)
@@ -374,12 +370,11 @@ var_ccov_decompose <- function(A,Z,time_points  = 10,
     min_factor_congruency         = min(cosine_i),
     all_factor_congruencies       = cosine_i,
     subsequent_pair_congruencies  = mgcv::sdiag(cosine_i,1),
-    multiple_congruencies         = multiple_congruencies )
+    all_congruencies              = multiple_congruencies)
   
   class(result) <- c("var_ccov_decompose", "list")
   
   return(result)
-    
 }
 
   plot.var_ccov_decompose <- function(x, ...) {
@@ -409,8 +404,7 @@ var_ccov_decompose <- function(A,Z,time_points  = 10,
             ...)
     axis(1, at  = 1:length( x$canonical_correlations), 
          labels = 0:(length(x$canonical_correlations)-1) )
-  }
-  }
+  }}
 
 
 # Numerical examples, also used in main text. -------------------------------
@@ -453,7 +447,7 @@ if(F){
     library(viridisLite) } else library(viridisLite)
   
   #A
-  parallel_A <- var_ccov_decompose(A_2,Z_2)
+  parallel_A <- var_ccov_decompose(A_2,Z_2,all_congruencies=T)
   matplot(t(parallel_A$singularvals), type = "n", 
           ylab = "Singular value", 
           main = "Distinguishable cross-covariance",
