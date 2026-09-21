@@ -708,7 +708,7 @@ if (F) {
            ylab = "",
            xlab = expression(paste("Cross-covariance pair")),
            type = "n",
-           ylim = c(0,1), main = "Congruency horizon from t = 0",
+           ylim = c(0,1), main = "Congruency development t = 0",
            font.main = 1,
            col  = cividis(6),
            xaxt = "n"); grid()
@@ -721,7 +721,71 @@ if (F) {
   dev.off();gc()
   }
 
+  # Weak eigenvalue or singular value separation. ----
+  {
+  scaling <- diag(c(0.9, 0.9, 0.900000001), ncol = 3, nrow = 3)
+  Z_7     <- diag(1,nrow=3,ncol=3)
+  A_7     <- scaling
 
+  parallel_F <- var_ccov_decompose(A_7,Z_7, time_points = 100,
+                                   all_congruencies = T)
+  tiff(filename = "Figure_supplement_weakseparation.tiff", 
+       width    = 17, 
+       height   = 19, 
+       units    = "cm", 
+       res      = 300,
+       pointsize = 10)
+  
+  par(mfrow = c(2,2))
+  par(mar   = c(4,4,2,0.5))
+  if(!requireNamespace("viridisLite")) {install.packages("viridisLite")
+    library(viridisLite) } else library(viridisLite)
+    # Panel A
+  matplot(t(parallel_F$singularvals), type = "n", 
+          ylab = "Singular value", 
+          main = "Three comparably large components",
+          font.main = 1,
+          col  = cividis(7),
+          xlab = expression(paste("Increment in time ", Delta, "t")),
+          xaxt = "n"); grid()
+  axis(1, labels = paste0(0:100),
+       at = 1:101)
+  matplot(t(abs(parallel_F$singularvals)), type = "b",
+          col  = cividis(7), add = T,
+          lty = 1)
+  # Panel B
+  matplot( parallel_E$subsequent_pair_congruencies , 
+           ylab = "",
+           xlab = expression(paste("Cross-covariance pair")),
+           type = "n",
+           ylim = c(0,1), main = "Subsequent congruencies",
+           font.main = 1,
+           col  = cividis(6),
+           xaxt = "n"); grid()
+  axis(1, labels = paste0("(",0:100,", ",1:101,")"),
+       at = 1:101, cex.axis = 0.7)
+  matplot( parallel_E$subsequent_pair_congruencies,
+           type = "b",
+           add  = T,
+           col  = cividis(6))
+    # Panel C
+
+  matplot( parallel_F$all_factor_congruencies[1,] , 
+           ylab = "",
+           xlab = expression(paste("Cross-covariance pair")),
+           type = "n",
+           ylim = c(0,1), main = "Congruency horizon from t = 0",
+           font.main = 1,
+           col  = cividis(6),
+           xaxt = "n"); grid()
+  axis(1, labels = paste0("(",0,", ",0:100,")"),
+       at = 0:100, cex.axis = 0.7)
+  matplot( parallel_F$all_factor_congruencies[1,],
+           type = "b",
+           add  = T,
+           col  = cividis(6))
+  dev.off();gc()
+  }
 
 
   }
