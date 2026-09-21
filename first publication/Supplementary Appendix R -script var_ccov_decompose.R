@@ -377,8 +377,14 @@ var_ccov_decompose <- function(A,Z,time_points  = 10,
   return(result)
 }
 
-  plot.var_ccov_decompose <- function(x, ...) {
-  answer <- readline("What do you want to plot? 1: eigenvalues, 2: congruencies, 3: singular values, 4: Canonical correlation.")
+plot.var_ccov_decompose <- function(x, ...) {
+  answer <- readline(
+  "What do you want to plot?
+    1: eigenvalues,
+    2: subsequent congruencies,
+    3: singular values,
+    4: Canonical correlation,
+    5: congruency horizon.")
   if(answer == 1)  {
     matplot((t(x$eigenvals)), type = "b", ylab = "Eigenvalue", 
                            xlab = expression(paste("Increment in time ", Delta, "t")),
@@ -404,7 +410,10 @@ var_ccov_decompose <- function(A,Z,time_points  = 10,
             ...)
     axis(1, at  = 1:length( x$canonical_correlations), 
          labels = 0:(length(x$canonical_correlations)-1) )
-  }}
+  }
+  if(answer == 5)  matplot(x$all_factor_congruencies[1,], ylim = c(0,1), type = "b", ylab = "Congruency coefficient", 
+                           xlab = expression(paste("T = 0, T = ", Delta)), ...)
+  }
 
 
 # Numerical examples, also used in main text. -------------------------------
@@ -530,7 +539,7 @@ if (F) {
   Z_4 <- directions %*% uneven_eigens %*% t(directions)
 
   parallel_C <- var_ccov_decompose(A_4,Z_4,
-                                   compute_multiple_congruencies = T)
+                                   all_congruencies = T)
 
   # VAR(1), in which two components exchange place as largest.
   angle <- 90
@@ -553,7 +562,7 @@ if (F) {
      nrow = 2, byrow = T)
   Z_5 <- directions %*% unit_eigens %*% t(directions)
 
-  parallel_D <- var_ccov_decompose(A_5,Z_5, compute_multiple_congruencies = T)
+  parallel_D <- var_ccov_decompose(A_5,Z_5, all_congruencies = T)
 
   tiff(filename = "Figure_supplement_review.tiff", 
        width    = 17, 
@@ -612,8 +621,6 @@ if (F) {
           lty = 1)
 
   # Panel D
-
-  ## FIX TITLES
   matplot( parallel_D$subsequent_pair_congruencies , 
            ylab = "",
            xlab = expression(paste("Cross-covariance pair")),
@@ -631,8 +638,90 @@ if (F) {
   
   dev.off();gc()
 
-  parallel_E <- var_ccov_decompose(A_5,Z_5, 
-                                   compute_multiple_congruencies = T)
+  # One component that changes direction. ----
+  {
+  angle      <- 90
+  Rotation_1 <- matrix(c(
+    cos(angle*pi/180), -sin(angle*pi/180), 0.0,
+    sin(angle*pi/180),  cos(angle*pi/180), 0.0,
+                                 0.0, 0.0, 1.0),
+     nrow = 3, byrow = T)
+  Rotation_2 <- matrix(c(
+    1.0, 0.0, 0.0,
+    0.0, cos(angle*pi/180), -sin(angle*pi/180),
+    0.0, sin(angle*pi/180),  cos(angle*pi/180)),
+     nrow = 3, byrow = T)
+  Rotation_3 <- matrix(c(
+      cos(angle*pi/180), 0.0, sin(angle*pi/180),
+      0.0, 1.0, 0.0,
+     -sin(angle*pi/180), 0.0,  cos(angle*pi/180)),
+     nrow = 3, byrow = T)
+  scaling <- diag(c(0.4,0.9,0.9), ncol = 3, nrow = 3)
+  lambdas <- tcrossprod(c(1,rep(0,times=2)))
+  Z_6     <- tcrossprod(lambdas)
+  A_6     <- (Rotation_1 %*% Rotation_2 %*% Rotation_3 %*% scaling) 
+
+  parallel_E <- var_ccov_decompose(A_6,Z_6, 
+                                   all_congruencies = T)
+  tiff(filename = "Figure_supplement_horizonvssubsequent.tiff", 
+       width    = 17, 
+       height   = 19, 
+       units    = "cm", 
+       res      = 300,
+       pointsize = 10)
+  
+  par(mfrow = c(2,2))
+  par(mar   = c(4,4,2,0.5))
+  if(!requireNamespace("viridisLite")) {install.packages("viridisLite")
+    library(viridisLite) } else library(viridisLite)
+    # Panel A
+  matplot(t(parallel_E$singularvals), type = "n", 
+          ylab = "Singular value", 
+          main = "One component is dominant",
+          font.main = 1,
+          col  = cividis(7),
+          xlab = expression(paste("Increment in time ", Delta, "t")),
+          xaxt = "n"); grid()
+  axis(1, labels = paste0(0:10),
+       at = 1:11)
+  matplot(t(abs(parallel_E$singularvals)), type = "b",
+          col  = cividis(7), add = T,
+          lty = 1)
+  # Panel B
+  matplot( parallel_E$subsequent_pair_congruencies , 
+           ylab = "",
+           xlab = expression(paste("Cross-covariance pair")),
+           type = "n",
+           ylim = c(0,1), main = "Subsequent congruencies",
+           font.main = 1,
+           col  = cividis(6),
+           xaxt = "n"); grid()
+  axis(1, labels = paste0("(",0:10,", ",1:11,")"),
+       at = 1:11, cex.axis = 0.7)
+  matplot( parallel_E$subsequent_pair_congruencies,
+           type = "b",
+           add  = T,
+           col  = cividis(6))
+    # Panel C
+
+  matplot( parallel_E$all_factor_congruencies[1,] , 
+           ylab = "",
+           xlab = expression(paste("Cross-covariance pair")),
+           type = "n",
+           ylim = c(0,1), main = "Congruency horizon from t = 0",
+           font.main = 1,
+           col  = cividis(6),
+           xaxt = "n"); grid()
+  axis(1, labels = paste0("(",0,", ",0:10,")"),
+       at = 0:10, cex.axis = 0.7)
+  matplot( parallel_E$all_factor_congruencies[1,],
+           type = "b",
+           add  = T,
+           col  = cividis(6))
+  dev.off();gc()
+  }
 
 
-}
+
+
+  }
