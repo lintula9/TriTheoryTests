@@ -3,7 +3,7 @@
 
 # First, run (source) the whole script. 
 # var_ccov_decompose takes the coefficient matrix and innovation covariance as arguments.
-# You can define time_points used in the computation. 
+# You can define time_points used in the computation and ask to compute all congruencies.
 # RMSEA approximation function is also provided (experimental).
 
 #####################################################
