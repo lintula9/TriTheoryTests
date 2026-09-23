@@ -787,5 +787,58 @@ if (F) {
   dev.off();gc()
   }
 
-
+  # Within time-point covariance is insufficient. ----
+  {
+  angle      <- 15
+  Rotation_1 <- matrix(c(
+    cos(angle*pi/180), -sin(angle*pi/180), 0.0,
+    sin(angle*pi/180),  cos(angle*pi/180), 0.0,
+                                 0.0, 0.0, 1.0),
+    nrow = 3, byrow = T)
+  scaling <- diag(c(0.0, 0.9, 0.9), ncol = 3, nrow = 3)
+  Z_8     <- diag(c(1,0,0),ncol=3,nrow=3)
+  A_8     <- scaling %*% Rotation_1
+  parallel_G <- var_ccov_decompose(A_8,Z_8, time_points = 10)
+  
+  tiff(filename = "Figure_supplement_withininsufficient.tiff", 
+       width    = 17, 
+       height   = 19, 
+       units    = "cm", 
+       res      = 300,
+       pointsize = 10)
+  
+  par(mfrow = c(2,2))
+  par(mar   = c(4,4,2,0.5))
+  if(!requireNamespace("viridisLite")) {install.packages("viridisLite")
+    library(viridisLite) } else library(viridisLite)
+    # Panel A
+  matplot(t(parallel_G$singularvals), type = "n", 
+          ylab = "Singular value", 
+          main = "The second component vanishes in cross-covariance",
+          font.main = 1,
+          col  = cividis(7),
+          xlab = expression(paste("Increment in time ", Delta, "t")),
+          xaxt = "n"); grid()
+  axis(1, labels = paste0(0:100),
+       at = 1:101)
+  matplot(t(abs(parallel_G$singularvals)), type = "b",
+          col  = cividis(7), add = T,
+          lty = 1)
+  # Panel B
+  matplot( parallel_G$subsequent_pair_congruencies , 
+           ylab = "",
+           xlab = expression(paste("Cross-covariance pair")),
+           type = "n",
+           ylim = c(0,1), main = "Subsequent congruencies",
+           font.main = 1,
+           col  = cividis(6),
+           xaxt = "n"); grid()
+  axis(1, labels = paste0("(",0:100,", ",1:101,")"),
+       at = 1:101, cex.axis = 0.7)
+  matplot( parallel_G$subsequent_pair_congruencies,
+           type = "b",
+           add  = T,
+           col  = cividis(6))
+  dev.off();gc()
+  }
   }
