@@ -321,7 +321,9 @@ plot.rmsea_approximation <- function(x, ...) {
 
 # var_ccov_decompose
 var_ccov_decompose <- function(A,Z,time_points  = 10,
-                               all_congruencies = F) {
+                               all_congruencies = F,
+                               svd_congruencies = F,
+                               A_rotation       = F) {
   
   if(any(abs(eigen(A)$values) > 1)) simpleError("Non-stationary A, aborting.")
   if(any(round(eigen(var_ccov(A,Z,0))$values, digits = 10) == 0)) simpleWarning("Near zero eigenvalues detected in predicted the within time point covariance. Generalized inverse used where needed.")
@@ -346,6 +348,20 @@ var_ccov_decompose <- function(A,Z,time_points  = 10,
       ) |> setNames(paste0("(",0:time_points,", ",
                            1:(time_points + 1),")"))
   }
+  
+  # svd_congruency is experimental, not recommended.
+  svd_cong = NULL
+  if( svd_congruencies ) {
+    svd_cong = lapply(0:time_points, \(i) {svd_ <- svd(var_ccov(A,Z,i)); return(crossprod(svd_$u,svd_$v))})
+  }
+
+  # Rotation of the within time point eigenvectors:
+  rotation_effect = NULL
+  if(A_rotation) {
+    R     <- with(svd(A), tcrossprod(u,v))
+    evecs <- eigen(var_ccov(A,Z,0))$vectors
+    rotation_effect <- crossprod(evecs, R %*% evecs)
+  }
 
   eigenvals     <- sapply(0:time_points, function(t) eigen( var_ccov(A,Z,t) )$values)
   singularvals  <- sapply(0:time_points, function(t) svd(   var_ccov(A,Z,t  ) )$d )
@@ -368,7 +384,9 @@ var_ccov_decompose <- function(A,Z,time_points  = 10,
     min_factor_congruency         = min(cosine_i),
     all_factor_congruencies       = cosine_i,
     subsequent_pair_congruencies  = mgcv::sdiag(cosine_i,1),
-    all_congruencies              = multiple_congruencies)
+    all_congruencies              = multiple_congruencies,
+    svd_congruencies              = svd_cong,
+    A_rotation                    = rotation_effect)
   
   class(result) <- c("var_ccov_decompose", "list")
   
@@ -379,10 +397,11 @@ plot.var_ccov_decompose <- function(x, ...) {
   answer <- readline(
   "What do you want to plot?
     1: eigenvalues,
-    2: subsequent congruencies,
+    2: subsequent eigen congruencies,
     3: singular values,
-    4: Canonical correlation,
-    5: congruency horizon.")
+    4: canonical correlations,
+    5: eigen congruency horizon,
+    6: singular vector congruencies.")
   if(answer == 1)  {
     matplot((t(x$eigenvals)), type = "b", ylab = "Eigenvalue", 
                            xlab = expression(paste("Increment in time ", Delta, "t")),
@@ -392,7 +411,7 @@ plot.var_ccov_decompose <- function(x, ...) {
          labels = 0:(length(x$eigenvals)-1) )
     }
   if(answer == 2)  matplot(x$subsequent_pair_congruencies,  ylim = c(0,1), type = "b", ylab = "Congruency coefficient", 
-                           xlab = "T, T+1", ...)
+                           xlab = "(t, t+1)", ...)
   if(answer == 3)  {
     matplot(t(x$singularvals), type = "b", ylab = "Singular value", 
             xlab = expression(paste("Increment in time ", Delta, "t")),
@@ -410,8 +429,13 @@ plot.var_ccov_decompose <- function(x, ...) {
          labels = 0:(length(x$canonical_correlations)-1) )
   }
   if(answer == 5)  matplot(x$all_factor_congruencies[1,], ylim = c(0,1), type = "b", ylab = "Congruency coefficient", 
-                           xlab = expression(paste("T = 0, T = ", Delta)), ...)
+                           xlab = expression(paste("(t = 0, t = ", Delta,")")), ...)
+  if(answer == 6) {
+    if(is.null(x$svd_congruencies)) {simpleError("No SVD congruencies were computed.")}
+    matplot(x$svd_congruencies |> sapply(\(x) x[1,1]), ylim = c(-1,1), type = "b", ylab = "Congruency coefficient", 
+                           xlab = expression(paste("(t, t+1", Delta,")")), ...)
   }
+}
 
 
 # Numerical examples, also used in main text. -------------------------------
@@ -434,7 +458,7 @@ if(F){
   A_2     <- Rotation %*% Scaling
   Z_2     <- diag(7)
   
-  # VAR(1), indistinguighable
+  # VAR(1), indistinguishable
   lambdas <- tcrossprod(seq(0.1,0.7,length.out = 7))
   A_3     <- (0.5 *     lambdas ) # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
   Z_3     <- tcrossprod(lambdas)  # + matrix(rnorm(7*7, sd = 0.1), ncol = 7) 
@@ -454,7 +478,7 @@ if(F){
     library(viridisLite) } else library(viridisLite)
   
   #A
-  parallel_A <- var_ccov_decompose(A_2,Z_2,all_congruencies=T)
+  parallel_A <- var_ccov_decompose(A_2,Z_2,A_rotation = T)
   matplot(t(parallel_A$singularvals), type = "n", 
           ylab = "Singular value", 
           main = "Distinguishable cross-covariance",
@@ -469,7 +493,7 @@ if(F){
           lty = 1)
   
   #B
-  parallel_B <- var_ccov_decompose(A_3, Z_3)
+  parallel_B <- var_ccov_decompose(A_3, Z_3,A_rotation=T)
   matplot(t(parallel_B$singularvals), type = "n", 
           ylab = "",
           main = "Perfectly indistinguishable cross-covariance",
@@ -537,7 +561,7 @@ if (F) {
   Z_4 <- directions %*% uneven_eigens %*% t(directions)
 
   parallel_C <- var_ccov_decompose(A_4,Z_4,
-                                   all_congruencies = T)
+                                   all_congruencies = T, svd_congruencies = T)
 
   # VAR(1), in which two components exchange place as largest.
   angle <- 90
