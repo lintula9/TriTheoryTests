@@ -345,8 +345,6 @@ var_ccov_decompose <- function(A,Z,time_points  = 10,
           abs() # When imaginary eigenvectors are analysed, this is the Hermitian angle.
       ) |> setNames(paste0("(",0:time_points,", ",
                            1:(time_points + 1),")"))
-    # Angular similarities for a standardized 
-    angular_similarities     <- lapply(multiple_congruencies, \(x) 1 - (acos(x)/pi))
   }
 
   eigenvals     <- sapply(0:time_points, function(t) eigen( var_ccov(A,Z,t) )$values)
